@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет ОСТРОВ</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        input[type="tel"], input[type="password"], button {
+            width: 100%; padding: 10px; margin: 8px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { opacity: 0.8; }
+        .hidden { display: none; }
+        .error { color: red; margin-top: 10px; }
+        .profile-info p { margin: 5px 0; }
+        .profile-info strong { color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏝️ ОСТРОВ — Личный кабинет</h1>
+
+        <!-- Форма входа -->
+        <div id="login-form">
+            <h2>Вход</h2>
+            <input type="tel" id="phone" placeholder="Номер телефона" required>
+            <input type="password" id="password" placeholder="Пароль" required>
+            <button onclick="login()">Войти</button>
+            <div id="login-error" class="error hidden"></div>
+        </div>
+
+        <!-- Личный кабинет -->
+        <div id="profile-view" class="hidden">
+            <h2>Добро пожаловать, <span id="profile-full_name"></span>!</h2>
+            <div class="profile-info">
+                <p><strong>Город:</strong> <span id="profile-city"></span></p>
+                <p><strong>Телефон:</strong> <span id="profile-phone"></span></p>
+                <p><strong>Мечта:</strong> <span id="profile-dream"></span></p>
+            </div>
+            <button onclick="logout()">Выйти</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://23.172.217.180:8000'; // <-- Укажи свой IP API-сервера
+        let currentUser = null; // Здесь будем хранить данные текущего пользователя
+
+        async function login() {
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.classList.add('hidden'); // Скрыть предыдущие ошибки
+
+            try {
+                // Отправляем логин и пароль на API
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    errorDiv.innerText = errorData.detail || 'Ошибка входа.';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                currentUser = await response.json(); // Сохраняем данные пользователя
+                showProfile(); // Показываем личный кабинет
+
+            } catch (error) {
+                errorDiv.innerText = 'Не удалось подключиться к серверу.';
+                errorDiv.classList.remove('hidden');
+                console.error('Ошибка входа:', error);
+            }
+        }
+
+        async function showProfile() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('profile-view').classList.remove('hidden');
+
+            // Заполняем данные из currentUser
+            document.getElementById('profile-full_name').innerText = currentUser.full_name;
+            document.getElementById('profile-city').innerText = currentUser.city;
+            document.getElementById('profile-phone').innerText = currentUser.phone;
+            document.getElementById('profile-dream').innerText = currentUser.dream || 'Мечта не указана'; // Пока заглушка
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('phone').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // Проверяем, есть ли уже данные пользователя (например, из сессии)
+        // Пока не реализовано, но для будущего
+        // if (localStorage.getItem('userToken')) {
+        //     // Попытаться загрузить профиль
+        //     // showProfile();
+        // }
+    </script>
+</body>
+</html>
