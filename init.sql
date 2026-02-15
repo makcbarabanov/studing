@@ -1,11 +1,26 @@
+-- Актуальная схема базы данных ОСТРОВ
+
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    full_name VARCHAR(100),
+    name VARCHAR(100),
+    surname VARCHAR(100),
     phone VARCHAR(20) UNIQUE,
-    city VARCHAR(50),
+    city VARCHAR(100),
     password_hash TEXT
+    -- Тут могут быть и другие поля, которые мы видели в DBeaver, но это основные
 );
 
--- Пароль: my_pass_123 (bcrypt hash)
-INSERT INTO users (full_name, phone, city, password_hash) 
-VALUES ('Максим Барабанов', '89998884433', 'Санкт-Петербург', '$2b$12$jdywcfCmp0916Dtl/zeumutWTZjjo.Z5tyUsJ03yGXkys8zruCB5C');
+CREATE TABLE dreams (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    dream TEXT,
+    date DATE DEFAULT CURRENT_DATE
+);
+
+-- Тестовые данные
+-- Пароль '123' (в реальности должен быть хеш)
+INSERT INTO users (name, surname, phone, city, password_hash) 
+VALUES ('Макс', 'Барабанов', '89998884433', 'Санкт-Петербург', '123');
+
+INSERT INTO dreams (user_id, dream) 
+VALUES (1, 'Запустить соцсеть Остров');
