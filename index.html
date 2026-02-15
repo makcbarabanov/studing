@@ -9,7 +9,7 @@
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         h1, h2 { color: #333; }
-        input[type="tel"], input[type="password"], button {
+        input[type="tel"], input[type="password"], input[type="text"], button {
             width: 100%; padding: 10px; margin: 8px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
         }
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
@@ -18,6 +18,7 @@
         .error { color: red; margin-top: 10px; }
         .profile-info p { margin: 5px 0; }
         .profile-info strong { color: #555; }
+        a { color: #2196F3; }
     </style>
 </head>
 <body>
@@ -30,7 +31,21 @@
             <input type="tel" id="phone" placeholder="Номер телефона" required>
             <input type="password" id="password" placeholder="Пароль" required>
             <button onclick="login()">Войти</button>
+            <p style="margin-top: 12px;"><a href="#" onclick="showRegisterForm(); return false;">Нет аккаунта? Зарегистрироваться</a></p>
             <div id="login-error" class="error hidden"></div>
+        </div>
+
+        <!-- Форма регистрации -->
+        <div id="register-form" class="hidden">
+            <h2>Регистрация</h2>
+            <input type="text" id="reg-name" placeholder="Имя" required>
+            <input type="text" id="reg-surname" placeholder="Фамилия" required>
+            <input type="text" id="reg-city" placeholder="Город">
+            <input type="tel" id="reg-phone" placeholder="Номер телефона" required>
+            <input type="password" id="reg-password" placeholder="Пароль" required>
+            <button type="button" onclick="register()">Зарегистрироваться</button>
+            <p style="margin-top: 12px;"><a href="#" onclick="showLoginForm(); return false;">← Назад к входу</a></p>
+            <div id="register-error" class="error hidden"></div>
         </div>
 
         <!-- Личный кабинет -->
@@ -84,19 +99,92 @@
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
 
-            // Заполняем данные из currentUser
+            // 1. Заполняем профиль (то, что пришло при входе)
             document.getElementById('profile-full_name').innerText = currentUser.full_name;
             document.getElementById('profile-city').innerText = currentUser.city;
             document.getElementById('profile-phone').innerText = currentUser.phone;
-            document.getElementById('profile-dream').innerText = currentUser.dream || 'Мечта не указана'; // Пока заглушка
+
+            // 2. Идём за мечтами! (Дополнительный запрос)
+            try {
+                const response = await fetch(`${API_BASE_URL}/dreams?user_id=${currentUser.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.dreams && data.dreams.length > 0) {
+                        document.getElementById('profile-dream').innerText = data.dreams.join(', ');
+                    } else {
+                        document.getElementById('profile-dream').innerText = "Пока нет записанных мечт";
+                    }
+                } else {
+                    document.getElementById('profile-dream').innerText = "Ошибка загрузки";
+                }
+            } catch (error) {
+                console.error("Не удалось загрузить мечты", error);
+                document.getElementById('profile-dream').innerText = "Ошибка загрузки";
+            }
         }
 
         function logout() {
             currentUser = null;
             document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById('register-form').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
             document.getElementById('phone').value = '';
             document.getElementById('password').value = '';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('register-error').classList.add('hidden');
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-surname').value = '';
+            document.getElementById('reg-phone').value = '';
+            document.getElementById('reg-city').value = '';
+            document.getElementById('reg-password').value = '';
+        }
+
+        function showLoginForm() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('register-error').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        async function register() {
+            const data = {
+                name: document.getElementById('reg-name').value.trim(),
+                surname: document.getElementById('reg-surname').value.trim(),
+                phone: document.getElementById('reg-phone').value.trim(),
+                city: document.getElementById('reg-city').value.trim(),
+                password: document.getElementById('reg-password').value
+            };
+            const errorDiv = document.getElementById('register-error');
+            errorDiv.classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    errorDiv.innerText = err.detail || 'Ошибка регистрации';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                // После успеха — автоматически входим
+                document.getElementById('phone').value = data.phone;
+                document.getElementById('password').value = data.password;
+                showLoginForm();
+                await login();
+            } catch (e) {
+                errorDiv.innerText = 'Не удалось подключиться к серверу.';
+                errorDiv.classList.remove('hidden');
+            }
         }
 
         // Проверяем, есть ли уже данные пользователя (например, из сессии)
