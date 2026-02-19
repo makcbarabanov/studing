@@ -49,6 +49,24 @@ class UserUpdate(BaseModel):
     city: Optional[str] = None
     password: Optional[str] = None
 
+class DreamCreate(BaseModel):
+    user_id: int
+    dream: str
+    status: Optional[str] = "planned"
+    deadline: Optional[str] = None  # YYYY-MM-DD
+
+class DreamUpdate(BaseModel):
+    dream: Optional[str] = None
+    status: Optional[str] = None
+    deadline: Optional[str] = None  # YYYY-MM-DD or null to clear
+
+class StepCreate(BaseModel):
+    title: str
+
+class StepUpdate(BaseModel):
+    title: Optional[str] = None
+    completed: Optional[bool] = None
+
 def get_db_connection():
     """Создаёт мост к Складу (PostgreSQL) используя данные из .env"""
     return psycopg2.connect(
@@ -152,46 +170,69 @@ def get_dreams(user_id: int):
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Сначала пробуем минимальную схему (dream, status) — как в твоей БД
+            # Запросы по приоритету: без deadline, потом с deadline; поддержка dream и dream_text
             try:
                 cur.execute(
-                    "SELECT id, dream, status FROM dreams WHERE user_id = %s ORDER BY id",
+                    "SELECT id, dream, status, category, price FROM dreams WHERE user_id = %s ORDER BY id",
                     (user_id,),
                 )
             except psycopg2.ProgrammingError:
+                conn.rollback()
                 try:
-                    cur.execute("""
-                        SELECT id, dream,
-                               COALESCE(NULLIF(TRIM(title), ''), dream, '') AS title,
-                               COALESCE(description, dream, '') AS description,
-                               image_url, COALESCE(status, 'planned') AS status,
-                               COALESCE(is_public, true) AS is_public,
-                               COALESCE(progress, 0) AS progress
-                        FROM dreams WHERE user_id = %s ORDER BY id
-                    """, (user_id,))
+                    cur.execute(
+                        "SELECT id, dream, status FROM dreams WHERE user_id = %s ORDER BY id",
+                        (user_id,),
+                    )
                 except psycopg2.ProgrammingError:
-                    cur.execute("SELECT id, COALESCE(dream, '') AS title FROM dreams WHERE user_id = %s ORDER BY id", (user_id,))
+                    conn.rollback()
+                    try:
+                        cur.execute(
+                            "SELECT id, dream, status, deadline FROM dreams WHERE user_id = %s ORDER BY id",
+                            (user_id,),
+                        )
+                    except psycopg2.ProgrammingError:
+                        conn.rollback()
+                        try:
+                            cur.execute("SELECT id, dream FROM dreams WHERE user_id = %s ORDER BY id", (user_id,))
+                        except psycopg2.ProgrammingError:
+                            conn.rollback()
+                            cur.execute("SELECT id, COALESCE(dream, '') AS title FROM dreams WHERE user_id = %s ORDER BY id", (user_id,))
             dreams_rows = cur.fetchall()
             if not dreams_rows:
                 return {"dreams": []}
             row0 = dreams_rows[0]
             has_full_schema = "description" in row0 or "progress" in row0
+            dream_ids = [r["id"] for r in dreams_rows]
+            steps_by_dream = {}
+            if dream_ids:
+                try:
+                    cur.execute(
+                        "SELECT dream_id, id, title, completed, sort_order FROM dream_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+                        (dream_ids,),
+                    )
+                    for s in cur.fetchall():
+                        did = s["dream_id"]
+                        if did not in steps_by_dream:
+                            steps_by_dream[did] = []
+                        steps_by_dream[did].append({"id": s["id"], "title": s["title"], "completed": bool(s["completed"])})
+                except psycopg2.ProgrammingError:
+                    pass
             result = []
             for row in dreams_rows:
                 dream_id = row["id"]
                 title = (row.get("title") or row.get("dream") or "").strip()
                 dream_text = row.get("dream") or ""
                 status = row.get("status") or "planned"
-                steps = []
-                try:
-                    cur.execute(
-                        "SELECT id, title, completed, sort_order FROM dream_steps WHERE dream_id = %s ORDER BY sort_order, id",
-                        (dream_id,),
-                    )
-                    for s in cur.fetchall():
-                        steps.append({"id": s["id"], "title": s["title"], "completed": s["completed"]})
-                except psycopg2.ProgrammingError:
-                    pass
+                dl = row.get("deadline")
+                deadline = str(dl) if dl is not None else None
+                steps = steps_by_dream.get(dream_id, [])
+                category = row.get("category")
+                price = row.get("price")
+                if price is not None and hasattr(price, "__float__"):
+                    try:
+                        price = float(price)
+                    except (TypeError, ValueError):
+                        price = None
                 if has_full_schema:
                     result.append({
                         "id": dream_id,
@@ -200,6 +241,9 @@ def get_dreams(user_id: int):
                         "description": row.get("description") or "",
                         "image_url": row.get("image_url"),
                         "status": status,
+                        "deadline": deadline,
+                        "category": category,
+                        "price": price,
                         "is_public": row.get("is_public", True),
                         "progress": row.get("progress", 0),
                         "steps": steps,
@@ -212,6 +256,9 @@ def get_dreams(user_id: int):
                         "description": "",
                         "image_url": None,
                         "status": status,
+                        "deadline": deadline,
+                        "category": category,
+                        "price": price,
                         "is_public": True,
                         "progress": 0,
                         "steps": steps,
@@ -223,7 +270,150 @@ def get_dreams(user_id: int):
             detail=f"БД: таблица dreams отсутствует или другая ошибка. Текст: {e!s}"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
+        import traceback
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка: {str(e)}\n{traceback.format_exc()}"
+        )
+    finally:
+        conn.close()
+
+
+@app.post("/dreams")
+def create_dream(body: DreamCreate):
+    """Добавить мечту. Обязательно: user_id, dream. Опционально: status, deadline (YYYY-MM-DD)."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            try:
+                if body.deadline:
+                    cur.execute(
+                        "INSERT INTO dreams (user_id, dream, status, date, deadline) VALUES (%s, %s, %s, CURRENT_DATE, %s) RETURNING id, dream, status, deadline",
+                        (body.user_id, body.dream.strip(), body.status or "planned", body.deadline),
+                    )
+                else:
+                    cur.execute(
+                        "INSERT INTO dreams (user_id, dream, status, date) VALUES (%s, %s, %s, CURRENT_DATE) RETURNING id, dream, status",
+                        (body.user_id, body.dream.strip(), body.status or "planned"),
+                    )
+            except psycopg2.ProgrammingError:
+                conn.rollback()
+                cur.execute(
+                    "INSERT INTO dreams (user_id, dream, date) VALUES (%s, %s, CURRENT_DATE) RETURNING id, dream",
+                    (body.user_id, body.dream.strip()),
+                )
+            row = cur.fetchone()
+            conn.commit()
+            deadline = str(row["deadline"]) if row.get("deadline") else None
+            return {"id": row["id"], "dream": row.get("dream") or body.dream, "status": row.get("status") or "planned", "deadline": deadline}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.patch("/dreams/{dream_id}")
+def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
+    """Обновить мечту (текст, статус, дедлайн). Только если мечта принадлежит user_id."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Мечта не найдена или не ваша")
+            updates, vals = [], []
+            if body.dream is not None:
+                updates.append("dream = %s")
+                vals.append(body.dream.strip())
+            if body.status is not None:
+                updates.append("status = %s")
+                vals.append(body.status)
+            if body.deadline is not None:
+                updates.append("deadline = %s")
+                vals.append(body.deadline if body.deadline else None)
+            if not updates:
+                return {"ok": True}
+            vals.append(dream_id)
+            try:
+                cur.execute(
+                    "UPDATE dreams SET " + ", ".join(updates) + " WHERE id = %s",
+                    vals,
+                )
+            except psycopg2.ProgrammingError as e:
+                conn.rollback()
+                raise HTTPException(status_code=500, detail="БД: " + str(e))
+            conn.commit()
+            return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.post("/dreams/{dream_id}/steps")
+def create_step(dream_id: int, body: StepCreate, user_id: int):
+    """Добавить шаг к мечте. Только если мечта принадлежит user_id."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Мечта не найдена или не ваша")
+            cur.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM dream_steps WHERE dream_id = %s", (dream_id,))
+            next_order = cur.fetchone()["next_order"]
+            cur.execute(
+                "INSERT INTO dream_steps (dream_id, title, completed, sort_order) VALUES (%s, %s, false, %s) RETURNING id, title, completed",
+                (dream_id, body.title.strip(), next_order),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return {"id": row["id"], "title": row["title"], "completed": bool(row["completed"])}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.patch("/dreams/{dream_id}/steps/{step_id}")
+def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int):
+    """Обновить шаг (название или флажок сделан/не сделан)."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Мечта не найдена или не ваша")
+            updates, vals = [], []
+            if body.title is not None:
+                updates.append("title = %s")
+                vals.append(body.title.strip())
+            if body.completed is not None:
+                updates.append("completed = %s")
+                vals.append(body.completed)
+            if not updates:
+                return {"ok": True}
+            vals.append(step_id)
+            vals.append(dream_id)
+            cur.execute(
+                "UPDATE dream_steps SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
+                vals,
+            )
+            conn.commit()
+            return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
 

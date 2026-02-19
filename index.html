@@ -50,7 +50,38 @@
         .dreams-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .dreams-table th, .dreams-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
         .dreams-table th { background: #f5f5f5; }
-        .dreams-table tbody tr:nth-child(even) { background: #fafafa; }
+        .dreams-table tbody tr.dream-row { cursor: pointer; }
+        .dreams-table tbody tr.dream-row:nth-child(4n+1),
+        .dreams-table tbody tr.dream-row:nth-child(4n+2) { background: #fafafa; }
+        .dreams-table .dream-text { min-width: 200px; }
+        .dreams-table .dream-text:hover { background: #f0f8ff; }
+        .dreams-table .dream-category { cursor: help; font-size: 1.2em; text-align: center; }
+        .dreams-table .dream-price { white-space: nowrap; }
+        .dreams-table tr.accordion-row td { background: #f9f9f9; padding: 12px 12px 16px 24px; border-left: 3px solid #4CAF50; vertical-align: top; }
+        .dreams-table tr.add-dream-row td { padding: 12px; background: #f0f8f0; }
+        .steps-list { margin-bottom: 10px; }
+        .step-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+        .step-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .step-row .step-title { flex: 1; min-height: 22px; cursor: pointer; }
+        .step-row .step-title:hover { background: #eee; }
+        .add-step-row { margin-top: 8px; }
+        .add-step-row a, .add-step-row button.link { background: none; border: none; color: #2196F3; cursor: pointer; padding: 0; font-size: inherit; text-decoration: underline; }
+        .add-step-row a:hover { color: #0d47a1; }
+        .step-row.add-step-form { gap: 10px; }
+        .step-row.add-step-form input { flex: 1; min-width: 0; padding: 4px 8px; }
+        .step-row.add-step-form button { padding: 6px 12px; width: auto; flex: 0 0 auto; }
+        .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay.hidden { display: none; }
+        .modal { background: white; padding: 24px; border-radius: 8px; min-width: 320px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal h3 { margin-top: 0; }
+        .modal label { display: block; margin-top: 10px; margin-bottom: 4px; color: #555; }
+        .modal input, .modal select { width: 100%; padding: 8px; box-sizing: border-box; }
+        .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-actions button { width: auto; padding: 8px 16px; }
+        .modal-actions button.secondary { background: #888; }
+        .modal-actions button:disabled { opacity: 0.8; cursor: not-allowed; }
+        .dreams-table .dream-status-cell { max-width: 160px; overflow: hidden; }
+        select.dream-status { padding: 4px 8px; cursor: pointer; max-width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -89,11 +120,32 @@
             </div>
             <h3 style="margin-top: 20px;">Мои мечты</h3>
             <table id="dreams-table" class="dreams-table">
-                <thead><tr><th>№</th><th>Мечта</th><th>Статус</th></tr></thead>
+                <thead><tr><th title="Категория">Кат.</th><th>№</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
                 <tbody id="dreams-tbody"></tbody>
             </table>
             <p id="dreams-empty" class="hidden" style="color:#666;">Пока нет записанных мечт.</p>
             <p id="dreams-error" class="error hidden"></p>
+            <!-- Модальное окно: новая мечта -->
+            <div id="modal-new-dream" class="modal-overlay hidden">
+                <div class="modal">
+                    <h3>Добавить мечту</h3>
+                    <label>Мечта</label>
+                    <input type="text" id="new-dream-text" placeholder="Опишите мечту">
+                    <label>Дедлайн</label>
+                    <input type="date" id="new-dream-deadline">
+                    <label>Статус</label>
+                    <select id="new-dream-status">
+                        <option value="planned">Запланировано</option>
+                        <option value="in_progress">В работе</option>
+                        <option value="done">Выполнено</option>
+                    </select>
+                    <p class="modal-hint" style="margin-top:12px;font-size:12px;color:#666;">Нажмите «Добавить» один раз и дождитесь обновления списка.</p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" onclick="closeNewDreamModal()">Отмена</button>
+                        <button type="button" id="btn-submit-new-dream" onclick="submitNewDream()">Добавить</button>
+                    </div>
+                </div>
+            </div>
             <!-- Карточки мечт (пока закомментировано)
             <div id="dreams-grid" class="dreams-grid"></div>
             -->
@@ -145,7 +197,7 @@
             document.getElementById('profile-city').innerText = currentUser.city;
             document.getElementById('profile-phone').innerText = currentUser.phone;
 
-            // 2. Мечты из БД — табличный вывод (проверка механики)
+            // 2. Мечты из БД — таблица с аккордеоном шагов
             const tableEl = document.getElementById('dreams-table');
             const tbodyEl = document.getElementById('dreams-tbody');
             const emptyEl = document.getElementById('dreams-empty');
@@ -163,34 +215,221 @@
                 }
                 const data = await response.json();
                 const dreams = data.dreams || [];
+                tableEl.classList.remove('hidden');
                 if (dreams.length === 0) {
                     emptyEl.classList.remove('hidden');
-                    return;
+                } else {
+                    emptyEl.classList.add('hidden');
+                    renderDreamsTable(dreams);
                 }
-                tableEl.classList.remove('hidden');
-                dreams.forEach(function(d, i) {
-                    const row = document.createElement('tr');
-                    // Поддержка и объекта { title, dream, status }, и старого формата — массив строк
-                    const text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
-                    const status = typeof d === 'string' ? '—' : (d.status || '—');
-                    row.innerHTML = '<td>' + (i + 1) + '</td><td>' + escapeHtml(text) + '</td><td>' + escapeHtml(status) + '</td>';
-                    tbodyEl.appendChild(row);
-                });
-                /* Карточки (пока закомментировано)
-                dreams.forEach(function(d) {
-                    const card = document.createElement('div');
-                    card.className = 'dream-card';
-                    const title = (d.title || d.dream || '').trim() || 'Без названия';
-                    ...
-                    gridEl.appendChild(card);
-                });
-                */
+                appendAddDreamRow(tbodyEl);
             } catch (error) {
                 console.error('Не удалось загрузить мечты', error);
                 errEl.textContent = 'Ошибка загрузки';
                 errEl.classList.remove('hidden');
             }
         }
+
+        const STATUS_OPTIONS = [
+            { value: 'planned', label: 'Запланировано' },
+            { value: 'in_progress', label: 'В работе' },
+            { value: 'done', label: 'Выполнено' }
+        ];
+        function renderDreamsTable(dreams) {
+            const tbodyEl = document.getElementById('dreams-tbody');
+            dreams.forEach(function(d, i) {
+                const text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
+                const status = typeof d === 'string' ? '—' : (d.status || '—');
+                const deadline = (d.deadline || '').toString().slice(0, 10) || '—';
+                const dreamId = d.id;
+                const category = (d.category || '').toString().trim() || '—';
+                const price = d.price != null && d.price !== '' ? (typeof d.price === 'number' ? d.price.toLocaleString('ru-RU') : String(d.price)) + ' ₽' : '—';
+                const tr = document.createElement('tr');
+                tr.className = 'dream-row';
+                tr.dataset.dreamId = dreamId;
+                tr.innerHTML = '<td class="dream-category" data-dream-id="' + dreamId + '" title="Категория">' + escapeHtml(category) + '</td><td>' + (i + 1) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><select class="dream-status">' + STATUS_OPTIONS.map(function(o) { return '<option value="' + o.value + '"' + (o.value === status ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>'; }).join('') + '</select></td>';
+                tbodyEl.appendChild(tr);
+                tr.querySelector('.dream-text').addEventListener('click', function(ev) { ev.stopPropagation(); startEditDreamText(dreamId, this); });
+                tr.querySelector('.dream-status').addEventListener('change', function(ev) { ev.stopPropagation(); saveDreamStatus(dreamId, this.value); });
+                tr.addEventListener('click', function(ev) { if (!ev.target.closest('select') && !ev.target.closest('input')) toggleAccordion(dreamId); });
+                var accTr = document.createElement('tr');
+                accTr.className = 'accordion-row hidden';
+                accTr.id = 'accordion-' + dreamId;
+                accTr.dataset.dreamId = dreamId;
+                var steps = (d.steps || []);
+                var stepsHtml = steps.length === 0 ? '' : steps.map(function(s) {
+                    return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span></div>';
+                }).join('');
+                accTr.innerHTML = '<td colspan="6"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></td>';
+                tbodyEl.appendChild(accTr);
+                accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                accTr.querySelectorAll('.step-row').forEach(function(row) {
+                    var stepId = row.dataset.stepId;
+                    row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, stepId, this.checked); });
+                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
+                });
+            });
+        }
+        function appendAddDreamRow(tbodyEl) {
+            var tr = document.createElement('tr');
+            tr.className = 'add-dream-row';
+            tr.innerHTML = '<td colspan="6"><button type="button" onclick="openNewDreamModal()">+ Добавить мечту</button></td>';
+            tbodyEl.appendChild(tr);
+        }
+        function toggleAccordion(dreamId) {
+            var el = document.getElementById('accordion-' + dreamId);
+            if (!el) return;
+            el.classList.toggle('hidden');
+        }
+        function openNewDreamModal() {
+            document.getElementById('new-dream-text').value = '';
+            document.getElementById('new-dream-deadline').value = '';
+            document.getElementById('new-dream-status').value = 'planned';
+            var btn = document.getElementById('btn-submit-new-dream');
+            if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
+            var errDiv = document.getElementById('new-dream-error');
+            if (errDiv) { errDiv.classList.add('hidden'); errDiv.textContent = ''; }
+            document.getElementById('modal-new-dream').classList.remove('hidden');
+        }
+        function closeNewDreamModal() {
+            document.getElementById('modal-new-dream').classList.add('hidden');
+        }
+        async function submitNewDream() {
+            var btn = document.getElementById('btn-submit-new-dream');
+            if (btn && btn.disabled) return;
+            var text = document.getElementById('new-dream-text').value.trim();
+            if (!text) return;
+            if (btn) { btn.disabled = true; btn.textContent = 'Сохранение…'; }
+            var deadline = document.getElementById('new-dream-deadline').value || null;
+            var status = document.getElementById('new-dream-status').value;
+            var errDiv = document.getElementById('new-dream-error');
+            if (!errDiv) {
+                errDiv = document.createElement('div');
+                errDiv.id = 'new-dream-error';
+                errDiv.className = 'error';
+                errDiv.style.marginTop = '10px';
+                document.querySelector('#modal-new-dream .modal-actions').before(errDiv);
+            }
+            errDiv.textContent = '';
+            errDiv.classList.add('hidden');
+            try {
+                var body = { user_id: currentUser.id, dream: text, status: status };
+                if (deadline) body.deadline = deadline;
+                var ctrl = new AbortController();
+                var timeout = setTimeout(function() { ctrl.abort(); }, 15000);
+                var res = await fetch(API_BASE_URL + '/dreams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal });
+                clearTimeout(timeout);
+                if (!res.ok) {
+                    var e = await res.json().catch(function() { return {}; });
+                    errDiv.textContent = e.detail || ('Ошибка ' + res.status);
+                    errDiv.classList.remove('hidden');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
+                    return;
+                }
+                closeNewDreamModal();
+                showProfile();
+            } catch (e) {
+                errDiv.textContent = e.name === 'AbortError' ? 'Таймаут. Проверьте соединение с сервером.' : ('Ошибка сети: ' + (e.message || ''));
+                errDiv.classList.remove('hidden');
+                if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
+            }
+        }
+        function startEditDreamText(dreamId, cellEl) {
+            var oldText = (cellEl.textContent || '').trim();
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.value = oldText;
+            input.style.width = '100%';
+            input.style.boxSizing = 'border-box';
+            cellEl.textContent = '';
+            cellEl.appendChild(input);
+            input.focus();
+            function save() {
+                var newText = input.value.trim();
+                cellEl.removeChild(input);
+                cellEl.textContent = newText || '—';
+                if (newText !== oldText && newText) patchDream(dreamId, { dream: newText });
+            }
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); save(); } if (ev.key === 'Escape') { cellEl.removeChild(input); cellEl.textContent = oldText || '—'; } });
+        }
+        async function saveDreamStatus(dreamId, status) {
+            await patchDream(dreamId, { status: status });
+        }
+        async function patchDream(dreamId, body) {
+            try {
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); showProfile(); }
+            } catch (e) { alert('Ошибка сети'); showProfile(); }
+        }
+        function showAddStep(dreamId) {
+            var container = document.querySelector('.steps-list[data-dream-id="' + dreamId + '"]');
+            if (!container) return;
+            var div = document.createElement('div');
+            div.className = 'step-row add-step-form';
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Название шага';
+            input.style.flex = '1';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = 'Сохранить';
+            btn.onclick = function() {
+                var title = input.value.trim();
+                if (!title) return;
+                addStep(dreamId, title, function(step) {
+                    container.removeChild(div);
+                    var row = document.createElement('div');
+                    row.className = 'step-row';
+                    row.dataset.stepId = step.id;
+                    row.innerHTML = '<input type="checkbox"><span class="step-title">' + escapeHtml(step.title) + '</span>';
+                    container.appendChild(row);
+                    row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, step.id, this.checked); });
+                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, step.id, this); });
+                });
+            };
+            div.appendChild(input);
+            div.appendChild(btn);
+            container.appendChild(div);
+            input.focus();
+        }
+        async function addStep(dreamId, title, onDone) {
+            try {
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?user_id=' + currentUser.id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title }) });
+                if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); return; }
+                var data = await res.json();
+                onDone(data);
+            } catch (e) { alert('Ошибка сети'); }
+        }
+        async function saveStepCompleted(dreamId, stepId, completed) {
+            try {
+                await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: completed }) });
+            } catch (e) { alert('Ошибка сети'); }
+        }
+        function startEditStepTitle(dreamId, stepId, spanEl) {
+            var oldText = (spanEl.textContent || '').trim();
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.value = oldText;
+            input.style.width = '100%';
+            spanEl.textContent = '';
+            spanEl.appendChild(input);
+            input.focus();
+            function save() {
+                var newText = input.value.trim();
+                spanEl.removeChild(input);
+                spanEl.textContent = newText || '—';
+                if (newText !== oldText) patchStep(dreamId, stepId, { title: newText });
+            }
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); save(); } if (ev.key === 'Escape') { spanEl.removeChild(input); spanEl.textContent = oldText || '—'; } });
+        }
+        async function patchStep(dreamId, stepId, body) {
+            try {
+                await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            } catch (e) { alert('Ошибка сети'); }
+        }
+
         function escapeHtml(s) { var div = document.createElement('div'); div.textContent = s; return div.innerHTML; }
         function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 
