@@ -19,6 +19,38 @@
         .profile-info p { margin: 5px 0; }
         .profile-info strong { color: #555; }
         a { color: #2196F3; }
+        .dreams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .dream-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .dream-card .dream-title { font-weight: 600; color: #333; margin-bottom: 8px; line-height: 1.3; }
+        .dream-card .dream-image {
+            width: 100%; aspect-ratio: 16/10; background: #f0f0f0; border-radius: 6px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;
+        }
+        .dream-card .dream-image img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+        .dream-card .progress-wrap { margin-bottom: 10px; }
+        .dream-card .progress-bar { height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; }
+        .dream-card .progress-fill { height: 100%; background: #4CAF50; border-radius: 3px; transition: width 0.2s; }
+        .dream-card .progress-text { font-size: 11px; color: #666; margin-top: 2px; }
+        .dream-card .steps { margin-top: 8px; }
+        .dream-card .steps-title { font-size: 12px; color: #555; margin-bottom: 4px; }
+        .dream-card .step-item { font-size: 12px; margin: 4px 0; display: flex; align-items: center; gap: 6px; }
+        .dream-card .step-item input { width: 14px; height: 14px; }
+        .dream-card .dream-status { font-size: 11px; color: #888; margin-top: 6px; }
+        .dreams-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .dreams-table th, .dreams-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+        .dreams-table th { background: #f5f5f5; }
+        .dreams-table tbody tr:nth-child(even) { background: #fafafa; }
     </style>
 </head>
 <body>
@@ -43,7 +75,7 @@
             <input type="text" id="reg-city" placeholder="Город">
             <input type="tel" id="reg-phone" placeholder="Номер телефона" required>
             <input type="password" id="reg-password" placeholder="Пароль" required>
-            <button type="button" onclick="register()">Зарегистрироваться</button>
+            <button type="button" id="register-btn" onclick="register()">Зарегистрироваться</button>
             <p style="margin-top: 12px;"><a href="#" onclick="showLoginForm(); return false;">← Назад к входу</a></p>
             <div id="register-error" class="error hidden"></div>
         </div>
@@ -54,9 +86,18 @@
             <div class="profile-info">
                 <p><strong>Город:</strong> <span id="profile-city"></span></p>
                 <p><strong>Телефон:</strong> <span id="profile-phone"></span></p>
-                <p><strong>Мечта:</strong> <span id="profile-dream"></span></p>
             </div>
-            <button onclick="logout()">Выйти</button>
+            <h3 style="margin-top: 20px;">Мои мечты</h3>
+            <table id="dreams-table" class="dreams-table">
+                <thead><tr><th>№</th><th>Мечта</th><th>Статус</th></tr></thead>
+                <tbody id="dreams-tbody"></tbody>
+            </table>
+            <p id="dreams-empty" class="hidden" style="color:#666;">Пока нет записанных мечт.</p>
+            <p id="dreams-error" class="error hidden"></p>
+            <!-- Карточки мечт (пока закомментировано)
+            <div id="dreams-grid" class="dreams-grid"></div>
+            -->
+            <button onclick="logout()" style="margin-top: 20px;">Выйти</button>
         </div>
     </div>
 
@@ -104,24 +145,54 @@
             document.getElementById('profile-city').innerText = currentUser.city;
             document.getElementById('profile-phone').innerText = currentUser.phone;
 
-            // 2. Идём за мечтами! (Дополнительный запрос)
+            // 2. Мечты из БД — табличный вывод (проверка механики)
+            const tableEl = document.getElementById('dreams-table');
+            const tbodyEl = document.getElementById('dreams-tbody');
+            const emptyEl = document.getElementById('dreams-empty');
+            const errEl = document.getElementById('dreams-error');
+            tableEl.classList.add('hidden');
+            tbodyEl.innerHTML = '';
+            emptyEl.classList.add('hidden');
+            errEl.classList.add('hidden');
             try {
                 const response = await fetch(`${API_BASE_URL}/dreams?user_id=${currentUser.id}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.dreams && data.dreams.length > 0) {
-                        document.getElementById('profile-dream').innerText = data.dreams.join(', ');
-                    } else {
-                        document.getElementById('profile-dream').innerText = "Пока нет записанных мечт";
-                    }
-                } else {
-                    document.getElementById('profile-dream').innerText = "Ошибка загрузки";
+                if (!response.ok) {
+                    errEl.textContent = 'Ошибка загрузки мечт';
+                    errEl.classList.remove('hidden');
+                    return;
                 }
+                const data = await response.json();
+                const dreams = data.dreams || [];
+                if (dreams.length === 0) {
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+                tableEl.classList.remove('hidden');
+                dreams.forEach(function(d, i) {
+                    const row = document.createElement('tr');
+                    // Поддержка и объекта { title, dream, status }, и старого формата — массив строк
+                    const text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
+                    const status = typeof d === 'string' ? '—' : (d.status || '—');
+                    row.innerHTML = '<td>' + (i + 1) + '</td><td>' + escapeHtml(text) + '</td><td>' + escapeHtml(status) + '</td>';
+                    tbodyEl.appendChild(row);
+                });
+                /* Карточки (пока закомментировано)
+                dreams.forEach(function(d) {
+                    const card = document.createElement('div');
+                    card.className = 'dream-card';
+                    const title = (d.title || d.dream || '').trim() || 'Без названия';
+                    ...
+                    gridEl.appendChild(card);
+                });
+                */
             } catch (error) {
-                console.error("Не удалось загрузить мечты", error);
-                document.getElementById('profile-dream').innerText = "Ошибка загрузки";
+                console.error('Не удалось загрузить мечты', error);
+                errEl.textContent = 'Ошибка загрузки';
+                errEl.classList.remove('hidden');
             }
         }
+        function escapeHtml(s) { var div = document.createElement('div'); div.textContent = s; return div.innerHTML; }
+        function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 
         function logout() {
             currentUser = null;

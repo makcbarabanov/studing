@@ -148,22 +148,79 @@ def register_user(user: UserRegister):
 
 # --- Эндпоинт 2: ПОЛУЧЕНИЕ МЕЧТ ПОЛЬЗОВАТЕЛЯ ---
 @app.get("/dreams")
-def get_dreams(user_id: int):  # Теперь ждём ID от браузера
+def get_dreams(user_id: int):
     conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            # Пробуем колонку dream; если нет — dream_text (разные версии схемы)
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Сначала пробуем минимальную схему (dream, status) — как в твоей БД
             try:
-                cur.execute("SELECT dream FROM dreams WHERE user_id = %s", (user_id,))
+                cur.execute(
+                    "SELECT id, dream, status FROM dreams WHERE user_id = %s ORDER BY id",
+                    (user_id,),
+                )
             except psycopg2.ProgrammingError:
-                cur.execute("SELECT dream_text AS dream FROM dreams WHERE user_id = %s", (user_id,))
+                try:
+                    cur.execute("""
+                        SELECT id, dream,
+                               COALESCE(NULLIF(TRIM(title), ''), dream, '') AS title,
+                               COALESCE(description, dream, '') AS description,
+                               image_url, COALESCE(status, 'planned') AS status,
+                               COALESCE(is_public, true) AS is_public,
+                               COALESCE(progress, 0) AS progress
+                        FROM dreams WHERE user_id = %s ORDER BY id
+                    """, (user_id,))
+                except psycopg2.ProgrammingError:
+                    cur.execute("SELECT id, COALESCE(dream, '') AS title FROM dreams WHERE user_id = %s ORDER BY id", (user_id,))
             dreams_rows = cur.fetchall()
-            dreams_list = [row["dream"] for row in dreams_rows]
-            return {"dreams": dreams_list}
+            if not dreams_rows:
+                return {"dreams": []}
+            row0 = dreams_rows[0]
+            has_full_schema = "description" in row0 or "progress" in row0
+            result = []
+            for row in dreams_rows:
+                dream_id = row["id"]
+                title = (row.get("title") or row.get("dream") or "").strip()
+                dream_text = row.get("dream") or ""
+                status = row.get("status") or "planned"
+                steps = []
+                try:
+                    cur.execute(
+                        "SELECT id, title, completed, sort_order FROM dream_steps WHERE dream_id = %s ORDER BY sort_order, id",
+                        (dream_id,),
+                    )
+                    for s in cur.fetchall():
+                        steps.append({"id": s["id"], "title": s["title"], "completed": s["completed"]})
+                except psycopg2.ProgrammingError:
+                    pass
+                if has_full_schema:
+                    result.append({
+                        "id": dream_id,
+                        "title": title,
+                        "dream": dream_text,
+                        "description": row.get("description") or "",
+                        "image_url": row.get("image_url"),
+                        "status": status,
+                        "is_public": row.get("is_public", True),
+                        "progress": row.get("progress", 0),
+                        "steps": steps,
+                    })
+                else:
+                    result.append({
+                        "id": dream_id,
+                        "title": title,
+                        "dream": dream_text,
+                        "description": "",
+                        "image_url": None,
+                        "status": status,
+                        "is_public": True,
+                        "progress": 0,
+                        "steps": steps,
+                    })
+            return {"dreams": result}
     except psycopg2.ProgrammingError as e:
         raise HTTPException(
             status_code=500,
-            detail=f"БД: таблица dreams отсутствует или другая ошибка. Выполни в psql: CREATE TABLE dreams (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id), dream TEXT, date TIMESTAMP DEFAULT NOW()); INSERT INTO dreams (user_id, dream) VALUES (1, 'Моя мечта'); Текст ошибки: {e!s}"
+            detail=f"БД: таблица dreams отсутствует или другая ошибка. Текст: {e!s}"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
