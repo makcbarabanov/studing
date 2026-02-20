@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Запуск SQL-миграций с учётом .env (те же DB_HOST, DB_USER, DB_PASS, DB_NAME, что и main.py).
-Позволяет агенту/разработчику применять миграции одной командой без ручного экспорта переменных.
+Миграции одноразовые: после успешного выполнения файл миграции удаляется — в _sql/ остаются
+только ещё не выполненные.
 
 Использование:
-  python run_migrate.py _sql/mig_005_xxx.sql
-  python run_migrate.py _sql/mig_005_a.sql _sql/mig_006_b.sql
+  python3 run_migrate.py _sql/mig_005_xxx.sql
+  python3 run_migrate.py _sql/mig_005_a.sql _sql/mig_006_b.sql
 """
 import os
 import sys
@@ -52,7 +53,8 @@ def main():
             with conn.cursor() as cur:
                 cur.execute(sql)
             conn.commit()
-            print(f"  OK: {path.name}")
+            path.unlink()
+            print(f"  OK: {path.name} (файл удалён)")
 
     except psycopg2.Error as e:
         if conn:
