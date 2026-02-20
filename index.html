@@ -6,7 +6,7 @@
     <title>Личный кабинет ОСТРОВ</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        body { font-family: Arial, sans-serif; margin: 20px; min-height: 100vh; background-color: #e8e4df; background-image: url('examples/breakfast.png'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat; }
         .container { max-width: min(980px, 95vw); margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); box-sizing: border-box; }
         h1, h2 { color: #333; }
         input[type="tel"], input[type="password"], input[type="text"], button {
@@ -58,7 +58,7 @@
         .dreams-table .dream-privacy { text-align: center; vertical-align: middle; }
         .dreams-table .dream-privacy input[type=checkbox] { cursor: pointer; }
         .dreams-table .dream-deadline { font-size: calc(1em - 2px); white-space: nowrap; }
-        .dreams-table .dream-price { white-space: nowrap; }
+        .dreams-table .dream-price { font-size: calc(1em - 2px); white-space: nowrap; }
         .modal-deadline-hints { margin-top: 4px; font-size: 11px; font-style: italic; color: #888; }
         .modal-deadline-hints a { color: #888; cursor: pointer; text-decoration: none; }
         .modal-deadline-hints a:hover { color: #555; text-decoration: underline; }
@@ -101,11 +101,28 @@
         .dream-eye:hover { opacity: 0.85; }
         .dream-edit-btn { background: none; border: none; cursor: pointer; padding: 4px; font-size: 1.1em; opacity: 0.7; }
         .dream-edit-btn:hover { opacity: 1; }
+        /* Хедер личного кабинета */
+        .app-header { display: flex; align-items: stretch; justify-content: space-between; gap: 24px; padding-bottom: 16px; min-height: 88px; }
+        .app-header-left { display: flex; align-items: center; gap: 18px; }
+        .app-header-avatar { width: 72px; height: 72px; min-width: 72px; min-height: 72px; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; }
+        .app-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .app-header-name-wrap { display: flex; flex-direction: column; justify-content: center; }
+        .app-header-name { font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; }
+        .app-header-stats { display: flex; align-items: center; justify-content: flex-end; flex: 1; min-width: 0; }
+        .app-header-stats span { flex: 1; text-align: center; font-size: 12px; color: #666; padding: 6px 6px; white-space: nowrap; border-left: 1px solid #e8e8e8; }
+        .app-header-stats span:first-child { border-left: none; }
+        .app-header-divider { height: 1px; background: linear-gradient(90deg, transparent, #ddd 10%, #ddd 90%, transparent); margin: 0 0 16px 0; }
+        .app-menu { display: flex; gap: 8px; margin-bottom: 12px; }
+        .app-menu a { padding: 6px 12px; border-radius: 4px; text-decoration: none; color: #333; background: #f0f0f0; }
+        .app-menu a:hover { background: #e0e0e0; }
+        .app-menu a.active { background: #4CAF50; color: white; }
+        .app-content { min-height: 120px; }
+        .buddy-placeholder { padding: 24px; text-align: center; color: #888; font-size: 1.1em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏝️ ОСТРОВ — Личный кабинет</h1>
+        <h1 id="page-title">🍳 Завтрак исполняющий желания — Личный кабинет</h1>
 
         <!-- Форма входа -->
         <div id="login-form">
@@ -132,19 +149,49 @@
 
         <!-- Личный кабинет -->
         <div id="profile-view" class="hidden">
-            <h2>Добро пожаловать, <span id="profile-full_name"></span>!</h2>
-            <div class="profile-info">
-                <p><strong>Город:</strong> <span id="profile-city"></span></p>
-                <p><strong>Телефон:</strong> <span id="profile-phone"></span></p>
-            </div>
-            <h3 style="margin-top: 20px;">Мои мечты</h3>
-            <!-- Таблица мечт (личный кабинет): id="dreams-table" — основная таблица с мечтами, к ней обращаемся по этому имени. -->
-            <table id="dreams-table" class="dreams-table">
+            <input type="file" id="avatar-file" accept="image/*" class="hidden" aria-hidden="true">
+            <!-- Хедер: аватар, имя, статистика -->
+            <header class="app-header">
+                <div class="app-header-left">
+                    <div class="app-header-avatar" id="profile-avatar" title="Аватар"><span id="profile-initials">—</span></div>
+                    <div class="app-header-name-wrap">
+                        <div class="app-header-name" id="profile-full_name">—</div>
+                    </div>
+                </div>
+                <div class="app-header-stats">
+                    <span id="stat-dreams-total">0 мечт всего</span>
+                    <span id="stat-dreams-done">0 уже выполнено</span>
+                    <span id="stat-buddies">0 бадди</span>
+                    <span id="stat-helped">0 мечт чужих исполнил</span>
+                </div>
+            </header>
+            <div class="app-header-divider"></div>
+            <!-- Меню -->
+            <nav class="app-menu">
+                <a href="#" id="menu-my-dreams" class="active">Мои мечты</a>
+                <a href="#" id="menu-buddy">Бадди</a>
+            </nav>
+            <!-- Контент: таблица мечт или раздел Бадди -->
+            <div class="app-content">
+                <div id="dreams-block">
+                    <!-- Таблица мечт (личный кабинет): id="dreams-table" — основная таблица с мечтами, к ней обращаемся по этому имени. -->
+                    <table id="dreams-table" class="dreams-table">
                 <thead><tr><th>№</th><th title="Категория">Кат.</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
                 <tbody id="dreams-tbody"></tbody>
             </table>
             <p id="dreams-empty" class="hidden" style="color:#666;">Пока нет записанных мечт.</p>
             <p id="dreams-error" class="error hidden"></p>
+                </div>
+                <div id="buddy-block" class="hidden">
+                    <p id="buddy-title" class="buddy-title" style="margin-bottom:10px;font-weight:600;color:#333;"></p>
+                    <table id="buddy-dreams-table" class="dreams-table">
+                        <thead><tr><th>№</th><th title="Категория">Кат.</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
+                        <tbody id="buddy-dreams-tbody"></tbody>
+                    </table>
+                    <p id="buddy-dreams-empty" class="hidden" style="color:#666;">У бадди пока нет записанных мечт.</p>
+                    <p id="buddy-dreams-error" class="error hidden"></p>
+                </div>
+            </div>
             <!-- Модальное окно: новая мечта -->
             <div id="modal-new-dream" class="modal-overlay hidden">
                 <div class="modal">
@@ -238,11 +285,33 @@
         async function showProfile() {
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
+            document.getElementById('page-title').classList.add('hidden');
 
-            // 1. Заполняем профиль (то, что пришло при входе)
-            document.getElementById('profile-full_name').innerText = currentUser.full_name;
-            document.getElementById('profile-city').innerText = currentUser.city;
-            document.getElementById('profile-phone').innerText = currentUser.phone;
+            // 1. Хедер: аватар (URL из avatar_path; по клику — загрузка нового)
+            currentUser.avatar_url = (currentUser.avatar_path && (API_BASE_URL + '/media/' + currentUser.avatar_path)) || null;
+            var fullName = (currentUser.full_name || '').trim() || 'Гость';
+            document.getElementById('profile-full_name').innerText = fullName;
+            var initials = fullName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
+            var avatarEl = document.getElementById('profile-avatar');
+            avatarEl.innerHTML = '';
+            avatarEl.title = 'Нажмите, чтобы загрузить фото';
+            avatarEl.style.cursor = 'pointer';
+            avatarEl.addEventListener('click', function() { document.getElementById('avatar-file').click(); });
+            if (currentUser.avatar_url) {
+                var img = document.createElement('img');
+                img.src = currentUser.avatar_url;
+                img.alt = 'Аватар';
+                avatarEl.appendChild(img);
+            } else {
+                var span = document.createElement('span');
+                span.id = 'profile-initials';
+                span.textContent = initials;
+                avatarEl.appendChild(span);
+            }
+            document.getElementById('stat-dreams-total').textContent = '0 мечт всего';
+            document.getElementById('stat-dreams-done').textContent = '2 уже выполнено';
+            document.getElementById('stat-buddies').textContent = '1 бадди';
+            document.getElementById('stat-helped').textContent = '5 мечт чужих исполнил';
 
             // 2. Мечты и справочники — один параллельный запрос (быстрее)
             const tableEl = document.getElementById('dreams-table');
@@ -268,6 +337,11 @@
                 }
                 const data = await dreamsRes.json();
                 const dreams = data.dreams || [];
+                // Статистика в хедере: мечт всего — из БД, остальное — заглушки
+                document.getElementById('stat-dreams-total').textContent = dreams.length + ' мечт всего';
+                document.getElementById('stat-dreams-done').textContent = '2 уже выполнено';
+                document.getElementById('stat-buddies').textContent = '1 бадди';
+                document.getElementById('stat-helped').textContent = '5 мечт чужих исполнил';
                 tableEl.classList.remove('hidden');
                 if (dreams.length === 0) {
                     emptyEl.classList.remove('hidden');
@@ -281,6 +355,131 @@
                 errEl.textContent = 'Ошибка загрузки';
                 errEl.classList.remove('hidden');
             }
+            // Показать блок «Мои мечты», скрыть «Бадди»
+            document.getElementById('dreams-block').classList.remove('hidden');
+            document.getElementById('buddy-block').classList.add('hidden');
+            document.getElementById('menu-my-dreams').classList.add('active');
+            document.getElementById('menu-buddy').classList.remove('active');
+        }
+
+        function switchMenu(section) {
+            if (section === 'dreams') {
+                document.getElementById('dreams-block').classList.remove('hidden');
+                document.getElementById('buddy-block').classList.add('hidden');
+                document.getElementById('menu-my-dreams').classList.add('active');
+                document.getElementById('menu-buddy').classList.remove('active');
+            } else {
+                document.getElementById('dreams-block').classList.add('hidden');
+                document.getElementById('buddy-block').classList.remove('hidden');
+                document.getElementById('menu-my-dreams').classList.remove('active');
+                document.getElementById('menu-buddy').classList.add('active');
+                loadBuddyDreams();
+            }
+        }
+        async function loadBuddyDreams() {
+            var titleEl = document.getElementById('buddy-title');
+            var tbodyEl = document.getElementById('buddy-dreams-tbody');
+            var emptyEl = document.getElementById('buddy-dreams-empty');
+            var errEl = document.getElementById('buddy-dreams-error');
+            var tableEl = document.getElementById('buddy-dreams-table');
+            titleEl.textContent = '';
+            tbodyEl.innerHTML = '';
+            emptyEl.classList.add('hidden');
+            errEl.classList.add('hidden');
+            if (!currentUser || !currentUser.buddy_id) {
+                titleEl.textContent = 'У вас пока нет бадди';
+                emptyEl.textContent = 'Бадди не назначен.';
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            var buddyName = (currentUser.buddy_name || '').trim() || 'Бадди';
+            titleEl.textContent = 'Мечты бадди: ' + buddyName;
+            try {
+                var res = await fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.buddy_id + '&viewer_id=' + currentUser.id, { cache: 'no-store' });
+                if (!res.ok) {
+                    var errData = await res.json().catch(function() { return {}; });
+                    errEl.textContent = errData.detail || 'Ошибка загрузки мечт бадди';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                var data = await res.json();
+                var dreams = data.dreams || [];
+                tableEl.classList.remove('hidden');
+                if (dreams.length === 0) {
+                    emptyEl.classList.remove('hidden');
+                } else {
+                    renderBuddyDreamsTable(dreams);
+                }
+            } catch (e) {
+                console.error('loadBuddyDreams', e);
+                errEl.textContent = 'Ошибка загрузки';
+                errEl.classList.remove('hidden');
+            }
+        }
+        function renderBuddyDreamsTable(dreams) {
+            var tbodyEl = document.getElementById('buddy-dreams-tbody');
+            dreams.forEach(function(d, i) {
+                var text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
+                var statusId = d.status_id != null ? d.status_id : 1;
+                var deadline = formatDeadlineDisplay((d.deadline || '').toString().slice(0, 10) || '');
+                var dreamId = d.id;
+                var categoryIcon = (d.category_obj && (d.category_obj.icon || '').trim()) || '';
+                var categoryLabel = (d.category_obj && (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '';
+                var categoryDisplay = categoryIcon || categoryLabel || '—';
+                var categoryTitle = categoryLabel || 'Категория';
+                var price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
+                var statusList = getStatusList();
+                var statusObj = statusList.find(function(o) { return o.id === statusId; }) || statusList[0];
+                var statusDisplay = (statusObj.icon || '') + (statusObj.label_ru ? ' ' + statusObj.label_ru : '');
+                var tr = document.createElement('tr');
+                tr.className = 'dream-row buddy-dream-row';
+                tr.dataset.dreamId = dreamId;
+                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell">' + escapeHtml(statusDisplay.trim()) + '</td>';
+                tbodyEl.appendChild(tr);
+                var steps = (d.steps || []);
+                if (steps.length > 0) {
+                    var accTr = document.createElement('tr');
+                    accTr.className = 'accordion-row hidden';
+                    accTr.id = 'buddy-accordion-' + dreamId;
+                    accTr.dataset.dreamId = dreamId;
+                    var stepsHtml = steps.map(function(s) {
+                        return '<div class="step-row"><span class="step-title">' + escapeHtml(s.title || '') + '</span>' + (s.completed ? ' ✓' : '') + '</div>';
+                    }).join('');
+                    accTr.innerHTML = '<td colspan="6"><div class="steps-list">' + stepsHtml + '</div></td>';
+                    tbodyEl.appendChild(accTr);
+                }
+                tr.addEventListener('click', function(ev) {
+                    var acc = document.getElementById('buddy-accordion-' + dreamId);
+                    if (acc) acc.classList.toggle('hidden');
+                });
+            });
+        }
+        document.getElementById('menu-my-dreams').addEventListener('click', function(e) { e.preventDefault(); switchMenu('dreams'); });
+        document.getElementById('menu-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('buddy'); });
+
+        var avatarFileEl = document.getElementById('avatar-file');
+        if (avatarFileEl) {
+            avatarFileEl.addEventListener('change', function() {
+                var input = this;
+                var file = input.files && input.files[0];
+                if (!file || !currentUser) return;
+                var fd = new FormData();
+                fd.append('file', file);
+                fetch(API_BASE_URL + '/avatar?user_id=' + currentUser.id, { method: 'POST', body: fd })
+                    .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error(r.statusText)); })
+                    .then(function(data) {
+                        currentUser.avatar_path = data.avatar_path;
+                        currentUser.avatar_url = API_BASE_URL + '/media/' + data.avatar_path + '?t=' + Date.now();
+                        var avatarEl = document.getElementById('profile-avatar');
+                        avatarEl.innerHTML = '';
+                        var img = document.createElement('img');
+                        img.src = currentUser.avatar_url;
+                        img.alt = 'Аватар';
+                        avatarEl.appendChild(img);
+                    })
+                    .catch(function() { alert('Не удалось загрузить фото. Разрешены jpg, png, webp, gif (в т.ч. анимированный) до 2 МБ.'); });
+                input.value = '';
+            });
         }
 
         function getStatusList() {
@@ -326,7 +525,7 @@
                 var categoryLabel = (d.category_obj && (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '';
                 var categoryDisplay = categoryIcon || categoryLabel || '—';
                 var categoryTitle = categoryLabel || 'Категория';
-                const price = d.price != null && d.price !== '' ? (typeof d.price === 'number' ? d.price.toLocaleString('ru-RU') : String(d.price)) + ' ₽' : '—';
+                const price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
                 const tr = document.createElement('tr');
                 tr.className = 'dream-row';
                 tr.dataset.dreamId = dreamId;
@@ -647,6 +846,7 @@
         function logout() {
             currentUser = null;
             document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById('page-title').classList.remove('hidden');
             document.getElementById('register-form').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
             document.getElementById('phone').value = '';

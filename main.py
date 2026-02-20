@@ -3,9 +3,10 @@ import time
 from pathlib import Path
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
@@ -16,6 +17,13 @@ load_dotenv()
 
 # 2. Создаем Диспетчера
 app = FastAPI()
+
+# Каталоги для медиа: раздача по /media и сохранение аватаров
+BASE_DIR = Path(__file__).resolve().parent
+MEDIA_DIR = BASE_DIR / "media"
+AVATARS_DIR = MEDIA_DIR / "avatars"
+AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 
 # --- БЛОК БЕЗОПАСНОСТИ (CORS) ---
 app.add_middleware(
@@ -126,11 +134,11 @@ def login_user(user_login: UserLogin):
     """
     conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             phone_alt = ("+7" + user_login.phone[1:]) if user_login.phone.startswith("8") and len(user_login.phone) >= 11 else user_login.phone
             cur.execute("""
-                SELECT id, name, surname, city, phone, password_hash 
-                FROM users 
+                SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id
+                FROM users
                 WHERE phone = %s OR phone = %s
             """, (user_login.phone, phone_alt))
             user_data = cur.fetchone()
@@ -148,11 +156,22 @@ def login_user(user_login: UserLogin):
                     raise HTTPException(status_code=400, detail="Неверный пароль")
 
             full_name = f"{user_data['name'] or ''} {user_data['surname'] or ''}".strip() or "Пользователь"
+            avatar_path = user_data.get("avatar_path")
+            buddy_id = user_data.get("buddy_id")
+            buddy_name = None
+            if buddy_id:
+                cur.execute("SELECT name, surname FROM users WHERE id = %s", (buddy_id,))
+                buddy_row = cur.fetchone()
+                if buddy_row:
+                    buddy_name = f"{buddy_row.get('name') or ''} {buddy_row.get('surname') or ''}".strip() or None
             return {
                 "id": user_data["id"],
                 "full_name": full_name,
                 "city": user_data["city"],
                 "phone": user_data["phone"],
+                "avatar_path": avatar_path,
+                "buddy_id": buddy_id,
+                "buddy_name": buddy_name,
                 "dream": "Мечта загружается..."
             }
     except HTTPException:
@@ -161,6 +180,42 @@ def login_user(user_login: UserLogin):
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
     finally:
         conn.close()
+
+# --- Эндпоинт: ЗАГРУЗКА АВАТАРА ---
+AVATAR_EXTENSIONS = frozenset((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+AVATAR_MAX_BYTES = 2 * 1024 * 1024  # 2 МБ
+
+@app.post("/avatar")
+def upload_avatar(user_id: int, file: UploadFile = File(...)):
+    """Загрузить аватар пользователя. Файл сохраняется в media/avatars/{user_id}.{ext}, в БД — avatar_path."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Файл не выбран")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in AVATAR_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Разрешены только jpg, png, webp, gif (в т.ч. анимированный)")
+    content = file.file.read()
+    if len(content) > AVATAR_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Файл не более 2 МБ")
+    # Сохраняем как avatars/{user_id}.{ext}
+    safe_ext = ".jpg" if ext == ".jpeg" else ext
+    filename = f"{user_id}{safe_ext}"
+    filepath = AVATARS_DIR / filename
+    try:
+        filepath.write_bytes(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Не удалось сохранить файл: {str(e)}")
+    avatar_path = f"avatars/{filename}"
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("UPDATE users SET avatar_path = %s WHERE id = %s", (avatar_path, user_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка БД: {str(e)}")
+    finally:
+        conn.close()
+    return {"ok": True, "avatar_path": avatar_path}
 
 # --- Эндпоинт: РЕГИСТРАЦИЯ ---
 @app.post("/register")
@@ -251,10 +306,16 @@ def _build_dream_item(row, steps_by_dream):
 
 # --- Эндпоинт 2: ПОЛУЧЕНИЕ МЕЧТ ПОЛЬЗОВАТЕЛЯ ---
 @app.get("/dreams")
-def get_dreams(user_id: int):
+def get_dreams(user_id: int, viewer_id: Optional[int] = None):
+    """Список мечт пользователя user_id. Если передан viewer_id: отдаём только если viewer_id == user_id или viewer — бадди user_id (users.buddy_id у viewer = user_id)."""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if viewer_id is not None and viewer_id != user_id:
+                cur.execute("SELECT buddy_id FROM users WHERE id = %s", (viewer_id,))
+                row = cur.fetchone()
+                if not row or row.get("buddy_id") != user_id:
+                    raise HTTPException(status_code=403, detail="Нет доступа к мечтам этого пользователя")
             dreams_rows = None
             try:
                 cur.execute("""
