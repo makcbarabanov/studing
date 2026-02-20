@@ -1,10 +1,10 @@
 #!/bin/bash
-BACKUP_DIR="/home/makc/db_backups"   # или ~/db_backups
+BACKUP_DIR="/home/makc/app/db_backups"   # или ~/db_backups
 SIZE_FILE="$BACKUP_DIR/last_size.txt"
 PG_HOST="83.217.220.97"
 PG_USER="marabot"
 PG_DB="default_db"
-export PGPASSWORD="твой_пароль_от_БД"   # или используй ~/.pgpass
+export PGPASSWORD="2nix8#mN&Er5tR"   # или используй ~/.pgpass
 
 mkdir -p "$BACKUP_DIR"
 

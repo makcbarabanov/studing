@@ -54,7 +54,6 @@
         .dreams-table tbody tr.dream-row:nth-child(4n+1),
         .dreams-table tbody tr.dream-row:nth-child(4n+2) { background: #fafafa; }
         .dreams-table .dream-text { min-width: 200px; }
-        .dreams-table .dream-text:hover { background: #f0f8ff; }
         .dreams-table .dream-category { cursor: help; font-size: 1.2em; text-align: center; }
         .dreams-table .dream-price { white-space: nowrap; }
         .dreams-table tr.accordion-row td { background: #f9f9f9; padding: 12px 12px 16px 24px; border-left: 3px solid #4CAF50; vertical-align: top; }
@@ -80,8 +79,17 @@
         .modal-actions button { width: auto; padding: 8px 16px; }
         .modal-actions button.secondary { background: #888; }
         .modal-actions button:disabled { opacity: 0.8; cursor: not-allowed; }
-        .dreams-table .dream-status-cell { max-width: 160px; overflow: hidden; }
-        select.dream-status { padding: 4px 8px; cursor: pointer; max-width: 100%; box-sizing: border-box; }
+        .dreams-table .dream-status-cell { max-width: 120px; }
+        .status-picker { position: relative; display: inline-block; }
+        .status-picker-current { cursor: pointer; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-size: 1.2em; min-width: 2em; text-align: center; }
+        .status-picker-current:hover { background: #f5f5f5; }
+        .status-picker-dropdown { display: none; position: absolute; left: 0; top: 100%; margin-top: 2px; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 50; min-width: 180px; color: #333; }
+        .status-picker-dropdown.open { display: block; }
+        .status-picker-option { display: block; width: 100%; padding: 8px 12px; text-align: left; border: none; background: #fff; color: #333; cursor: pointer; font-size: inherit; }
+        .status-picker-option:hover { background: #f0f8ff; color: #333; }
+        .dream-status-cell-inner { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+        .dream-edit-btn { background: none; border: none; cursor: pointer; padding: 4px; font-size: 1.1em; opacity: 0.7; }
+        .dream-edit-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -134,15 +142,33 @@
                     <label>Дедлайн</label>
                     <input type="date" id="new-dream-deadline">
                     <label>Статус</label>
-                    <select id="new-dream-status">
-                        <option value="planned">Запланировано</option>
-                        <option value="in_progress">В работе</option>
-                        <option value="done">Выполнено</option>
-                    </select>
+                    <select id="new-dream-status"></select>
+                    <label>Категория</label>
+                    <select id="new-dream-category"></select>
                     <p class="modal-hint" style="margin-top:12px;font-size:12px;color:#666;">Нажмите «Добавить» один раз и дождитесь обновления списка.</p>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeNewDreamModal()">Отмена</button>
                         <button type="button" id="btn-submit-new-dream" onclick="submitNewDream()">Добавить</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Модальное окно: редактирование мечты -->
+            <div id="modal-edit-dream" class="modal-overlay hidden">
+                <div class="modal">
+                    <h3>Редактировать мечту</h3>
+                    <input type="hidden" id="edit-dream-id" value="">
+                    <label>Мечта</label>
+                    <input type="text" id="edit-dream-text" placeholder="Опишите мечту">
+                    <label>Дедлайн</label>
+                    <input type="date" id="edit-dream-deadline">
+                    <label>Статус</label>
+                    <select id="edit-dream-status"></select>
+                    <label>Категория</label>
+                    <select id="edit-dream-category"></select>
+                    <div id="edit-dream-error" class="error hidden" style="margin-top:10px;"></div>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" onclick="closeEditDreamModal()">Отмена</button>
+                        <button type="button" id="btn-submit-edit-dream" onclick="submitEditDream()">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -188,6 +214,9 @@
             }
         }
 
+        let dreamStatusesList = [];
+        let dreamCategoriesList = [];
+
         async function showProfile() {
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
@@ -197,7 +226,17 @@
             document.getElementById('profile-city').innerText = currentUser.city;
             document.getElementById('profile-phone').innerText = currentUser.phone;
 
-            // 2. Мечты из БД — таблица с аккордеоном шагов
+            // 2. Справочники статусов и категорий
+            try {
+                const [stRes, catRes] = await Promise.all([
+                    fetch(API_BASE_URL + '/dream_statuses'),
+                    fetch(API_BASE_URL + '/dream_categories')
+                ]);
+                if (stRes.ok) dreamStatusesList = await stRes.json();
+                if (catRes.ok) dreamCategoriesList = await catRes.json();
+            } catch (e) { console.warn('Справочники не загружены', e); }
+
+            // 3. Мечты из БД — таблица с аккордеоном шагов
             const tableEl = document.getElementById('dreams-table');
             const tbodyEl = document.getElementById('dreams-tbody');
             const emptyEl = document.getElementById('dreams-empty');
@@ -230,28 +269,63 @@
             }
         }
 
-        const STATUS_OPTIONS = [
-            { value: 'planned', label: 'Запланировано' },
-            { value: 'in_progress', label: 'В работе' },
-            { value: 'done', label: 'Выполнено' }
-        ];
+        function getStatusList() {
+            if (dreamStatusesList.length) return dreamStatusesList;
+            return [
+                { id: 1, code: 'planned', label_ru: 'Запланировано', icon: '💡' },
+                { id: 2, code: 'in_progress', label_ru: 'В работе', icon: '☭' },
+                { id: 3, code: 'done', label_ru: 'Выполнено', icon: '✅' }
+            ];
+        }
+        function getStatusOptionsHtml(selectedStatusId) {
+            var list = getStatusList();
+            return list.map(function(o) {
+                var label = (o.icon || '') + ' ' + (o.label_ru || o.code || '');
+                return '<option value="' + o.id + '"' + (o.id === selectedStatusId ? ' selected' : '') + '>' + escapeHtml(label.trim()) + '</option>';
+            }).join('');
+        }
+        function buildStatusPickerHtml(dreamId, selectedStatusId) {
+            var list = getStatusList();
+            var current = list.find(function(o) { return o.id === selectedStatusId; }) || list[0];
+            var iconOnly = (current.icon || '').trim();
+            var optionsHtml = list.map(function(o) {
+                var label = (o.icon || '') + ' ' + (o.label_ru || o.code || '');
+                return '<button type="button" class="status-picker-option" data-status-id="' + o.id + '" data-status-icon="' + escapeAttr(o.icon || '') + '">' + escapeHtml(label.trim()) + '</button>';
+            }).join('');
+            return '<div class="status-picker" data-dream-id="' + dreamId + '"><span class="status-picker-current" title="' + escapeAttr(current.label_ru || current.code || '') + '">' + escapeHtml(iconOnly) + '</span><div class="status-picker-dropdown">' + optionsHtml + '</div></div>';
+        }
         function renderDreamsTable(dreams) {
             const tbodyEl = document.getElementById('dreams-tbody');
             dreams.forEach(function(d, i) {
                 const text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
-                const status = typeof d === 'string' ? '—' : (d.status || '—');
+                const statusId = d.status_id != null ? d.status_id : (d.status_obj && d.status_obj.id) || 1;
                 const deadline = (d.deadline || '').toString().slice(0, 10) || '—';
                 const dreamId = d.id;
-                const category = (d.category || '').toString().trim() || '—';
+                const categoryDisplay = (d.category_obj && (d.category_obj.icon || '') + ' ' + (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '—';
                 const price = d.price != null && d.price !== '' ? (typeof d.price === 'number' ? d.price.toLocaleString('ru-RU') : String(d.price)) + ' ₽' : '—';
                 const tr = document.createElement('tr');
                 tr.className = 'dream-row';
                 tr.dataset.dreamId = dreamId;
-                tr.innerHTML = '<td class="dream-category" data-dream-id="' + dreamId + '" title="Категория">' + escapeHtml(category) + '</td><td>' + (i + 1) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><select class="dream-status">' + STATUS_OPTIONS.map(function(o) { return '<option value="' + o.value + '"' + (o.value === status ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>'; }).join('') + '</select></td>';
+                tr.innerHTML = '<td class="dream-category" data-dream-id="' + dreamId + '" title="Категория">' + escapeHtml(categoryDisplay.trim()) + '</td><td>' + (i + 1) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner">' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
                 tbodyEl.appendChild(tr);
-                tr.querySelector('.dream-text').addEventListener('click', function(ev) { ev.stopPropagation(); startEditDreamText(dreamId, this); });
-                tr.querySelector('.dream-status').addEventListener('change', function(ev) { ev.stopPropagation(); saveDreamStatus(dreamId, this.value); });
-                tr.addEventListener('click', function(ev) { if (!ev.target.closest('select') && !ev.target.closest('input')) toggleAccordion(dreamId); });
+                tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
+                var picker = tr.querySelector('.status-picker');
+                var currentSpan = picker.querySelector('.status-picker-current');
+                var dropdown = picker.querySelector('.status-picker-dropdown');
+                currentSpan.addEventListener('click', function(ev) { ev.stopPropagation(); dropdown.classList.toggle('open'); });
+                picker.querySelectorAll('.status-picker-option').forEach(function(btn) {
+                    btn.addEventListener('click', function(ev) {
+                        ev.stopPropagation();
+                        var id = parseInt(btn.dataset.statusId, 10);
+                        var icon = btn.dataset.statusIcon || '';
+                        var label = btn.dataset.statusLabel || btn.textContent.trim();
+                        currentSpan.textContent = icon;
+                        currentSpan.title = (icon + ' ' + label).trim() || 'Статус';
+                        dropdown.classList.remove('open');
+                        saveDreamStatus(dreamId, id);
+                    });
+                });
+                tr.addEventListener('click', function(ev) { if (!ev.target.closest('.status-picker') && !ev.target.closest('.dream-edit-btn') && !ev.target.closest('input')) toggleAccordion(dreamId); });
                 var accTr = document.createElement('tr');
                 accTr.className = 'accordion-row hidden';
                 accTr.id = 'accordion-' + dreamId;
@@ -284,7 +358,14 @@
         function openNewDreamModal() {
             document.getElementById('new-dream-text').value = '';
             document.getElementById('new-dream-deadline').value = '';
-            document.getElementById('new-dream-status').value = 'planned';
+            var statusSelect = document.getElementById('new-dream-status');
+            statusSelect.innerHTML = getStatusOptionsHtml(1);
+            var catSelect = document.getElementById('new-dream-category');
+            if (catSelect) {
+                catSelect.innerHTML = '<option value="">Без категории</option>' + (dreamCategoriesList.map(function(o) {
+                    return '<option value="' + o.id + '">' + escapeHtml((o.icon || '') + ' ' + (o.label_ru || o.code || '').trim()) + '</option>';
+                }).join(''));
+            }
             var btn = document.getElementById('btn-submit-new-dream');
             if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
             var errDiv = document.getElementById('new-dream-error');
@@ -294,6 +375,60 @@
         function closeNewDreamModal() {
             document.getElementById('modal-new-dream').classList.add('hidden');
         }
+        function openEditDreamModal(d) {
+            var id = d.id;
+            var text = (d.title || d.dream || '').trim();
+            var deadline = (d.deadline || '').toString().slice(0, 10);
+            var statusId = d.status_id != null ? d.status_id : (d.status_obj && d.status_obj.id) || 1;
+            var categoryId = d.category_id != null ? d.category_id : (d.category_obj && d.category_obj.id);
+            document.getElementById('edit-dream-id').value = id;
+            document.getElementById('edit-dream-text').value = text;
+            document.getElementById('edit-dream-deadline').value = deadline;
+            var statusSelect = document.getElementById('edit-dream-status');
+            statusSelect.innerHTML = getStatusOptionsHtml(statusId);
+            var catSelect = document.getElementById('edit-dream-category');
+            catSelect.innerHTML = '<option value="">Без категории</option>' + (dreamCategoriesList.map(function(o) {
+                return '<option value="' + o.id + '"' + (o.id === categoryId ? ' selected' : '') + '>' + escapeHtml((o.icon || '') + ' ' + (o.label_ru || o.code || '').trim()) + '</option>';
+            }).join(''));
+            document.getElementById('edit-dream-error').classList.add('hidden');
+            document.getElementById('btn-submit-edit-dream').disabled = false;
+            document.getElementById('modal-edit-dream').classList.remove('hidden');
+        }
+        function closeEditDreamModal() {
+            document.getElementById('modal-edit-dream').classList.add('hidden');
+        }
+        async function submitEditDream() {
+            var btn = document.getElementById('btn-submit-edit-dream');
+            if (btn && btn.disabled) return;
+            var dreamId = parseInt(document.getElementById('edit-dream-id').value, 10);
+            var text = document.getElementById('edit-dream-text').value.trim();
+            if (!text) return;
+            var deadline = document.getElementById('edit-dream-deadline').value || null;
+            var statusId = parseInt(document.getElementById('edit-dream-status').value, 10) || 1;
+            var categoryIdEl = document.getElementById('edit-dream-category');
+            var categoryId = categoryIdEl && categoryIdEl.value ? parseInt(categoryIdEl.value, 10) : null;
+            var errDiv = document.getElementById('edit-dream-error');
+            errDiv.textContent = '';
+            errDiv.classList.add('hidden');
+            if (btn) btn.disabled = true;
+            try {
+                var body = { dream: text, status_id: statusId, deadline: deadline || null, category_id: categoryId || null };
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) {
+                    var e = await res.json().catch(function() { return {}; });
+                    errDiv.textContent = e.detail || ('Ошибка ' + res.status);
+                    errDiv.classList.remove('hidden');
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+                closeEditDreamModal();
+                showProfile();
+            } catch (e) {
+                errDiv.textContent = 'Ошибка сети';
+                errDiv.classList.remove('hidden');
+                if (btn) btn.disabled = false;
+            }
+        }
         async function submitNewDream() {
             var btn = document.getElementById('btn-submit-new-dream');
             if (btn && btn.disabled) return;
@@ -301,7 +436,9 @@
             if (!text) return;
             if (btn) { btn.disabled = true; btn.textContent = 'Сохранение…'; }
             var deadline = document.getElementById('new-dream-deadline').value || null;
-            var status = document.getElementById('new-dream-status').value;
+            var statusId = parseInt(document.getElementById('new-dream-status').value, 10) || 1;
+            var categoryIdEl = document.getElementById('new-dream-category');
+            var categoryId = categoryIdEl && categoryIdEl.value ? parseInt(categoryIdEl.value, 10) : null;
             var errDiv = document.getElementById('new-dream-error');
             if (!errDiv) {
                 errDiv = document.createElement('div');
@@ -313,7 +450,8 @@
             errDiv.textContent = '';
             errDiv.classList.add('hidden');
             try {
-                var body = { user_id: currentUser.id, dream: text, status: status };
+                var body = { user_id: currentUser.id, dream: text, status_id: statusId };
+                if (categoryId) body.category_id = categoryId;
                 if (deadline) body.deadline = deadline;
                 var ctrl = new AbortController();
                 var timeout = setTimeout(function() { ctrl.abort(); }, 15000);
@@ -334,27 +472,8 @@
                 if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
             }
         }
-        function startEditDreamText(dreamId, cellEl) {
-            var oldText = (cellEl.textContent || '').trim();
-            var input = document.createElement('input');
-            input.type = 'text';
-            input.value = oldText;
-            input.style.width = '100%';
-            input.style.boxSizing = 'border-box';
-            cellEl.textContent = '';
-            cellEl.appendChild(input);
-            input.focus();
-            function save() {
-                var newText = input.value.trim();
-                cellEl.removeChild(input);
-                cellEl.textContent = newText || '—';
-                if (newText !== oldText && newText) patchDream(dreamId, { dream: newText });
-            }
-            input.addEventListener('blur', save);
-            input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); save(); } if (ev.key === 'Escape') { cellEl.removeChild(input); cellEl.textContent = oldText || '—'; } });
-        }
-        async function saveDreamStatus(dreamId, status) {
-            await patchDream(dreamId, { status: status });
+        async function saveDreamStatus(dreamId, statusId) {
+            await patchDream(dreamId, { status_id: statusId });
         }
         async function patchDream(dreamId, body) {
             try {
@@ -432,6 +551,10 @@
 
         function escapeHtml(s) { var div = document.createElement('div'); div.textContent = s; return div.innerHTML; }
         function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
+
+        document.addEventListener('click', function(ev) {
+            if (!ev.target.closest('.status-picker')) document.querySelectorAll('.status-picker-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+        });
 
         function logout() {
             currentUser = null;
