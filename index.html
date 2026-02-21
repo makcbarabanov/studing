@@ -247,6 +247,14 @@
     <script>
         const API_BASE_URL = 'http://23.172.217.180:8000'; // <-- Укажи свой IP API-сервера
         let currentUser = null; // Здесь будем хранить данные текущего пользователя
+        var dreamEditContext = { ownerId: 0, viewerId: null };
+        function dreamApiUserParams() {
+            var oid = dreamEditContext.ownerId || (currentUser && currentUser.id);
+            if (!oid) return 'user_id=0';
+            var s = 'user_id=' + oid;
+            if (dreamEditContext.viewerId != null) s += '&viewer_id=' + dreamEditContext.viewerId;
+            return s;
+        }
 
         async function login() {
             const phone = document.getElementById('phone').value;
@@ -314,6 +322,8 @@
             document.getElementById('stat-helped').textContent = '5 мечт чужих исполнил';
 
             // 2. Мечты и справочники — один параллельный запрос (быстрее)
+            dreamEditContext.ownerId = currentUser.id;
+            dreamEditContext.viewerId = null;
             const tableEl = document.getElementById('dreams-table');
             const tbodyEl = document.getElementById('dreams-tbody');
             const emptyEl = document.getElementById('dreams-empty');
@@ -394,6 +404,8 @@
             }
             var buddyName = (currentUser.buddy_name || '').trim() || 'Бадди';
             titleEl.textContent = 'Мечты бадди: ' + buddyName;
+            dreamEditContext.ownerId = currentUser.buddy_id;
+            dreamEditContext.viewerId = currentUser.id;
             try {
                 var res = await fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.buddy_id + '&viewer_id=' + currentUser.id, { cache: 'no-store' });
                 if (!res.ok) {
@@ -408,7 +420,7 @@
                 if (dreams.length === 0) {
                     emptyEl.classList.remove('hidden');
                 } else {
-                    renderBuddyDreamsTable(dreams);
+                    if (currentUser.buddy_trust) renderBuddyDreamsTableEditable(dreams); else renderBuddyDreamsTable(dreams);
                 }
             } catch (e) {
                 console.error('loadBuddyDreams', e);
@@ -451,6 +463,57 @@
                 tr.addEventListener('click', function(ev) {
                     var acc = document.getElementById('buddy-accordion-' + dreamId);
                     if (acc) acc.classList.toggle('hidden');
+                });
+            });
+        }
+        function renderBuddyDreamsTableEditable(dreams) {
+            var tbodyEl = document.getElementById('buddy-dreams-tbody');
+            dreams.forEach(function(d, i) {
+                var text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
+                var statusId = d.status_id != null ? d.status_id : 1;
+                var deadline = formatDeadlineDisplay((d.deadline || '').toString().slice(0, 10) || '');
+                var dreamId = d.id;
+                var categoryIcon = (d.category_obj && (d.category_obj.icon || '').trim()) || '';
+                var categoryLabel = (d.category_obj && (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '';
+                var categoryDisplay = categoryIcon || categoryLabel || '—';
+                var categoryTitle = categoryLabel || 'Категория';
+                var price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
+                var isPublic = d.is_public !== false;
+                var eyeIcon = isPublic ? '👁️' : '🙈';
+                var eyeTitle = isPublic ? 'Открытая' : 'Приватная';
+                var tr = document.createElement('tr');
+                tr.className = 'dream-row buddy-dream-row';
+                tr.dataset.dreamId = dreamId;
+                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" title="' + escapeAttr(eyeTitle) + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
+                tbodyEl.appendChild(tr);
+                tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
+                var eyeBtn = tr.querySelector('.dream-eye');
+                eyeBtn.addEventListener('click', function(ev) { ev.stopPropagation(); var nowPublic = this.getAttribute('data-public') === '1'; saveDreamPrivacy(dreamId, !nowPublic); });
+                var picker = tr.querySelector('.status-picker');
+                if (picker) {
+                    var currentSpan = picker.querySelector('.status-picker-current');
+                    var dropdown = picker.querySelector('.status-picker-dropdown');
+                    currentSpan.addEventListener('click', function(ev) { ev.stopPropagation(); dropdown.classList.toggle('open'); });
+                    picker.querySelectorAll('.status-picker-option').forEach(function(btn) {
+                        btn.addEventListener('click', function(ev) { ev.stopPropagation(); var id = parseInt(btn.dataset.statusId, 10); var icon = btn.dataset.statusIcon || ''; var label = btn.dataset.statusLabel || btn.textContent.trim(); currentSpan.textContent = icon; currentSpan.title = (icon + ' ' + label).trim() || 'Статус'; dropdown.classList.remove('open'); saveDreamStatus(dreamId, id); });
+                    });
+                }
+                tr.addEventListener('click', function(ev) { if (!ev.target.closest('.status-picker') && !ev.target.closest('.dream-edit-btn') && !ev.target.closest('input')) { var acc = document.getElementById('buddy-accordion-' + dreamId); if (acc) acc.classList.toggle('hidden'); } });
+                var accTr = document.createElement('tr');
+                accTr.className = 'accordion-row hidden';
+                accTr.id = 'buddy-accordion-' + dreamId;
+                accTr.dataset.dreamId = dreamId;
+                var steps = (d.steps || []);
+                var stepsHtml = steps.length === 0 ? '' : steps.map(function(s) {
+                    return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span></div>';
+                }).join('');
+                accTr.innerHTML = '<td colspan="6"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></td>';
+                tbodyEl.appendChild(accTr);
+                accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                accTr.querySelectorAll('.step-row').forEach(function(row) {
+                    var stepId = row.dataset.stepId;
+                    row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, stepId, this.checked); });
+                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
                 });
             });
         }
@@ -652,7 +715,7 @@
             if (!confirm('Удалить эту мечту? Шаги мечты тоже будут удалены.')) return;
             var dreamId = parseInt(document.getElementById('edit-dream-id').value, 10);
             try {
-                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?user_id=' + currentUser.id, { method: 'DELETE' });
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'DELETE' });
                 if (!res.ok) {
                     var e = await res.json().catch(function() { return {}; });
                     alert(e.detail || 'Ошибка удаления');
@@ -694,7 +757,7 @@
                     return;
                 }
                 closeEditDreamModal();
-                showProfile();
+                refreshAfterDreamChange();
             } catch (e) {
                 errDiv.textContent = 'Ошибка сети';
                 errDiv.classList.remove('hidden');
@@ -755,18 +818,21 @@
         }
         async function patchDream(dreamId, body) {
             try {
-                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 if (!res.ok) {
                     var e = await res.json().catch(function() { return {}; });
                     alert(e.detail || 'Ошибка');
-                    await showProfile();
+                    await refreshAfterDreamChange();
                     return;
                 }
-                await showProfile();
+                await refreshAfterDreamChange();
             } catch (e) {
                 alert('Ошибка сети');
-                await showProfile();
+                await refreshAfterDreamChange();
             }
+        }
+        function refreshAfterDreamChange() {
+            if (dreamEditContext.viewerId != null) loadBuddyDreams(); else showProfile();
         }
         function showAddStep(dreamId) {
             var container = document.querySelector('.steps-list[data-dream-id="' + dreamId + '"]');
@@ -801,7 +867,7 @@
         }
         async function addStep(dreamId, title, onDone) {
             try {
-                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?user_id=' + currentUser.id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title }) });
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?' + dreamApiUserParams(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title }) });
                 if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); return; }
                 var data = await res.json();
                 onDone(data);
@@ -809,7 +875,7 @@
         }
         async function saveStepCompleted(dreamId, stepId, completed) {
             try {
-                await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: completed }) });
+                await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: completed }) });
             } catch (e) { alert('Ошибка сети'); }
         }
         function startEditStepTitle(dreamId, stepId, spanEl) {
@@ -832,7 +898,7 @@
         }
         async function patchStep(dreamId, stepId, body) {
             try {
-                await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             } catch (e) { alert('Ошибка сети'); }
         }
 

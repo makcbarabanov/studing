@@ -136,11 +136,19 @@ def login_user(user_login: UserLogin):
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             phone_alt = ("+7" + user_login.phone[1:]) if user_login.phone.startswith("8") and len(user_login.phone) >= 11 else user_login.phone
-            cur.execute("""
-                SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id
-                FROM users
-                WHERE phone = %s OR phone = %s
-            """, (user_login.phone, phone_alt))
+            try:
+                cur.execute("""
+                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id, buddy_trust
+                    FROM users
+                    WHERE phone = %s OR phone = %s
+                """, (user_login.phone, phone_alt))
+            except psycopg2.ProgrammingError:
+                conn.rollback()
+                cur.execute("""
+                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id
+                    FROM users
+                    WHERE phone = %s OR phone = %s
+                """, (user_login.phone, phone_alt))
             user_data = cur.fetchone()
 
             if user_data is None:
@@ -158,6 +166,7 @@ def login_user(user_login: UserLogin):
             full_name = f"{user_data['name'] or ''} {user_data['surname'] or ''}".strip() or "Пользователь"
             avatar_path = user_data.get("avatar_path")
             buddy_id = user_data.get("buddy_id")
+            buddy_trust = bool(user_data.get("buddy_trust"))
             buddy_name = None
             if buddy_id:
                 cur.execute("SELECT name, surname FROM users WHERE id = %s", (buddy_id,))
@@ -171,6 +180,7 @@ def login_user(user_login: UserLogin):
                 "phone": user_data["phone"],
                 "avatar_path": avatar_path,
                 "buddy_id": buddy_id,
+                "buddy_trust": buddy_trust,
                 "buddy_name": buddy_name,
                 "dream": "Мечта загружается..."
             }
@@ -266,6 +276,26 @@ def list_dream_categories():
             return [dict(r) for r in cur.fetchall()]
     finally:
         conn.close()
+
+def _can_edit_buddy_dream(cur, editor_id: int, dream_owner_id: int) -> bool:
+    """Проверяет, может ли editor_id редактировать мечты владельца dream_owner_id (свои или бадди с доверием)."""
+    if editor_id == dream_owner_id:
+        return True
+    cur.execute("SELECT buddy_id, buddy_trust FROM users WHERE id = %s", (editor_id,))
+    row = cur.fetchone()
+    return bool(row and row.get("buddy_id") == dream_owner_id and row.get("buddy_trust"))
+
+def _resolve_editor_and_check_dream(cur, dream_id: int, user_id: int, viewer_id: Optional[int]) -> int:
+    """Возвращает user_id владельца мечты и проверяет, что текущий запросчик (editor) может её редактировать. Иначе 403/404."""
+    cur.execute("SELECT id, user_id FROM dreams WHERE id = %s", (dream_id,))
+    dream = cur.fetchone()
+    if not dream:
+        raise HTTPException(status_code=404, detail="Мечта не найдена")
+    owner_id = dream["user_id"]
+    editor_id = viewer_id if viewer_id is not None else user_id
+    if not _can_edit_buddy_dream(cur, editor_id, owner_id):
+        raise HTTPException(status_code=403, detail="Нет права редактировать эту мечту")
+    return owner_id
 
 def _build_dream_item(row, steps_by_dream):
     """Собирает один элемент для ответа GET /dreams из строки БД."""
@@ -549,14 +579,12 @@ def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
 
 
 @app.delete("/dreams/{dream_id}")
-def delete_dream(dream_id: int, user_id: int):
-    """Удалить мечту. Только если мечта принадлежит user_id. Шаги удаляются каскадом (если есть FK ON DELETE CASCADE)."""
+def delete_dream(dream_id: int, user_id: int, viewer_id: Optional[int] = None):
+    """Удалить мечту. Разрешено владельцу или бадди с buddy_trust=true (viewer_id=кто удаляет)."""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
-            if not cur.fetchone():
-                raise HTTPException(status_code=404, detail="Мечта не найдена или не ваша")
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             cur.execute("DELETE FROM dream_steps WHERE dream_id = %s", (dream_id,))
             cur.execute("DELETE FROM dreams WHERE id = %s", (dream_id,))
             conn.commit()
@@ -598,14 +626,12 @@ def create_step(dream_id: int, body: StepCreate, user_id: int):
 
 
 @app.patch("/dreams/{dream_id}/steps/{step_id}")
-def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int):
-    """Обновить шаг (название или флажок сделан/не сделан)."""
+def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, viewer_id: Optional[int] = None):
+    """Обновить шаг. Разрешено владельцу мечты или бадди с buddy_trust=true."""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
-            if not cur.fetchone():
-                raise HTTPException(status_code=404, detail="Мечта не найдена или не ваша")
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             updates, vals = [], []
             if body.title is not None:
                 updates.append("title = %s")
