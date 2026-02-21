@@ -107,8 +107,10 @@
         .dream-eye:hover { opacity: 0.85; }
         .dream-edit-btn { background: none; border: none; cursor: pointer; padding: 4px; font-size: 1.1em; opacity: 0.7; }
         .dream-edit-btn:hover { opacity: 1; }
-        /* Хедер и меню закреплены при скролле */
-        .app-sticky-top { position: sticky; top: 0; z-index: 20; background: #fff; margin: -20px -20px 0 -20px; padding: 20px 20px 0 20px; }
+        /* Хедер и меню закреплены при скролле (как кол), ширина как у контента */
+        .app-sticky-top { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 95vw; max-width: 980px; box-sizing: border-box; z-index: 20; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-radius: 8px 8px 0 0; }
+        .app-sticky-inner { padding: 20px 20px 0 20px; box-sizing: border-box; }
+        #app-sticky-spacer { width: 100%; }
         /* Хедер личного кабинета */
         .app-header { display: flex; align-items: stretch; justify-content: space-between; gap: 24px; padding-bottom: 16px; min-height: 88px; }
         .app-header-left { display: flex; align-items: center; gap: 18px; }
@@ -168,6 +170,8 @@
         <!-- Личный кабинет -->
         <div id="profile-view" class="hidden">
             <input type="file" id="avatar-file" accept="image/*" class="hidden" aria-hidden="true">
+            <div class="app-sticky-top">
+                <div class="app-sticky-inner">
             <!-- Хедер: аватар, имя, статистика -->
             <header class="app-header">
                 <div class="app-header-left">
@@ -197,7 +201,9 @@
                     <a href="#" id="menu-steps-buddy">Бадди</a>
                 </div>
             </nav>
+                </div>
             </div>
+            <div id="app-sticky-spacer" aria-hidden="true"></div>
             <!-- Контент: таблица мечт, Бадди или Шаги -->
             <div class="app-content">
                 <div id="dreams-block">
@@ -337,6 +343,8 @@
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
             document.getElementById('page-title').classList.add('hidden');
+            setTimeout(updateStickySpacer, 0);
+            setTimeout(updateStickySpacer, 150);
 
             // 1. Хедер: аватар (URL из avatar_path; по клику — загрузка нового)
             currentUser.avatar_url = (currentUser.avatar_path && (API_BASE_URL + '/media/' + currentUser.avatar_path)) || null;
@@ -737,10 +745,19 @@
                 });
             });
         }
+        function updateStickySpacer() {
+            var sticky = document.querySelector('#profile-view .app-sticky-top');
+            var spacer = document.getElementById('app-sticky-spacer');
+            if (sticky && spacer) {
+                var h = sticky.offsetHeight;
+                spacer.style.height = (h > 0 ? h : 180) + 'px';
+            }
+        }
         document.getElementById('menu-my-dreams').addEventListener('click', function(e) { e.preventDefault(); switchMenu('dreams'); });
         document.getElementById('menu-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('buddy'); });
         document.getElementById('menu-my-steps').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps'); });
         document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
+        window.addEventListener('resize', updateStickySpacer);
 
         var avatarFileEl = document.getElementById('avatar-file');
         if (avatarFileEl) {
