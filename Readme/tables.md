@@ -65,6 +65,8 @@
 | `title`    | VARCHAR(500) NOT NULL | Название шага. |
 | `completed`| BOOLEAN DEFAULT false | Выполнен ли шаг (галочка в интерфейсе). |
 | `sort_order` | INT DEFAULT 0 | Порядок отображения (меньше — выше в списке). |
+| `deadline`   | DATE NULL     | Дедлайн шага (одна дата «сделать до»). Миграция mig_015. |
+| `deleted`    | BOOLEAN DEFAULT false | Мягкое удаление: true — шаг скрыт из текущих, показывается в разделе «Шаги» в блоке «Удалённые» с возможностью восстановить. Миграция mig_015. |
 
 Индекс: `idx_dream_steps_dream_id` на `dream_steps(dream_id)` (mig_001).
 
