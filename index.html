@@ -7,7 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; min-height: 100vh; background-color: #e8e4df; background-image: url('examples/breakfast.png'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat; }
-        .container { max-width: min(980px, 95vw); margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .container { max-width: min(980px, 95vw); margin: auto; background: rgba(255, 255, 255, 0.88); padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.08); box-sizing: border-box; backdrop-filter: blur(8px); }
         h1, h2 { color: #333; }
         input[type="tel"], input[type="password"], input[type="text"], button {
             width: 100%; padding: 10px; margin: 8px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
@@ -118,9 +118,14 @@
         .app-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .app-header-name-wrap { display: flex; flex-direction: column; justify-content: center; }
         .app-header-name { font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; }
-        .app-header-stats { display: flex; align-items: center; justify-content: flex-end; flex: 1; min-width: 0; }
-        .app-header-stats span { flex: 1; text-align: center; font-size: 12px; color: #666; padding: 6px 6px; white-space: nowrap; border-left: 1px solid #e8e8e8; }
-        .app-header-stats span:first-child { border-left: none; }
+        .app-header-stats { display: flex; align-items: stretch; justify-content: flex-end; flex: 1; min-width: 0; }
+        .app-header-stat-cell { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 6px; border-left: 1px solid #e8e8e8; cursor: default; transition: color 0.2s ease; color: #666; }
+        .app-header-stat-cell:first-child { border-left: none; }
+        .app-header-stat-cell:hover { color: #b8860b; }
+        .app-header-stat-cell .stat-num { font-size: 15px; font-weight: 600; line-height: 1.2; }
+        .app-header-stat-cell .stat-label { font-size: 11px; margin-top: 2px; }
+        .app-header-stat-helped .stat-helped-label { font-size: 11px; }
+        .app-header-stat-helped .stat-helped-n { font-weight: 600; font-size: 15px; }
         .app-header-divider { height: 1px; background: linear-gradient(90deg, transparent, #ddd 10%, #ddd 90%, transparent); margin: 0 0 16px 0; }
         .app-menu { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin-bottom: 12px; }
         .app-menu-group { display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 0; }
@@ -134,37 +139,85 @@
         .steps-list-plain { list-style: none; padding: 0; margin: 0; }
         .step-item-plain { padding: 8px 10px; border-bottom: 1px solid #eee; }
         .step-item-plain:hover { background: #f9f9f9; }
-        .step-item-plain.completed { color: #777; font-style: italic; }
+        .step-item-plain.completed, .step-row.completed { color: #777; font-style: italic; }
+        .step-item-plain.completed .step-title-text, .step-row.completed .step-title { text-decoration: line-through; }
         .step-item-plain .step-title-wrap { min-width: 200px; }
         .step-item-plain .step-title-text { cursor: pointer; }
         .step-item-plain .step-restore { font-size: 12px; color: #2196F3; cursor: pointer; }
+        /* Лендинг: приветственная страница, блок по центру экрана, полупрозрачный фон */
+        body.landing-visible .container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; box-shadow: none; backdrop-filter: none; }
+        #landing-view { width: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        #landing-view.hidden { display: none; }
+        .landing-card { background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(10px); padding: 40px 36px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); width: 100%; max-width: 480px; box-sizing: border-box; }
+        .landing-hero { text-align: center; margin-bottom: 28px; }
+        .landing-hero .landing-title { font-size: 1.75em; color: #1b5e20; margin: 0; font-weight: 600; }
+        .landing-hero .landing-mission { font-size: 1.2em; color: #b8860b; margin: 2em 0 0; line-height: 1.4; font-weight: 500; }
+        .landing-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px 32px; margin-bottom: 24px; padding: 20px 16px; background: rgba(248, 247, 245, 0.7); border-radius: 8px; }
+        .landing-stats-item { text-align: center; min-width: 120px; }
+        .landing-stats-item .landing-num { font-size: 1.5em; font-weight: 700; color: #2e7d32; }
+        .landing-stats-item .landing-label { font-size: 0.9em; color: #666; margin-top: 4px; }
+        .landing-auth { text-align: center; margin-top: 20px; }
+        .landing-auth-links { font-size: 0.95em; color: #666; margin-bottom: 12px; }
+        .landing-auth-links a { color: #2196F3; text-decoration: none; margin: 0 8px; }
+        .landing-auth-links a:hover { text-decoration: underline; }
+        .landing-auth .auth-form-wrap { max-width: 320px; margin: 0 auto; padding: 16px; background: rgba(255,255,255,0.95); border: 1px solid #e0e0e0; border-radius: 8px; }
+        .landing-auth .auth-form-wrap h2 { margin: 0 0 12px; font-size: 1.1em; color: #555; }
+        .landing-auth .auth-form-wrap input { padding: 8px 10px; margin: 6px 0; }
+        .landing-auth .auth-form-wrap button { margin-top: 8px; width: 100%; }
+        .landing-auth .auth-form-wrap .auth-switch { margin-top: 10px; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 id="page-title">🍳 Завтрак исполняющий желания — Личный кабинет</h1>
+        <h1 id="page-title" class="hidden">Завтрак исполняющий желания — Личный кабинет</h1>
 
-        <!-- Форма входа -->
-        <div id="login-form">
-            <h2>Вход</h2>
-            <input type="tel" id="phone" placeholder="Номер телефона" required>
-            <input type="password" id="password" placeholder="Пароль" required>
-            <button onclick="login()">Войти</button>
-            <p style="margin-top: 12px;"><a href="#" onclick="showRegisterForm(); return false;">Нет аккаунта? Зарегистрироваться</a></p>
-            <div id="login-error" class="error hidden"></div>
-        </div>
-
-        <!-- Форма регистрации -->
-        <div id="register-form" class="hidden">
-            <h2>Регистрация</h2>
-            <input type="text" id="reg-name" placeholder="Имя" required>
-            <input type="text" id="reg-surname" placeholder="Фамилия" required>
-            <input type="text" id="reg-city" placeholder="Город">
-            <input type="tel" id="reg-phone" placeholder="Номер телефона" required>
-            <input type="password" id="reg-password" placeholder="Пароль" required>
-            <button type="button" id="register-btn" onclick="register()">Зарегистрироваться</button>
-            <p style="margin-top: 12px;"><a href="#" onclick="showLoginForm(); return false;">← Назад к входу</a></p>
-            <div id="register-error" class="error hidden"></div>
+        <!-- Лендинг: миссия, статистика, вход/регистрация по периферии -->
+        <div id="landing-view">
+            <div class="landing-card">
+            <div class="landing-hero">
+                <h2 class="landing-title">Завтрак исполняющий желания</h2>
+                <p class="landing-mission">Миссия: воплотить 1 миллион мечт в жизнь</p>
+            </div>
+            <div class="landing-stats">
+                <div class="landing-stats-item">
+                    <div class="landing-num" id="landing-fulfilled">—</div>
+                    <div class="landing-label">Выполнено мечт</div>
+                </div>
+                <div class="landing-stats-item">
+                    <div class="landing-num" id="landing-remaining">—</div>
+                    <div class="landing-label">Осталось мечт</div>
+                </div>
+                <div class="landing-stats-item">
+                    <div class="landing-num" id="landing-users">—</div>
+                    <div class="landing-label">Участников</div>
+                </div>
+            </div>
+            <div class="landing-auth">
+                <div class="landing-auth-links">
+                    <a href="#" id="landing-link-login" onclick="showLoginForm(); return false;">Войти</a>
+                    <a href="#" id="landing-link-register" onclick="showRegisterForm(); return false;">Регистрация</a>
+                </div>
+                <div id="login-form" class="auth-form-wrap hidden">
+                    <h2>Вход</h2>
+                    <input type="tel" id="phone" placeholder="Номер телефона" required>
+                    <input type="password" id="password" placeholder="Пароль" required>
+                    <button onclick="login()">Войти</button>
+                    <p class="auth-switch"><a href="#" onclick="showRegisterForm(); return false;">Нет аккаунта? Зарегистрироваться</a></p>
+                    <div id="login-error" class="error hidden"></div>
+                </div>
+                <div id="register-form" class="auth-form-wrap hidden">
+                    <h2>Регистрация</h2>
+                    <input type="text" id="reg-name" placeholder="Имя" required>
+                    <input type="text" id="reg-surname" placeholder="Фамилия" required>
+                    <input type="text" id="reg-city" placeholder="Город">
+                    <input type="tel" id="reg-phone" placeholder="Номер телефона" required>
+                    <input type="password" id="reg-password" placeholder="Пароль" required>
+                    <button type="button" id="register-btn" onclick="register()">Зарегистрироваться</button>
+                    <p class="auth-switch"><a href="#" onclick="showLoginForm(); return false;">← Назад к входу</a></p>
+                    <div id="register-error" class="error hidden"></div>
+                </div>
+            </div>
+            </div>
         </div>
 
         <!-- Личный кабинет -->
@@ -181,10 +234,12 @@
                     </div>
                 </div>
                 <div class="app-header-stats">
-                    <span id="stat-dreams-total">0 мечт всего</span>
-                    <span id="stat-dreams-done">0 уже выполнено</span>
-                    <span id="stat-buddies">0 бадди</span>
-                    <span id="stat-helped">0 мечт чужих исполнил</span>
+                    <div class="app-header-stat-cell"><span id="stat-dreams-ratio" class="stat-num">0/0</span><span class="stat-label">мечт сбылось</span></div>
+                    <div class="app-header-stat-cell"><span id="stat-buddies" class="stat-num">0</span><span class="stat-label">бадди</span></div>
+                    <div id="stat-helped" class="app-header-stat-cell app-header-stat-helped">
+                        <span class="stat-helped-n stat-num" id="stat-helped-n">0</span>
+                        <span class="stat-helped-label stat-label">исполнил</span>
+                    </div>
                 </div>
             </header>
             <div class="app-header-divider"></div>
@@ -249,10 +304,13 @@
                     <label>Дедлайн</label>
                     <input type="date" id="new-dream-deadline">
                     <p class="modal-deadline-hints">Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">конец года (31.12.<span id="new-eoy-year"></span>)</a>, <a href="#" data-deadline="none">без даты</a></p>
+                    <label>Цена (руб.)</label>
+                    <input type="number" id="new-dream-price" placeholder="не указана" min="0" step="1" style="width:120px;">
                     <label>Статус</label>
                     <select id="new-dream-status"></select>
                     <label>Категория</label>
                     <select id="new-dream-category"></select>
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="new-dream-private" title="Не показывать в витрине мечт"> Приватная (анонимно, не в витрине)</label>
                     <p class="modal-hint" style="margin-top:12px;font-size:12px;color:#666;">Нажмите «Добавить» один раз и дождитесь обновления списка.</p>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeNewDreamModal()">Отмена</button>
@@ -303,6 +361,19 @@
             if (dreamEditContext.viewerId != null) s += '&viewer_id=' + dreamEditContext.viewerId;
             return s;
         }
+        function formatDreamsFulfilled(count, times) {
+            if (count === 0 && times === 0) return 'Сбылось: 0 мечт';
+            var dreamWord = (count % 10 === 1 && count % 100 !== 11) ? ' мечта' : ([2,3,4].indexOf(count % 10) >= 0 && [12,13,14].indexOf(count % 100) < 0) ? ' мечты' : ' мечт';
+            var timesWord = (times % 10 === 1 && times % 100 !== 11) ? ' раз' : ([2,3,4].indexOf(times % 10) >= 0 && [12,13,14].indexOf(times % 100) < 0) ? ' раза' : ' раз';
+            return 'Сбылось: ' + count + dreamWord + ' | ' + times + timesWord;
+        }
+        function formatDreamsFulfilledNum(count, times) {
+            if (count === 0 && times === 0) return '0';
+            return count + ' | ' + times;
+        }
+        function updateHelpedStat(n) {
+            document.getElementById('stat-helped-n').textContent = n;
+        }
 
         async function login() {
             const phone = document.getElementById('phone').value;
@@ -340,7 +411,10 @@
         let dreamCategoriesList = [];
 
         async function showProfile() {
+            document.getElementById('landing-view').classList.add('hidden');
+            document.body.classList.remove('landing-visible');
             document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
             document.getElementById('page-title').classList.add('hidden');
             setTimeout(updateStickySpacer, 0);
@@ -367,10 +441,9 @@
                 span.textContent = initials;
                 avatarEl.appendChild(span);
             }
-            document.getElementById('stat-dreams-total').textContent = '0 мечт всего';
-            document.getElementById('stat-dreams-done').textContent = '2 уже выполнено';
-            document.getElementById('stat-buddies').textContent = '1 бадди';
-            document.getElementById('stat-helped').textContent = '5 мечт чужих исполнил';
+            document.getElementById('stat-dreams-ratio').textContent = '0/0';
+            document.getElementById('stat-buddies').textContent = (currentUser && currentUser.buddy_id) ? '1' : '0';
+            updateHelpedStat(0);
 
             // 2. Мечты и справочники — один параллельный запрос (быстрее)
             dreamEditContext.ownerId = currentUser.id;
@@ -385,8 +458,8 @@
             errEl.classList.add('hidden');
             try {
                 const [stRes, catRes, dreamsRes] = await Promise.all([
-                    fetch(API_BASE_URL + '/dream_statuses'),
-                    fetch(API_BASE_URL + '/dream_categories'),
+                    fetch(API_BASE_URL + '/dreams_statuses'),
+                    fetch(API_BASE_URL + '/dreams_categories'),
                     fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.id, { cache: 'no-store' })
                 ]);
                 if (stRes.ok) dreamStatusesList = await stRes.json();
@@ -398,11 +471,15 @@
                 }
                 const data = await dreamsRes.json();
                 const dreams = data.dreams || [];
-                // Статистика в хедере: мечт всего — из БД, остальное — заглушки
-                document.getElementById('stat-dreams-total').textContent = dreams.length + ' мечт всего';
-                document.getElementById('stat-dreams-done').textContent = '2 уже выполнено';
-                document.getElementById('stat-buddies').textContent = '1 бадди';
-                document.getElementById('stat-helped').textContent = '5 мечт чужих исполнил';
+                // Статистика в хедере: 0/16 мечт сбылось (или два поля мечт/сбылось), бадди, исполнил
+                var ratioEl2 = document.getElementById('stat-dreams-ratio');
+                var totalEl2 = document.getElementById('stat-dreams-total');
+                var doneEl2 = document.getElementById('stat-dreams-done');
+                var fulfilled = data.dreams_fulfilled_count || 0;
+                if (ratioEl2) ratioEl2.textContent = fulfilled + '/' + dreams.length;
+                else { if (totalEl2) totalEl2.textContent = dreams.length; if (doneEl2) doneEl2.textContent = formatDreamsFulfilledNum(fulfilled, data.dreams_fulfilled_times || 0); }
+                document.getElementById('stat-buddies').textContent = (currentUser && currentUser.buddy_id) ? '1' : '0';
+                updateHelpedStat(data.dreams_fulfilled_by_me || 0);
                 tableEl.classList.remove('hidden');
                 tbodyEl.innerHTML = '';
                 if (dreams.length === 0) {
@@ -542,7 +619,15 @@
                 li.innerHTML = '<span class="step-check"><input type="checkbox" class="step-checkbox" ' + (s.completed ? 'checked' : '') + (isBuddy ? ' disabled' : '') + '></span><span class="step-title-wrap"><span class="step-title-text">' + escapeHtml(s.title) + '</span></span><span class="step-deadline">' + escapeHtml(deadlineStr) + '</span>' + deleteBtn;
                 listEl.appendChild(li);
                 var cb = li.querySelector('.step-checkbox');
-                if (cb && !isBuddy) cb.addEventListener('change', function() { saveStepCompleted(s.dream_id, s.id, this.checked); s.completed = this.checked; li.classList.toggle('completed', this.checked); });
+                if (cb && !isBuddy) cb.addEventListener('change', function() {
+                    var checkbox = this;
+                    var checked = checkbox.checked;
+                    saveStepCompleted(s.dream_id, s.id, checked).then(function() {
+                        s.completed = checked;
+                        var filter = (document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current';
+                        renderStepsList(filter, stepsViewIsBuddy);
+                    }).catch(function() { checkbox.checked = !checked; });
+                });
                 var delBtn = li.querySelector('.step-delete');
                 if (delBtn) delBtn.addEventListener('click', function() { setStepDeleted(s.dream_id, s.id, true); });
                 if (!isBuddy) {
@@ -874,8 +959,15 @@
                 accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
                 accTr.querySelectorAll('.step-row').forEach(function(row) {
                     var stepId = row.dataset.stepId;
-                    row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, stepId, this.checked); });
+                    var s = steps.find(function(x) { return x.id == stepId; });
+                    row.querySelector('input[type=checkbox]').addEventListener('change', function() {
+                        var checkbox = this;
+                        var checked = checkbox.checked;
+                        saveStepCompleted(dreamId, stepId, checked).then(function() { if (s) s.completed = checked; row.classList.toggle('completed', checked); }).catch(function() { checkbox.checked = !checked; });
+                    });
                     row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
+                    var deadlineEl = row.querySelector('.step-deadline-inline');
+                    if (deadlineEl && s) deadlineEl.addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline }, this, 'deadline'); });
                     var delBtn = row.querySelector('.step-delete-inline');
                     if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, stepId); });
                 });
@@ -1033,6 +1125,9 @@
             errDiv.textContent = '';
             errDiv.classList.add('hidden');
             try {
+                var priceElNew = document.getElementById('new-dream-price');
+                var priceVal = (priceElNew && priceElNew.value.trim() !== '') ? parseInt(priceElNew.value, 10) : null;
+                if (priceVal != null && !isNaN(priceVal)) priceVal = Math.max(0, priceVal); else priceVal = null;
                 var privateEl = document.getElementById('new-dream-private');
                 var isPublic = !(privateEl && privateEl.checked);
                 var body = { user_id: currentUser.id, dream: text, status_id: statusId, is_public: isPublic };
@@ -1165,6 +1260,35 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function escapeHtml(s) { var div = document.createElement('div'); div.textContent = s; return div.innerHTML; }
         function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 
+        function formatNum(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f'); }
+        async function loadLandingStats() {
+            var fulfilledEl = document.getElementById('landing-fulfilled');
+            var remainingEl = document.getElementById('landing-remaining');
+            var usersEl = document.getElementById('landing-users');
+            if (!fulfilledEl || !remainingEl || !usersEl) return;
+            var data = null;
+            var urls = [API_BASE_URL + '/landing_stats'];
+            if (typeof window !== 'undefined' && window.location && window.location.origin)
+                urls.push(window.location.origin + '/landing_stats');
+            for (var i = 0; i < urls.length; i++) {
+                try {
+                    var res = await fetch(urls[i], { cache: 'no-store' });
+                    if (res.ok) { data = await res.json(); break; }
+                } catch (e) {}
+            }
+            if (data) {
+                var fulfilled = data.fulfilled_dreams || 0;
+                var remaining = Math.max(0, 1000000 - fulfilled);
+                fulfilledEl.textContent = formatNum(fulfilled);
+                remainingEl.textContent = formatNum(remaining);
+                usersEl.textContent = formatNum(data.users_count || 0);
+            } else {
+                fulfilledEl.textContent = '0';
+                remainingEl.textContent = '1\u202f000\u202f000';
+                usersEl.textContent = '0';
+            }
+        }
+
         document.addEventListener('click', function(ev) {
             if (!ev.target.closest('.status-picker')) document.querySelectorAll('.status-picker-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
         });
@@ -1172,11 +1296,14 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function logout() {
             currentUser = null;
             document.getElementById('profile-view').classList.add('hidden');
-            document.getElementById('page-title').classList.remove('hidden');
+            document.getElementById('landing-view').classList.remove('hidden');
+            document.body.classList.add('landing-visible');
+            document.getElementById('page-title').classList.add('hidden');
+            document.getElementById('login-form').classList.add('hidden');
             document.getElementById('register-form').classList.add('hidden');
-            document.getElementById('login-form').classList.remove('hidden');
             document.getElementById('phone').value = '';
             document.getElementById('password').value = '';
+            loadLandingStats();
         }
 
         function showRegisterForm() {
@@ -1235,15 +1362,21 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         }
 
         // При загрузке страницы — восстановить сессию из localStorage (запомнить пользователя)
+        loadLandingStats();
         (function tryRestoreUser() {
             var saved = null;
             try { saved = localStorage.getItem('savedUser'); } catch (e) { return; }
-            if (!saved) return;
+            if (!saved) {
+                document.body.classList.add('landing-visible');
+                return;
+            }
             try {
                 currentUser = JSON.parse(saved);
                 if (currentUser && currentUser.id) showProfile();
+                else document.body.classList.add('landing-visible');
             } catch (e) {
                 try { localStorage.removeItem('savedUser'); } catch (e2) {}
+                document.body.classList.add('landing-visible');
             }
         })();
     </script>

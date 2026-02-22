@@ -61,7 +61,7 @@ class UserUpdate(BaseModel):
 class DreamCreate(BaseModel):
     user_id: int
     dream: str
-    status_id: Optional[int] = 1  # 1 = planned (справочник dream_statuses)
+    status_id: Optional[int] = 1  # 1 = planned (справочник dreams_statuses)
     category_id: Optional[int] = None
     deadline: Optional[str] = None  # YYYY-MM-DD
     price: Optional[float] = None  # рубли
@@ -91,7 +91,7 @@ def _load_steps(cur, dream_ids):
         return out
     try:
         cur.execute(
-            "SELECT dream_id, id, title, completed, sort_order, deadline, deleted FROM dream_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+            "SELECT dream_id, id, title, completed, sort_order, deadline, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
             (dream_ids,),
         )
         for s in cur.fetchall():
@@ -110,7 +110,7 @@ def _load_steps(cur, dream_ids):
         cur.connection.rollback()
         try:
             cur.execute(
-                "SELECT dream_id, id, title, completed, sort_order FROM dream_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+                "SELECT dream_id, id, title, completed, sort_order FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
                 (dream_ids,),
             )
             for s in cur.fetchall():
@@ -216,6 +216,30 @@ def login_user(user_login: UserLogin):
     finally:
         conn.close()
 
+
+@app.get("/landing_stats")
+def landing_stats():
+    """Публичная статистика для лендинга: сколько мечт исполнено (из dreams_log), сколько участников (users)."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            fulfilled_dreams = 0
+            try:
+                cur.execute("SELECT COUNT(DISTINCT dream_id) AS n FROM dreams_log")
+                row = cur.fetchone()
+                if row:
+                    fulfilled_dreams = row.get("n") or 0
+            except psycopg2.ProgrammingError:
+                pass
+            cur.execute("SELECT COUNT(*) AS n FROM users")
+            users_count = cur.fetchone().get("n") or 0
+        return {"fulfilled_dreams": fulfilled_dreams, "users_count": users_count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 # --- Эндпоинт: ЗАГРУЗКА АВАТАРА ---
 AVATAR_EXTENSIONS = frozenset((".jpg", ".jpeg", ".png", ".webp", ".gif"))
 AVATAR_MAX_BYTES = 2 * 1024 * 1024  # 2 МБ
@@ -280,24 +304,25 @@ def register_user(user: UserRegister):
         conn.close()
 
 # --- Справочники для мечт ---
-@app.get("/dream_statuses")
+@app.get("/dreams_statuses")
 def list_dream_statuses():
     """Список статусов мечты (id, code, label_ru, icon)."""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id, code, label_ru, icon FROM dream_statuses ORDER BY id")
+            cur.execute("SELECT id, code, label_ru, icon FROM dreams_statuses ORDER BY id")
             return [dict(r) for r in cur.fetchall()]
     finally:
         conn.close()
 
-@app.get("/dream_categories")
+@app.get("/dreams_categories")
+@app.get("/dream_categories")  # алиас для обратной совместимости
 def list_dream_categories():
     """Список категорий мечты (id, code, label_ru, icon)."""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id, code, label_ru, icon FROM dream_categories ORDER BY id")
+            cur.execute("SELECT id, code, label_ru, icon FROM dreams_categories ORDER BY id")
             return [dict(r) for r in cur.fetchall()]
     finally:
         conn.close()
@@ -378,8 +403,8 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
                            s.code AS status_code, s.label_ru AS status_label, s.icon AS status_icon,
                            c.code AS category_code, c.label_ru AS category_label, c.icon AS category_icon
                     FROM dreams d
-                    LEFT JOIN dream_statuses s ON d.status_id = s.id
-                    LEFT JOIN dream_categories c ON d.category_id = c.id
+                    LEFT JOIN dreams_statuses s ON d.status_id = s.id
+                    LEFT JOIN dreams_categories c ON d.category_id = c.id
                     WHERE d.user_id = %s ORDER BY d.id
                 """, (user_id,))
                 dreams_rows = cur.fetchall()
@@ -397,7 +422,7 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
                         if r.get("is_public") is None:
                             r["is_public"] = True
                         try:
-                            cur.execute("SELECT id, code, label_ru, icon FROM dream_categories")
+                            cur.execute("SELECT id, code, label_ru, icon FROM dreams_categories")
                             cat_map = {row["id"]: dict(row) for row in cur.fetchall()}
                             for r in dreams_rows:
                                 cid = r.get("category_id")
@@ -432,11 +457,43 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
                             r["status_label"] = r["category_code"] = r["category_label"] = r["status_icon"] = r["category_icon"] = None
                             r["is_public"] = True
             if not dreams_rows:
-                return {"dreams": []}
+                dreams_fulfilled_by_me = 0
+                try:
+                    cur.execute("SELECT COUNT(*) AS n FROM dreams_log L JOIN dreams D ON D.id = L.dream_id WHERE L.fulfilled_by_user_id = %s AND D.user_id != %s", (user_id, user_id))
+                    dreams_fulfilled_by_me = cur.fetchone().get("n") or 0
+                except (psycopg2.ProgrammingError, AttributeError):
+                    pass
+                return {"dreams": [], "dreams_fulfilled_count": 0, "dreams_fulfilled_times": 0, "dreams_fulfilled_by_me": dreams_fulfilled_by_me}
             dream_ids = [r["id"] for r in dreams_rows]
             steps_by_dream = _load_steps(cur, dream_ids)
             result = [_build_dream_item(row, steps_by_dream) for row in dreams_rows]
-            return {"dreams": result}
+            dreams_fulfilled_count = 0
+            dreams_fulfilled_times = 0
+            dreams_fulfilled_by_me = 0
+            try:
+                cur.execute("""
+                    SELECT COUNT(DISTINCT dream_id) AS dreams_count, COUNT(*) AS times_count
+                    FROM dreams_log WHERE dream_id = ANY(%s)
+                """, (dream_ids,))
+                row = cur.fetchone()
+                if row:
+                    dreams_fulfilled_count = row.get("dreams_count") or 0
+                    dreams_fulfilled_times = row.get("times_count") or 0
+                cur.execute("""
+                    SELECT COUNT(*) AS n FROM dreams_log L JOIN dreams D ON D.id = L.dream_id
+                    WHERE L.fulfilled_by_user_id = %s AND D.user_id != %s
+                """, (user_id, user_id))
+                row = cur.fetchone()
+                if row:
+                    dreams_fulfilled_by_me = row.get("n") or 0
+            except psycopg2.ProgrammingError:
+                pass
+            return {
+                "dreams": result,
+                "dreams_fulfilled_count": dreams_fulfilled_count,
+                "dreams_fulfilled_times": dreams_fulfilled_times,
+                "dreams_fulfilled_by_me": dreams_fulfilled_by_me,
+            }
     except psycopg2.ProgrammingError as e:
         raise HTTPException(
             status_code=500,
@@ -516,6 +573,14 @@ def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
             cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
             if not cur.fetchone():
                 raise HTTPException(status_code=404, detail="Мечта не найдена или не ваша")
+            old_status_id = None
+            try:
+                cur.execute("SELECT status_id FROM dreams WHERE id = %s", (dream_id,))
+                r = cur.fetchone()
+                if r:
+                    old_status_id = r.get("status_id")
+            except psycopg2.ProgrammingError:
+                pass
             # Используем только переданные клиентом поля (чтобы category_id=null сохранялось)
             payload = body.model_dump(exclude_unset=True)
             updates, vals = [], []
@@ -593,6 +658,16 @@ def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
                                 vals_old2,
                             )
             conn.commit()
+            # При переходе мечты в статус «выполнено» (3) — одна запись в dreams_log (единый источник для лендинга и кабинета)
+            if payload.get("status_id") == 3 and old_status_id != 3:
+                try:
+                    cur.execute(
+                        "INSERT INTO dreams_log (dream_id, date, fulfilled_by_user_id) VALUES (%s, CURRENT_DATE, %s)",
+                        (dream_id, user_id),
+                    )
+                    conn.commit()
+                except psycopg2.ProgrammingError:
+                    conn.rollback()
             return {"ok": True}
     except HTTPException:
         raise
@@ -610,7 +685,7 @@ def delete_dream(dream_id: int, user_id: int, viewer_id: Optional[int] = None):
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
-            cur.execute("DELETE FROM dream_steps WHERE dream_id = %s", (dream_id,))
+            cur.execute("DELETE FROM dreams_steps WHERE dream_id = %s", (dream_id,))
             cur.execute("DELETE FROM dreams WHERE id = %s", (dream_id,))
             conn.commit()
             return {"ok": True}
@@ -630,18 +705,18 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
-            cur.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM dream_steps WHERE dream_id = %s", (dream_id,))
+            cur.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM dreams_steps WHERE dream_id = %s", (dream_id,))
             next_order = cur.fetchone()["next_order"]
             deadline = body.deadline if body.deadline else None
             try:
                 cur.execute(
-                    "INSERT INTO dream_steps (dream_id, title, completed, sort_order, deadline) VALUES (%s, %s, false, %s, %s) RETURNING id, title, completed, deadline",
+                    "INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deadline) VALUES (%s, %s, false, %s, %s) RETURNING id, title, completed, deadline",
                     (dream_id, body.title.strip(), next_order, deadline),
                 )
             except psycopg2.ProgrammingError:
                 cur.connection.rollback()
                 cur.execute(
-                    "INSERT INTO dream_steps (dream_id, title, completed, sort_order) VALUES (%s, %s, false, %s) RETURNING id, title, completed",
+                    "INSERT INTO dreams_steps (dream_id, title, completed, sort_order) VALUES (%s, %s, false, %s) RETURNING id, title, completed",
                     (dream_id, body.title.strip(), next_order),
                 )
             row = cur.fetchone()
@@ -688,7 +763,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             vals.append(dream_id)
             try:
                 cur.execute(
-                    "UPDATE dream_steps SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
+                    "UPDATE dreams_steps SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
                     vals,
                 )
             except psycopg2.ProgrammingError:
@@ -706,7 +781,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                 if updates_old:
                     vals_old.extend([step_id, dream_id])
                     cur.execute(
-                        "UPDATE dream_steps SET " + ", ".join(updates_old) + " WHERE id = %s AND dream_id = %s",
+                        "UPDATE dreams_steps SET " + ", ".join(updates_old) + " WHERE id = %s AND dream_id = %s",
                         vals_old,
                     )
             conn.commit()

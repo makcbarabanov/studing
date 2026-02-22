@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Завтрак исполняющий желания — ОСТРОВ</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .header-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .cabinet-btn {
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 2px solid rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .cabinet-btn:hover {
+            background: rgba(255,255,255,0.35);
+            box-shadow: 0 10px 25px rgba(15,22,50,0.25);
+            transform: translateY(-1px);
+        }
+
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.95;
+            margin-bottom: 10px;
+        }
+
+        .header .author {
+            font-size: 1em;
+            opacity: 0.85;
+            font-style: italic;
+        }
+
+        /* Карточки мечт */
+        .dreams-section {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .dreams-section h2 {
+            color: #667eea;
+            font-size: 2.2em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 12px 25px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .dreams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .dream-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            transition: all 0.5s ease-out;
+            position: relative;
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+            display: flex;
+            flex-direction: column;
+            min-height: 250px;
+        }
+
+        .dream-card.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .dream-card:hover {
+            transform: translateY(-5px) scale(1) !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Скелетон для загрузки */
+        .skeleton-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+        .skeleton-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            animation: skeleton-loading 1.5s infinite;
+        }
+
+        @keyframes skeleton-loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .skeleton-line {
+            height: 18px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-line.short {
+            width: 60%;
+        }
+
+        .skeleton-line.medium {
+            width: 85%;
+        }
+
+        .skeleton-line.long {
+            width: 100%;
+        }
+
+        .dream-card .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-badge.planned {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.in-progress {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .status-badge.done {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .dream-card .author {
+            font-size: 0.9em;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .dream-card .dream-text {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .dream-card .price {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #888;
+            font-style: italic;
+        }
+
+        .dream-card .helpers {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .dream-card .content {
+            flex: 1;
+        }
+
+        .help-btn {
+            margin-top: auto;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+
+        .help-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.3em;
+            color: #667eea;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 999;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #ffffff;
+            border-radius: 20px;
+            max-width: 640px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            border: none;
+            background: transparent;
+            font-size: 1.6em;
+            cursor: pointer;
+            color: #667eea;
+        }
+
+        .modal-title {
+            font-size: 1.6em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .modal-section {
+            margin-top: 20px;
+        }
+
+        .modal-section h4 {
+            font-size: 1.05em;
+            color: #4f46e5;
+            margin-bottom: 8px;
+        }
+
+        .modal-author-line {
+            color: #111827;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .modal-author-line strong {
+            color: #4338ca;
+        }
+
+        .modal-author-stats {
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #4b5563;
+            margin-top: 6px;
+        }
+
+        .modal small {
+            display: block;
+            margin-top: 4px;
+            color: #6b7280;
+        }
+
+        .modal-list {
+            list-style: disc inside;
+            margin-left: 4px;
+            color: #374151;
+        }
+
+        .modal-list li + li {
+            margin-top: 4px;
+        }
+
+        .modal-list-empty {
+            list-style: none;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .modal input[type="text"],
+        .modal textarea {
+            width: 100%;
+            border: 1.5px solid rgba(102, 126, 234, 0.35);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 1em;
+            background: rgba(102, 126, 234, 0.05);
+            transition: border 0.2s ease;
+        }
+
+        .modal textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .modal input[type="text"]:focus,
+        .modal textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.12);
+        }
+
+        .modal-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .copy-btn {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
+        }
+
+        .copy-feedback {
+            color: #059669;
+            font-size: 0.9em;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .copy-feedback.visible {
+            opacity: 1;
+        }
+
+        .contact-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            background: #fff;
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s ease;
+        }
+
+        .contact-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .modal-contact-note {
+            margin-top: 12px;
+            font-size: 0.95em;
+            color: #6b7280;
+        }
+
+        .admin-link {
+            color: #4f46e5;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .admin-link:hover {
+            text-decoration: underline;
+        }
+
+        .cabinet-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(12, 18, 44, 0.6);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .cabinet-overlay.open {
+            display: flex;
+        }
+
+        .cabinet-modal {
+            width: min(960px, calc(100vw - 32px));
+            max-height: 92vh;
+            overflow-y: auto;
+            background: linear-gradient(135deg, rgba(255,255,255,0.97) 0%, rgba(241, 243, 255, 0.96) 100%);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 70px rgba(10, 12, 40, 0.35);
+            position: relative;
+        }
+
+        .cabinet-modal h2 {
+            margin: 0 0 12px;
+            color: #2e2a5e;
+            font-size: 1.7em;
+        }
+
+        .cabinet-close {
+            position: absolute;
+            top: 16px;
+            right: 18px;
+            background: transparent;
+            border: none;
+            font-size: 1.8em;
+            color: #6056a5;
+            cursor: pointer;
+        }
+
+        .cabinet-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .cabinet-card {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 18px;
+            border: 1px solid rgba(103, 110, 220, 0.18);
+            padding: 22px;
+            box-shadow: 0 12px 35px rgba(40, 35, 95, 0.12);
+        }
+
+        .cabinet-card h3 {
+            margin: 0 0 12px;
+            color: #34407b;
+            font-size: 1.25em;
+        }
+
+        .cabinet-card label {
+            display: block;
+            margin-top: 14px;
+            font-weight: 600;
+            color: #424974;
+        }
+
+        .cabinet-card input[type="text"],
+        .cabinet-card input[type="tel"],
+        .cabinet-card textarea,
+        .cabinet-card select {
+            width: 100%;
+            border-radius: 12px;
+            border: 1.4px solid rgba(124, 132, 222, 0.35);
+            padding: 12px 14px;
+            margin-top: 6px;
+            background: rgba(255,255,255,0.92);
+            font-size: 1em;
+        }
+
+        .cabinet-card textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .cabinet-hint {
+            margin-top: 6px;
+            font-size: 0.85em;
+            color: #6b6f92;
+        }
+
+        .cabinet-auth-switch {
+            display: inline-flex;
+            gap: 10px;
+            margin: 12px 0 18px;
+        }
+
+        .cabinet-auth-switch button {
+            flex: 1 1 auto;
+            min-width: 138px;
+            justify-content: center;
+        }
+
+        .cabinet-auth-switch button.active {
+            background: linear-gradient(135deg, #7f5af0 0%, #4ab5f8 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 12px 25px rgba(75, 99, 230, 0.35);
+        }
+
+        .cabinet-actions {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .cabinet-btn-primary {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #7f5af0 0%, #4ab5f8 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 15px 25px rgba(75, 99, 230, 0.35);
+        }
+
+        .cabinet-btn-secondary {
+            padding: 12px 20px;
+            background: white;
+            border-radius: 12px;
+            border: 1.5px solid rgba(122, 130, 229, 0.4);
+            color: #3b3f6f;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .cabinet-message {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .cabinet-message.success {
+            background: rgba(68, 190, 147, 0.15);
+            color: #217a5e;
+            border: 1px solid rgba(33, 122, 94, 0.25);
+        }
+
+        .cabinet-message.error {
+            background: rgba(255, 118, 118, 0.12);
+            color: #d93c56;
+            border: 1px solid rgba(217, 60, 86, 0.3);
+        }
+
+        .cabinet-dreams-empty {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1.5px dashed rgba(128, 138, 245, 0.45);
+            text-align: center;
+            color: #5b5f8f;
+        }
+
+        .cabinet-dream-card {
+            margin-top: 16px;
+            padding: 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1.2px solid rgba(122, 128, 230, 0.25);
+            box-shadow: 0 12px 25px rgba(40, 35, 95, 0.12);
+        }
+
+        .cabinet-dream-card h4 {
+            margin: 0 0 10px;
+            color: #32366f;
+        }
+
+        .cabinet-dream-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.92em;
+            color: #595f8b;
+            margin-bottom: 10px;
+        }
+
+        .cabinet-inline-actions {
+            margin-top: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .cabinet-modal {
+                padding: 22px 18px;
+            }
+
+            .cabinet-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .header .subtitle {
+                font-size: 1.1em;
+            }
+
+            .dreams-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dreams-section {
+                padding: 20px;
+            }
+
+            .modal {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Заголовок -->
+        <div class="header">
+            <div class="header-actions">
+                <button class="cabinet-btn" id="openCabinetBtn">Мои мечты</button>
+            </div>
+            <h1>🍳 Завтрак исполняющий желания</h1>
+            <div class="subtitle">Место, где мечты становятся реальностью</div>
+            <div class="author">Создатель проекта: Светлана Щербинина</div>
+        </div>
+
+        <!-- Мечты -->
+        <div class="dreams-section">
+            <h2 id="dreamsSectionTitle">💫 Мечты участников</h2>
+
+            <!-- Фильтры -->
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">Все мечты</button>
+                <button class="filter-btn" data-filter="planned">Запланированные</button>
+                <button class="filter-btn" data-filter="in-progress">В процессе</button>
+                <button class="filter-btn" data-filter="done">Выполненные</button>
+            </div>
+
+            <!-- Сетка мечт -->
+            <div class="dreams-grid" id="dreamsGrid">
+                <div class="loading">Загрузка мечт...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalAuthorLine">
+            <button class="modal-close" id="modalCloseBtn" type="button" aria-label="Закрыть">×</button>
+            <h3 class="modal-title">Как помочь мечте</h3>
+
+            <div class="modal-section">
+                <div class="modal-author-line" id="modalAuthorLine">Автор</div>
+            </div>
+
+            <div class="modal-section">
+                <h4>Описание мечты</h4>
+                <p id="modalDreamDescription">—</p>
+            </div>
+
+            <div class="modal-section">
+                <h4>Чем можно помочь</h4>
+                <ul class="modal-list" id="modalWhatNeed"></ul>
+            </div>
+
+            <div class="modal-section">
+                <h4>Что мешает исполнению</h4>
+                <ul class="modal-list" id="modalInterference"></ul>
+            </div>
+
+            <div class="modal-section">
+                <h4>Твоё имя</h4>
+                <input type="text" id="helperNameInput" placeholder="Например, Максим">
+            </div>
+
+            <div class="modal-section">
+                <h4>Готовое сообщение</h4>
+                <textarea id="modalMessage" readonly></textarea>
+                <div class="modal-actions">
+                    <button class="copy-btn" id="copyMessageBtn" type="button">Скопировать</button>
+                    <span class="copy-feedback" id="copyMessageFeedback"></span>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h4>Связаться с автором</h4>
+                <div class="contact-buttons" id="modalContactButtons"></div>
+                <div class="modal-contact-note" id="modalContactFallback"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cabinet-overlay" id="cabinetOverlay">
+        <div class="cabinet-modal" role="dialog" aria-modal="true">
+            <button class="cabinet-close" id="cabinetCloseBtn" aria-label="Закрыть">×</button>
+            <h2>Личный кабинет мечт</h2>
+            <p style="margin:4px 0 18px;color:#5a5d84;">Управляй своими мечтами, обновляй контакты, отслеживай прогресс.</p>
+
+            <div id="cabinetMessageContainer"></div>
+
+            <div id="cabinetAuthSection" class="cabinet-card">
+                <h3>Вход в кабинет</h3>
+                <p class="cabinet-hint">Используй телефон как логин. Если аккаунта нет — зарегистрируйся и задай пароль.</p>
+
+                <div class="cabinet-auth-switch">
+                    <button class="cabinet-btn-secondary" id="cabinetModeLoginBtn" data-mode="login">Войти</button>
+                    <button class="cabinet-btn-secondary" id="cabinetModeRegisterBtn" data-mode="register">Регистрация</button>
+                </div>
+
+                <label for="cabinetPhoneInput">Телефон *</label>
+                <input id="cabinetPhoneInput" type="tel" placeholder="Например, +7 999 123-45-67" autocomplete="tel">
+
+                <label for="cabinetPasswordInput">Пароль *</label>
+                <input id="cabinetPasswordInput" type="password" placeholder="Минимум 6 символов" autocomplete="current-password">
+
+                <div id="cabinetRegisterFields" hidden>
+                    <label for="cabinetConfirmPasswordInput">Повтори пароль *</label>
+                    <input id="cabinetConfirmPasswordInput" type="password" placeholder="Ещё раз пароль" autocomplete="new-password">
+
+                    <label for="cabinetNameInput">Имя *</label>
+                    <input id="cabinetNameInput" type="text" placeholder="Как к тебе обращаться?">
+
+                    <label for="cabinetCityInput">Город</label>
+                    <input id="cabinetCityInput" type="text" placeholder="Например, Казань">
+
+                    <label for="cabinetTelegramInput">Телеграм</label>
+                    <input id="cabinetTelegramInput" type="text" placeholder="@username или ссылка t.me">
+
+                    <label for="cabinetVkInput">VK</label>
+                    <input id="cabinetVkInput" type="text" placeholder="Ссылка на профиль">
+                </div>
+
+                <div class="cabinet-actions">
+                    <button class="cabinet-btn-primary" id="cabinetSubmitBtn">Продолжить</button>
+                </div>
+            </div>
+
+            <div id="cabinetProfileSection" hidden>
+                <div class="cabinet-grid">
+                    <div class="cabinet-card">
+                        <h3 id="cabinetProfileTitle">Привет!</h3>
+                        <p id="cabinetProfileMeta" class="cabinet-hint"></p>
+                        <div class="cabinet-actions" style="margin-top:16px;">
+                            <button class="cabinet-btn-secondary" id="cabinetRefreshBtn">Обновить</button>
+                            <button class="cabinet-btn-secondary" id="cabinetLogoutBtn">Выйти</button>
+                        </div>
+                    </div>
+
+                    <div class="cabinet-card">
+                        <h3 id="cabinetFormTitle">Новая мечта</h3>
+                        <label for="cabinetDreamText">Описание *</label>
+                        <textarea id="cabinetDreamText" placeholder="Расскажи про мечту"></textarea>
+
+                        <label for="cabinetDreamStatus">Статус</label>
+                        <select id="cabinetDreamStatus">
+                            <option value="planned">Ждёт</option>
+                            <option value="in_progress">В процессе</option>
+                            <option value="done">Выполнена</option>
+                        </select>
+
+                        <label for="cabinetDreamNeed">Что нужно? (по одному пункту на строке)</label>
+                        <textarea id="cabinetDreamNeed"></textarea>
+
+                        <label for="cabinetDreamInterference">Что мешает? (по одному пункту на строке)</label>
+                        <textarea id="cabinetDreamInterference"></textarea>
+
+                        <label for="cabinetDreamPrice">Стоимость / бюджет</label>
+                        <input id="cabinetDreamPrice" type="text" placeholder="Например, 30 000 руб">
+
+                        <div class="cabinet-actions">
+                            <button class="cabinet-btn-primary" id="cabinetSaveDreamBtn">Сохранить</button>
+                            <button class="cabinet-btn-secondary" id="cabinetCancelEditBtn">Очистить</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cabinetDreamsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://marabot.tw1.ru';
+        let allDreams = [];
+        let allUsers = [];
+        let currentFilter = 'all';
+        let userStats = {};
+        const dreamMap = new Map();
+        const userDetailsMap = {};
+        const helperNameStorageKey = 'dreamsHelperName_v1';
+        let currentModalDream = null;
+
+        const CABINET_TOKEN_KEY = 'dreamsAuthToken_v2';
+        let cabinetToken = localStorage.getItem(CABINET_TOKEN_KEY) || '';
+        let cabinetUser = null;
+        let cabinetDreams = [];
+        let editingCabinetDreamId = null;
+        let cabinetMode = 'login';
+
+        const modalElements = {
+            overlay: document.getElementById('helpModal'),
+            authorLine: document.getElementById('modalAuthorLine'),
+            dreamDescription: document.getElementById('modalDreamDescription'),
+            whatNeed: document.getElementById('modalWhatNeed'),
+            interference: document.getElementById('modalInterference'),
+            helperNameInput: document.getElementById('helperNameInput'),
+            message: document.getElementById('modalMessage'),
+            contactButtons: document.getElementById('modalContactButtons'),
+            contactFallback: document.getElementById('modalContactFallback'),
+            closeBtn: document.getElementById('modalCloseBtn'),
+            copyBtn: document.getElementById('copyMessageBtn'),
+            copyFeedback: document.getElementById('copyMessageFeedback')
+        };
+
+        const cabinetElements = {
+            openBtn: document.getElementById('openCabinetBtn'),
+            overlay: document.getElementById('cabinetOverlay'),
+            closeBtn: document.getElementById('cabinetCloseBtn'),
+            messageContainer: document.getElementById('cabinetMessageContainer'),
+            authSection: document.getElementById('cabinetAuthSection'),
+            profileSection: document.getElementById('cabinetProfileSection'),
+            registerFields: document.getElementById('cabinetRegisterFields'),
+            modeLoginBtn: document.getElementById('cabinetModeLoginBtn'),
+            modeRegisterBtn: document.getElementById('cabinetModeRegisterBtn'),
+            submitBtn: document.getElementById('cabinetSubmitBtn'),
+            phoneInput: document.getElementById('cabinetPhoneInput'),
+            passwordInput: document.getElementById('cabinetPasswordInput'),
+            confirmPasswordInput: document.getElementById('cabinetConfirmPasswordInput'),
+            nameInput: document.getElementById('cabinetNameInput'),
+            cityInput: document.getElementById('cabinetCityInput'),
+            telegramInput: document.getElementById('cabinetTelegramInput'),
+            vkInput: document.getElementById('cabinetVkInput'),
+            profileTitle: document.getElementById('cabinetProfileTitle'),
+            profileMeta: document.getElementById('cabinetProfileMeta'),
+            refreshBtn: document.getElementById('cabinetRefreshBtn'),
+            logoutBtn: document.getElementById('cabinetLogoutBtn'),
+            formTitle: document.getElementById('cabinetFormTitle'),
+            dreamText: document.getElementById('cabinetDreamText'),
+            dreamStatus: document.getElementById('cabinetDreamStatus'),
+            dreamNeed: document.getElementById('cabinetDreamNeed'),
+            dreamInterference: document.getElementById('cabinetDreamInterference'),
+            dreamPrice: document.getElementById('cabinetDreamPrice'),
+            saveDreamBtn: document.getElementById('cabinetSaveDreamBtn'),
+            cancelEditBtn: document.getElementById('cabinetCancelEditBtn'),
+            dreamsContainer: document.getElementById('cabinetDreamsContainer')
+        };
+
+        function setupModal() {
+            if (!modalElements.overlay) return;
+
+            const savedName = localStorage.getItem(helperNameStorageKey) || '';
+            if (modalElements.helperNameInput) {
+                modalElements.helperNameInput.value = savedName;
+                modalElements.helperNameInput.addEventListener('input', () => {
+                    localStorage.setItem(helperNameStorageKey, modalElements.helperNameInput.value.trim());
+                    updateModalMessage();
+                });
+            }
+
+            modalElements.closeBtn?.addEventListener('click', closeModal);
+            modalElements.overlay.addEventListener('click', (event) => {
+                if (event.target === modalElements.overlay) {
+                    closeModal();
+                }
+            });
+
+            modalElements.copyBtn?.addEventListener('click', handleCopyMessage);
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    if (modalElements.overlay.classList.contains('open')) {
+                        closeModal();
+                    }
+                    if (cabinetElements.overlay?.classList.contains('open')) {
+                        closeCabinet();
+                    }
+                }
+            });
+        }
+
+        async function handleCopyMessage() {
+            if (!modalElements.message) return;
+            try {
+                await navigator.clipboard.writeText(modalElements.message.value);
+                showCopyFeedback('Скопировано!');
+            } catch (error) {
+                modalElements.message.select();
+                document.execCommand('copy');
+                showCopyFeedback('Скопировано!');
+            }
+        }
+
+        function showCopyFeedback(text) {
+            if (!modalElements.copyFeedback) return;
+            modalElements.copyFeedback.textContent = text;
+            modalElements.copyFeedback.classList.add('visible');
+            setTimeout(() => modalElements.copyFeedback.classList.remove('visible'), 2000);
+        }
+
+        function cabinetSetMessage(type, text) {
+            const container = cabinetElements.messageContainer;
+            if (!container) return;
+            container.innerHTML = '';
+            if (!text) return;
+            let displayText = '';
+            if (typeof text === 'string') {
+                displayText = text;
+            } else if (text && typeof text.message === 'string') {
+                displayText = text.message;
+            } else if (text && typeof text.error === 'string') {
+                displayText = text.error;
+            } else {
+                displayText = 'Что-то пошло не так. Попробуй ещё раз.';
+                console.warn('Unexpected cabinet message payload:', text);
+            }
+            if (!displayText) return;
+            const div = document.createElement('div');
+            div.className = `cabinet-message ${type}`;
+            div.textContent = displayText;
+            container.appendChild(div);
+        }
+
+        function cabinetSwitchToAuth() {
+            cabinetElements.authSection.hidden = false;
+            cabinetElements.profileSection.hidden = true;
+            cabinetSetMode('login');
+            cabinetElements.passwordInput.value = '';
+            if (cabinetElements.confirmPasswordInput) {
+                cabinetElements.confirmPasswordInput.value = '';
+            }
+        }
+
+        function cabinetSwitchToProfile() {
+            cabinetElements.authSection.hidden = true;
+            cabinetElements.profileSection.hidden = false;
+        }
+
+        function cabinetSetMode(mode) {
+            cabinetMode = mode === 'register' ? 'register' : 'login';
+            cabinetElements.modeLoginBtn?.classList.toggle('active', cabinetMode === 'login');
+            cabinetElements.modeRegisterBtn?.classList.toggle('active', cabinetMode === 'register');
+            if (cabinetMode === 'login') {
+                cabinetElements.registerFields.hidden = true;
+                cabinetElements.submitBtn.textContent = 'Войти';
+                cabinetElements.passwordInput.placeholder = 'Пароль';
+            } else {
+                cabinetElements.registerFields.hidden = false;
+                cabinetElements.submitBtn.textContent = 'Зарегистрироваться';
+                cabinetElements.passwordInput.placeholder = 'Придумай пароль (мин. 6 символов)';
+            }
+        }
+
+        function openCabinet() {
+            cabinetSetMessage('', '');
+            cabinetElements.overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            if (cabinetToken) {
+                cabinetSwitchToProfile();
+                cabinetLoadProfile();
+            } else {
+                cabinetSwitchToAuth();
+            }
+        }
+
+        function closeCabinet() {
+            cabinetElements.overlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        async function cabinetApi(path, options = {}, { requireAuth = false } = {}) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (requireAuth) {
+                if (!cabinetToken) throw new Error('Нужен вход в кабинет');
+                headers['Authorization'] = `Bearer ${cabinetToken}`;
+            }
+            const response = await fetch(`${API_URL}${path}`, {
+                method: options.method || 'GET',
+                headers,
+                body: options.body ? JSON.stringify(options.body) : undefined,
+            });
+            const text = await response.text();
+            const data = (text && text.trim()) ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
+            if (response.status === 401) {
+                cabinetToken = '';
+                localStorage.removeItem(CABINET_TOKEN_KEY);
+                cabinetUser = null;
+                cabinetSwitchToAuth();
+                throw new Error(data?.error?.message || 'Требуется повторный вход');
+            }
+            if (!response.ok) {
+                const message = data?.error?.message || data?.message || 'Не получилось выполнить запрос. Попробуй ещё раз.';
+                throw new Error(message);
+            }
+            return data;
+        }
+
+        function parseListField(value) {
+            if (!value) return [];
+            if (Array.isArray(value)) {
+                return value.map((item) => (item ?? '').toString().trim()).filter((item) => item.length);
+            }
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    if (Array.isArray(parsed)) {
+                        return parsed.map((item) => (item ?? '').toString().trim()).filter((item) => item.length);
+                    }
+                } catch (e) {
+                    // plain string, continue
+                }
+                return value
+                    .split(/[\n;,]+/)
+                    .map((item) => item.trim())
+                    .filter((item) => item.length);
+            }
+            return [];
+        }
+
+        function joinListField(value) {
+            return parseListField(value).join('\n');
+        }
+
+        function renderListBlock(title, value) {
+            const items = Array.isArray(value) ? value : parseListField(value);
+            if (!items.length) return '';
+            return `
+                <div style="margin-top: 10px;">
+                    <strong>${title}:</strong>
+                    <ul style="margin: 6px 0 0 18px; color: #4b4d63;">
+                        ${items.map((item) => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function cabinetResetForm() {
+            editingCabinetDreamId = null;
+            cabinetElements.formTitle.textContent = 'Новая мечта';
+            cabinetElements.dreamText.value = '';
+            cabinetElements.dreamStatus.value = 'planned';
+            cabinetElements.dreamNeed.value = '';
+            cabinetElements.dreamInterference.value = '';
+            cabinetElements.dreamPrice.value = '';
+        }
+
+        function cabinetFillProfile(user) {
+            if (!user) return;
+            cabinetElements.profileTitle.textContent = user.name ? `Привет, ${user.name}!` : 'Привет!';
+            const parts = [];
+            if (user.phone) parts.push(`Телефон: ${user.phone}`);
+            if (user.city) parts.push(`Город: ${user.city}`);
+            parts.push(`Мечт: ${user.count_dreams ?? 0}`);
+            cabinetElements.profileMeta.textContent = parts.join(' · ');
+        }
+
+        async function cabinetLoadProfile() {
+            try {
+                const { user } = await cabinetApi('/me', {}, { requireAuth: true });
+                cabinetUser = user;
+                cabinetFillProfile(user);
+                cabinetSwitchToProfile();
+                await cabinetLoadDreams();
+            } catch (error) {
+                cabinetSetMessage('error', error.message);
+            }
+        }
+
+        async function cabinetLoadDreams() {
+            try {
+                const response = await cabinetApi('/me/dreams', {}, { requireAuth: true });
+                cabinetDreams = response.rows || [];
+                cabinetRenderDreams();
+            } catch (error) {
+                cabinetSetMessage('error', error.message);
+            }
+        }
+
+        function cabinetRenderDreams() {
+            const container = cabinetElements.dreamsContainer;
+            container.innerHTML = '';
+            if (!cabinetDreams.length) {
+                const empty = document.createElement('div');
+                empty.className = 'cabinet-dreams-empty';
+                empty.textContent = 'Здесь появятся твои мечты. Добавь первую!';
+                container.appendChild(empty);
+                return;
+            }
+
+            const statusMap = {
+                planned: 'Ждёт',
+                in_progress: 'В процессе',
+                done: 'Выполнена'
+            };
+
+            cabinetDreams.forEach((dream) => {
+                const card = document.createElement('div');
+                card.className = 'cabinet-dream-card';
+
+                const date = dream.date ? new Date(dream.date).toLocaleDateString('ru-RU') : '—';
+                const status = statusMap[dream.status] || 'Неизвестно';
+
+                card.innerHTML = `
+                    <div class="cabinet-dream-meta">
+                        <span class="status-badge">${status}</span>
+                        <span>Создано: ${date}</span>
+                        ${dream.price ? `<span>💰 ${dream.price}</span>` : ''}
+                    </div>
+                    <h4>${dream.dream}</h4>
+                    ${renderListBlock('Что нужно', parseListField(dream.what_need))}
+                    ${renderListBlock('Что мешает', parseListField(dream.interference))}
+                `;
+
+                const actions = document.createElement('div');
+                actions.className = 'cabinet-inline-actions';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'cabinet-btn-secondary';
+                editBtn.textContent = 'Редактировать';
+                editBtn.addEventListener('click', () => cabinetStartEdit(dream));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'cabinet-btn-secondary';
+                deleteBtn.style.background = '#ff6f6f';
+                deleteBtn.style.color = '#fff';
+                deleteBtn.textContent = 'Удалить';
+                deleteBtn.addEventListener('click', () => cabinetDeleteDream(dream.id));
+
+                actions.append(editBtn, deleteBtn);
+                card.appendChild(actions);
+                container.appendChild(card);
+            });
+        }
+
+        function cabinetStartEdit(dream) {
+            editingCabinetDreamId = dream.id;
+            cabinetElements.formTitle.textContent = 'Редактирование мечты';
+            cabinetElements.dreamText.value = dream.dream || '';
+            cabinetElements.dreamStatus.value = dream.status || 'planned';
+            cabinetElements.dreamNeed.value = joinListField(dream.what_need);
+            cabinetElements.dreamInterference.value = joinListField(dream.interference);
+            cabinetElements.dreamPrice.value = dream.price || '';
+            cabinetSetMessage('success', 'Редактирование мечты — внеси изменения и сохрани.');
+        }
+
+        async function cabinetSaveDream() {
+            const dreamText = cabinetElements.dreamText.value.trim();
+            if (!dreamText) {
+                cabinetSetMessage('error', 'Опиши мечту, пожалуйста.');
+                return;
+            }
+
+            const payload = {
+                dream: dreamText,
+                status: cabinetElements.dreamStatus.value,
+                whatNeed: parseListField(cabinetElements.dreamNeed.value),
+                interference: parseListField(cabinetElements.dreamInterference.value),
+                price: cabinetElements.dreamPrice.value.trim() || null,
+            };
+
+            try {
+                if (editingCabinetDreamId) {
+                    await cabinetApi(`/me/dreams/${editingCabinetDreamId}`, { method: 'PATCH', body: payload }, { requireAuth: true });
+                    cabinetSetMessage('success', 'Мечта обновлена.');
+                } else {
+                    await cabinetApi('/me/dreams', { method: 'POST', body: payload }, { requireAuth: true });
+                    cabinetSetMessage('success', 'Мечта добавлена.');
+                }
+                cabinetResetForm();
+                await cabinetLoadDreams();
+            } catch (error) {
+                cabinetSetMessage('error', error.message);
+            }
+        }
+
+        async function cabinetDeleteDream(id) {
+            if (!confirm('Удалить эту мечту?')) return;
+            try {
+                await cabinetApi(`/me/dreams/${id}`, { method: 'DELETE' }, { requireAuth: true });
+                cabinetSetMessage('success', 'Мечта удалена.');
+                cabinetResetForm();
+                await cabinetLoadDreams();
+            } catch (error) {
+                cabinetSetMessage('error', error.message);
+            }
+        }
+
+        async function cabinetSubmit() {
+            const phone = cabinetElements.phoneInput.value.trim();
+            const password = cabinetElements.passwordInput.value.trim();
+
+            if (!phone) {
+                cabinetSetMessage('error', 'Укажи телефон.');
+                return;
+            }
+            if (!password || password.length < 6) {
+                cabinetSetMessage('error', 'Пароль должен быть не короче 6 символов.');
+                return;
+            }
+
+            if (cabinetMode === 'register') {
+                const confirm = cabinetElements.confirmPasswordInput.value.trim();
+                if (password !== confirm) {
+                    cabinetSetMessage('error', 'Пароли не совпадают.');
+                    return;
+                }
+                const name = cabinetElements.nameInput.value.trim();
+                if (!name) {
+                    cabinetSetMessage('error', 'Имя обязательно для регистрации.');
+                    return;
+                }
+                const payload = {
+                    phone,
+                    password,
+                    name,
+                    city: cabinetElements.cityInput.value.trim() || undefined,
+                    telegram: cabinetElements.telegramInput.value.trim() || undefined,
+                    vk: cabinetElements.vkInput.value.trim() || undefined,
+                };
+                try {
+                    const data = await cabinetApi('/auth/register', { method: 'POST', body: payload });
+                    if (!data?.token || !data?.user) {
+                        throw new Error('Регистрация не завершилась. Попробуй ещё раз.');
+                    }
+                    cabinetToken = data.token;
+                    localStorage.setItem(CABINET_TOKEN_KEY, cabinetToken);
+                    cabinetUser = data.user;
+                    cabinetSetMessage('success', 'Аккаунт создан! Добро пожаловать.');
+                    cabinetResetForm();
+                    cabinetFillProfile(data.user);
+                    cabinetSwitchToProfile();
+                    await cabinetLoadDreams();
+                } catch (error) {
+                    cabinetSetMessage('error', error.message);
+                }
+            } else {
+                try {
+                    const data = await cabinetApi('/auth/login', { method: 'POST', body: { phone, password } });
+                    if (!data?.token || !data?.user) {
+                        throw new Error('Не удалось войти. Проверь данные и повтори.');
+                    }
+                    cabinetToken = data.token;
+                    localStorage.setItem(CABINET_TOKEN_KEY, cabinetToken);
+                    cabinetUser = data.user;
+                    cabinetSetMessage('success', 'Добро пожаловать обратно!');
+                    cabinetResetForm();
+                    cabinetFillProfile(data.user);
+                    cabinetSwitchToProfile();
+                    await cabinetLoadDreams();
+                } catch (error) {
+                    cabinetSetMessage('error', error.message);
+                }
+            }
+        }
+
+        function setupCabinet() {
+            cabinetElements.openBtn?.addEventListener('click', openCabinet);
+            cabinetElements.closeBtn?.addEventListener('click', closeCabinet);
+            cabinetElements.overlay?.addEventListener('click', (event) => {
+                if (event.target === cabinetElements.overlay) closeCabinet();
+            });
+            cabinetElements.modeLoginBtn?.addEventListener('click', () => {
+                cabinetSetMode('login');
+                cabinetSetMessage('', '');
+            });
+            cabinetElements.modeRegisterBtn?.addEventListener('click', () => {
+                cabinetSetMode('register');
+                cabinetSetMessage('', '');
+            });
+            cabinetElements.submitBtn?.addEventListener('click', cabinetSubmit);
+            cabinetElements.logoutBtn?.addEventListener('click', () => {
+                cabinetToken = '';
+                localStorage.removeItem(CABINET_TOKEN_KEY);
+                cabinetUser = null;
+                cabinetDreams = [];
+                cabinetResetForm();
+                cabinetSwitchToAuth();
+                cabinetSetMessage('success', 'Сессия завершена. Ждём возвращения!');
+            });
+            cabinetElements.refreshBtn?.addEventListener('click', cabinetLoadDreams);
+            cabinetElements.saveDreamBtn?.addEventListener('click', cabinetSaveDream);
+            cabinetElements.cancelEditBtn?.addEventListener('click', () => {
+                cabinetResetForm();
+                cabinetSetMessage('success', 'Форма очищена.');
+            });
+
+            cabinetSetMode('login');
+
+            if (cabinetToken) {
+                // Проверим токен в фоне, но без открытия модалки.
+                cabinetApi('/me', {}, { requireAuth: true })
+                    .then(({ user }) => {
+                        cabinetUser = user;
+                        cabinetFillProfile(user);
+                    })
+                    .catch(() => {
+                        cabinetToken = '';
+                        localStorage.removeItem(CABINET_TOKEN_KEY);
+                    });
+            }
+        }
+
+        function openHelpModal(dreamId) {
+            const dream = dreamMap.get(Number(dreamId));
+            if (!dream || !modalElements.overlay) return;
+
+            currentModalDream = dream;
+
+            const stats = userStats[dream.user_id] || { helped: 0, completed: 0, total: 0 };
+            const authorName = dream.userName ?? 'Неизвестный участник';
+
+            const userDetail = userDetailsMap[dream.user_id] || {};
+            const cityPart = userDetail.city ? `, ${userDetail.city}` : '';
+            modalElements.authorLine.innerHTML = `
+                <div>${authorName}${cityPart}</div>
+                <div class="modal-author-stats">
+                    Помогла другим: <strong>${stats.helped}</strong> раз; <br>
+                    Своих мечт: <strong>${stats.total}</strong> (исполнено <strong>${stats.completed}</strong>).
+                </div>
+            `;
+            modalElements.dreamDescription.textContent = dream.dream || 'Нет описания';
+
+            renderList(modalElements.whatNeed, dream.what_need, 'Автор пока не уточнил, чем можно помочь.');
+            renderList(modalElements.interference, dream.interference, 'Автор не указал, что может мешать.');
+
+            updateModalMessage();
+            renderContactButtons(dream);
+
+            if (modalElements.copyFeedback) {
+                modalElements.copyFeedback.textContent = '';
+                modalElements.copyFeedback.classList.remove('visible');
+            }
+
+            modalElements.overlay.classList.add('open');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal() {
+            modalElements.overlay?.classList.remove('open');
+            document.body.classList.remove('modal-open');
+            currentModalDream = null;
+        }
+
+        function updateModalMessage() {
+            if (!currentModalDream || !modalElements.message) return;
+            const helperName = modalElements.helperNameInput?.value.trim();
+            const helperNamePart = helperName ? helperName : '...';
+            const authorName = currentModalDream.userName ?? 'тебя';
+
+            modalElements.message.value = `Привет ${authorName}. Меня зовут ${helperNamePart}. Я хочу помочь тебе в осуществлении мечты: «${currentModalDream.dream}», которую я увидел в «Завтраке исполняющем желания».`;
+        }
+
+        function renderList(container, value, fallbackText) {
+            if (!container) return;
+            container.innerHTML = '';
+            const items = normalizeToArray(value);
+
+            if (items.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'modal-list-empty';
+                li.textContent = fallbackText;
+                container.appendChild(li);
+                return;
+            }
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                container.appendChild(li);
+            });
+        }
+
+        function normalizeToArray(value) {
+            if (!value) return [];
+            if (Array.isArray(value)) {
+                return value.filter(item => !!item && String(item).trim().length > 0).map(item => String(item).trim());
+            }
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (!trimmed) return [];
+                if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        if (Array.isArray(parsed)) {
+                            return normalizeToArray(parsed);
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+                return trimmed.split(/[\n;]+/).map(part => part.trim()).filter(Boolean);
+            }
+            return [];
+        }
+
+        function renderContactButtons(dream) {
+            if (!modalElements.contactButtons || !modalElements.contactFallback) return;
+
+            const user = userDetailsMap[dream.user_id] || {};
+            const buttons = [];
+            const seenTypes = new Set();
+
+            const username = cleanUsername(user.username || user.telegram_info);
+            if (username) {
+                buttons.push(createContactButton('telegram', `https://t.me/${username}`, 'Telegram'));
+                seenTypes.add('telegram');
+            }
+
+            const phone = cleanPhone(user.phone || user.phone_info);
+            if (phone) {
+                buttons.push(createContactButton('phone', `tel:${phone}`, 'Позвонить'));
+                seenTypes.add('phone');
+                const waPhone = phone.replace(/^\+/, '');
+                if (waPhone.length >= 10) {
+                    buttons.push(createContactButton('whatsapp', `https://wa.me/${waPhone}`, 'WhatsApp'));
+                    seenTypes.add('whatsapp');
+                }
+            }
+
+            const extraLinks = [user.telegram_info, user.phone_info].filter(Boolean);
+            extraLinks.forEach(link => {
+                const normalized = normalizeLink(link);
+                if (!normalized) return;
+
+                if (/vk\.com/i.test(normalized) && !seenTypes.has('vk')) {
+                    buttons.push(createContactButton('vk', normalized, 'VK'));
+                    seenTypes.add('vk');
+                } else if (/instagram\.com|instagr\.am/i.test(normalized) && !seenTypes.has('instagram')) {
+                    buttons.push(createContactButton('instagram', normalized, 'Instagram'));
+                    seenTypes.add('instagram');
+                } else if (/wa\.me|whatsapp/i.test(normalized) && !seenTypes.has('whatsapp')) {
+                    buttons.push(createContactButton('whatsapp', normalized, 'WhatsApp'));
+                    seenTypes.add('whatsapp');
+                } else if (/t\.me|telegram\.me/i.test(normalized) && !seenTypes.has('telegram')) {
+                    const linkUsername = cleanUsername(normalized.replace(/^https?:\/\/t\.me\//i, ''));
+                    if (linkUsername) {
+                        buttons.push(createContactButton('telegram', `https://t.me/${linkUsername}`, 'Telegram'));
+                        seenTypes.add('telegram');
+                    }
+                }
+            });
+
+            modalElements.contactButtons.innerHTML = '';
+            modalElements.contactFallback.textContent = '';
+
+            if (buttons.length > 0) {
+                buttons.forEach(btn => modalElements.contactButtons.appendChild(btn));
+            } else {
+                modalElements.contactFallback.innerHTML = '(автор не оставил контактной информации). Отправим запрос администратору — <a href="https://t.me/makc_barabanov" target="_blank" rel="noopener" class="admin-link">@makc_barabanov</a>';
+            }
+        }
+
+        function createContactButton(type, url, label) {
+            const a = document.createElement('a');
+            a.className = `contact-btn contact-${type}`;
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = label;
+            return a;
+        }
+
+        function cleanUsername(value) {
+            if (!value) return '';
+            let username = String(value).trim();
+            if (!username) return '';
+            const linkMatch = username.match(/t\.me\/([a-zA-Z0-9_]+)/i);
+            if (linkMatch) {
+                username = linkMatch[1];
+            }
+            username = username.replace(/^@/, '');
+            return /^[a-zA-Z0-9_]{3,}$/.test(username) ? username : '';
+        }
+
+        function cleanPhone(value) {
+            if (!value) return '';
+            const digits = String(value).replace(/[^+\d]/g, '');
+            return digits.length >= 10 ? digits : '';
+        }
+
+        function normalizeLink(link) {
+            if (!link) return '';
+            let value = String(link).trim();
+            if (!value) return '';
+            if (!/^https?:\/\//i.test(value)) {
+                value = value.startsWith('://') ? `https${value}` : `https://${value}`;
+            }
+            return value;
+        }
+
+        function parseHelpers(helpersField) {
+            if (!helpersField) return [];
+            if (Array.isArray(helpersField)) return helpersField;
+            if (typeof helpersField === 'string') {
+                try {
+                    const parsed = JSON.parse(helpersField);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+            return [];
+        }
+
+        function computeUserStats(dreams) {
+            const stats = {};
+
+            allUsers.forEach(user => {
+                stats[user.id] = { helped: 0, completed: 0, total: 0 };
+            });
+
+            dreams.forEach(dream => {
+                if (!stats[dream.user_id]) {
+                    stats[dream.user_id] = { helped: 0, completed: 0, total: 0 };
+                }
+                stats[dream.user_id].total += 1;
+                if (dream.status === 'done') {
+                    stats[dream.user_id].completed += 1;
+                }
+
+                const helpers = parseHelpers(dream.helpers_id);
+                helpers.forEach(helperId => {
+                    if (!stats[helperId]) {
+                        stats[helperId] = { helped: 0, completed: 0, total: 0 };
+                    }
+                    stats[helperId].helped += 1;
+                });
+            });
+
+            userStats = stats;
+        }
+
+        function getDisplayName(user) {
+            const parts = [];
+            if (user.name) parts.push(user.name);
+            if (user.surname && user.surname !== user.name) parts.push(user.surname);
+            if (parts.length === 0 && user.username) parts.push(user.username.replace('@', ''));
+            return parts.join(' ') || 'Неизвестный участник';
+        }
+
+        // Безопасно прочитать JSON из ответа (сервер может вернуть пустой body или HTML)
+        async function parseJsonResponse(response, label) {
+            const text = await response.text();
+            if (!text || !text.trim()) {
+                throw new Error(label + ': пустой ответ от сервера (HTTP ' + response.status + ')');
+            }
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                const snippet = text.length > 120 ? text.slice(0, 120) + '…' : text;
+                throw new Error(label + ': не JSON. Ответ: ' + snippet.replace(/\s+/g, ' '));
+            }
+        }
+
+        // Загрузка данных (пробуем /tables/ и /api/tables/ — см. README Island)
+        async function loadData() {
+            showSkeletons(6);
+            const paths = [
+                { dreams: '/tables/dreams', users: '/tables/users' },
+                { dreams: '/api/tables/dreams', users: '/api/tables/users' }
+            ];
+
+            for (const path of paths) {
+                try {
+                    const [dreamsResponse, usersResponse] = await Promise.all([
+                        fetch(`${API_URL}${path.dreams}`),
+                        fetch(`${API_URL}${path.users}`)
+                    ]);
+
+                    if (!dreamsResponse.ok) throw new Error(`Мечты: ${dreamsResponse.status}`);
+                    if (!usersResponse.ok) throw new Error(`Участники: ${usersResponse.status}`);
+
+                    const dreamsData = await parseJsonResponse(dreamsResponse, 'Мечты');
+                    const usersData = await parseJsonResponse(usersResponse, 'Участники');
+
+                    if (dreamsData.rows && usersData.rows) {
+                    allDreams = dreamsData.rows;
+                    allUsers = usersData.rows;
+
+                    allUsers.forEach(user => {
+                        userDetailsMap[user.id] = {
+                            id: user.id,
+                            displayName: getDisplayName(user),
+                            city: user.city,
+                            username: user.username,
+                            phone: user.phone,
+                            telegram_info: user.telegram_info,
+                            phone_info: user.phone_info
+                        };
+                    });
+
+                    allDreams.forEach(dream => {
+                        const details = userDetailsMap[dream.user_id];
+                        dream.userName = details?.displayName || 'Неизвестный участник';
+                        dreamMap.set(dream.id, dream);
+                    });
+
+                    computeUserStats(allDreams);
+                    updateStats(allDreams, allUsers);
+                    renderDreams(allDreams);
+                    return;
+                    }
+                } catch (e) {
+                    console.warn('Попытка по ' + path.dreams + ' не удалась:', e.message);
+                    continue;
+                }
+            }
+
+            document.getElementById('dreamsGrid').innerHTML = 
+                '<div class="loading" style="color: #e74c3c;">Не удалось загрузить данные ни по /tables/, ни по /api/tables/. Проверьте консоль (F12).</div>';
+        }
+
+        // Обновление заголовка секции и кнопок фильтров
+        function updateStats(dreams, users) {
+            // Уникальные участники с мечтами
+            const uniqueUserIds = [...new Set(dreams.map(d => d.user_id))];
+            const participantsCount = uniqueUserIds.length;
+            
+            // Обновляем заголовок
+            document.getElementById('dreamsSectionTitle').textContent = `💫 Мечты ${participantsCount} участников`;
+            
+            // Обновляем кнопки фильтров с количеством
+            const plannedCount = dreams.filter(d => d.status === 'planned').length;
+            const inProgressCount = dreams.filter(d => d.status === 'in_progress').length;
+            const doneCount = dreams.filter(d => d.status === 'done').length;
+            
+            document.querySelector('[data-filter="all"]').textContent = `Все мечты (${dreams.length})`;
+            document.querySelector('[data-filter="planned"]').textContent = `Запланированные (${plannedCount})`;
+            document.querySelector('[data-filter="in-progress"]').textContent = `В процессе (${inProgressCount})`;
+            document.querySelector('[data-filter="done"]').textContent = `Выполненные (${doneCount})`;
+        }
+
+        // Показать скелетоны при загрузке
+        function showSkeletons(count = 6) {
+            const grid = document.getElementById('dreamsGrid');
+            grid.innerHTML = Array(count).fill(0).map(() => `
+                <div class="skeleton-card">
+                    <div class="skeleton-line short"></div>
+                    <div class="skeleton-line long"></div>
+                    <div class="skeleton-line medium"></div>
+                    <div class="skeleton-line long"></div>
+                </div>
+            `).join('');
+        }
+
+        // Отрисовка мечт
+        function renderDreams(dreams) {
+            const grid = document.getElementById('dreamsGrid');
+            
+            if (dreams.length === 0) {
+                grid.innerHTML = '<div class="loading">Мечт не найдено</div>';
+                return;
+            }
+            
+            // Фильтруем
+            let filtered = dreams;
+            if (currentFilter !== 'all') {
+                filtered = dreams.filter(d => d.status === currentFilter.replace('-', '_'));
+            }
+            
+            // Сортируем: сначала новые
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            grid.innerHTML = filtered.map(dream => {
+                const statusText = {
+                    'planned': 'ждёт',
+                    'in_progress': 'В процессе',
+                    'done': 'Выполнена'
+                }[dream.status] || 'Неизвестно';
+                
+                const statusClass = dream.status.replace('_', '-');
+                
+                const date = new Date(dream.date).toLocaleDateString('ru-RU');
+                
+                const helpersCount = dream.helpers_id ? 
+                    (Array.isArray(dream.helpers_id) ? dream.helpers_id.length : 0) : 0;
+                dreamMap.set(dream.id, dream);
+
+                return `
+                    <div class="dream-card">
+                        <div class="content">
+                            <div class="author">👤 ${dream.userName} ${statusText} с 📅 ${date}</div>
+                            <div class="dream-text">${dream.dream}</div>
+                            ${dream.price ? `<div class="price">💰 ${dream.price}</div>` : ''}
+                            ${helpersCount > 0 ? `<div class="helpers">💙 ${helpersCount} помогли</div>` : ''}
+                        </div>
+                        <button type="button" class="help-btn" data-dream-id="${dream.id}">🤝 Хочу помочь!</button>
+                    </div>
+                `;
+            }).join('');
+            
+            // Постепенное появление карточек
+            setTimeout(() => {
+                const cards = grid.querySelectorAll('.dream-card');
+                cards.forEach((card, index) => {
+                    setTimeout(() => {
+                        card.classList.add('show');
+                    }, index * 80); // Задержка 80ms между карточками
+                });
+            }, 50);
+
+            grid.querySelectorAll('.help-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const dreamId = btn.dataset.dreamId;
+                    openHelpModal(dreamId);
+                });
+            });
+        }
+
+
+        // Фильтры
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Убираем active со всех
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                // Добавляем на текущую
+                this.classList.add('active');
+                
+                // Обновляем фильтр
+                currentFilter = this.dataset.filter;
+                renderDreams(allDreams);
+            });
+        });
+
+        // Загружаем при старте
+        setupModal();
+        setupCabinet();
+        loadData();
+    </script>
+</body>
+</html>
+
