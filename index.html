@@ -165,9 +165,13 @@
         .landing-auth .auth-form-wrap input { padding: 8px 10px; margin: 6px 0; }
         .landing-auth .auth-form-wrap button { margin-top: 8px; width: 100%; }
         .landing-auth .auth-form-wrap .auth-switch { margin-top: 10px; font-size: 0.9em; }
+        #port-hint-banner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #d32f2f; color: #fff; padding: 10px 16px; text-align: center; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        #port-hint-banner a { color: #fff; font-weight: bold; text-decoration: underline; }
+        #port-hint-banner.show { display: block; }
     </style>
 </head>
 <body>
+    <div id="port-hint-banner" role="alert">Приложение работает на порту <strong>8000</strong>. Открой: <a href="http://23.172.217.180:8000/index.html" id="port-hint-link">http://23.172.217.180:8000/index.html</a></div>
     <div class="container">
         <h1 id="page-title" class="hidden">Завтрак исполняющий желания — Личный кабинет</h1>
 
@@ -351,7 +355,14 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'http://23.172.217.180:8000'; // <-- Укажи свой IP API-сервера
+        // Единый порт 8000: страница и API с одного origin. CORS не нужен. До продакшена порт не меняем.
+        var API_BASE_URL = (function() {
+            try {
+                if (typeof window !== 'undefined' && window.location && window.location.origin)
+                    return window.location.origin;
+            } catch (e) {}
+            return 'http://23.172.217.180:8000';
+        })();
         let currentUser = null; // Здесь будем хранить данные текущего пользователя
         var dreamEditContext = { ownerId: 0, viewerId: null };
         function dreamApiUserParams() {
@@ -1136,7 +1147,16 @@
                 if (priceVal != null) body.price = priceVal;
                 var ctrl = new AbortController();
                 var timeout = setTimeout(function() { ctrl.abort(); }, 15000);
-                var res = await fetch(API_BASE_URL + '/dreams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal });
+                var res;
+                try {
+                    res = await fetch(API_BASE_URL + '/dreams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal });
+                } catch (e) {
+                    clearTimeout(timeout);
+                    errDiv.textContent = e.name === 'AbortError' ? 'Таймаут. Проверьте соединение с сервером.' : 'Не удалось связаться с сервером. Открывай кабинет с того же адреса, где запущен бэкенд (http://23.172.217.180:8000/index.html).';
+                    errDiv.classList.remove('hidden');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
+                    return;
+                }
                 clearTimeout(timeout);
                 if (!res.ok) {
                     var e = await res.json().catch(function() { return {}; });
@@ -1361,6 +1381,15 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
         }
 
+        // Если открыли с порта 8080 — API там нет, показываем подсказку (единый порт 8000)
+        (function () {
+            try {
+                if (window.location.port === '8080') {
+                    var banner = document.getElementById('port-hint-banner');
+                    if (banner) banner.classList.add('show');
+                }
+            } catch (e) {}
+        })();
         // При загрузке страницы — восстановить сессию из localStorage (запомнить пользователя)
         loadLandingStats();
         (function tryRestoreUser() {

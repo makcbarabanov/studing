@@ -18,12 +18,15 @@ load_dotenv()
 # 2. Создаем Диспетчера
 app = FastAPI()
 
-# Каталоги для медиа: раздача по /media и сохранение аватаров
+# Каталоги: медиа (аватары) и статика (картинки для фона и т.п.)
 BASE_DIR = Path(__file__).resolve().parent
 MEDIA_DIR = BASE_DIR / "media"
 AVATARS_DIR = MEDIA_DIR / "avatars"
 AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+EXAMPLES_DIR = BASE_DIR / "examples"
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
+if EXAMPLES_DIR.is_dir():
+    app.mount("/examples", StaticFiles(directory=str(EXAMPLES_DIR)), name="examples")
 
 # --- БЛОК БЕЗОПАСНОСТИ (CORS) ---
 app.add_middleware(
@@ -135,10 +138,11 @@ def get_db_connection():
         cursor_factory=RealDictCursor
     )
 
-@app.get("/")
-def read_root():
-    """Главное окно — приветствие"""
-    return {"message": "Welcome to the Island! API is running."}
+@app.get("/", response_class=FileResponse)
+@app.get("/dreams.html", response_class=FileResponse)
+def vitrina_page():
+    """Витрина мечт — публичная страница с мечтами участников"""
+    return FileResponse(Path(__file__).parent / "dreams.html")
 
 @app.get("/admin", response_class=FileResponse)
 def admin_page():
@@ -383,6 +387,70 @@ def _build_dream_item(row, steps_by_dream):
         "progress": 0,
         "steps": steps,
     }
+
+
+@app.get("/dreams/showcase")
+def get_dreams_showcase():
+    """Витрина мечт: все публичные мечты с именем автора. Без авторизации."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            try:
+                cur.execute("""
+                    SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
+                           COALESCE(s.code, 'planned') AS status_code,
+                           s.label_ru AS status_label,
+                           u.name AS user_name, u.surname AS user_surname, u.city AS user_city
+                    FROM dreams d
+                    JOIN users u ON u.id = d.user_id
+                    LEFT JOIN dreams_statuses s ON d.status_id = s.id
+                    WHERE COALESCE(d.is_public, true) = true
+                    ORDER BY d.id DESC
+                """)
+                rows = cur.fetchall()
+            except psycopg2.ProgrammingError:
+                conn.rollback()
+                cur.execute("""
+                    SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
+                           u.name AS user_name, u.surname AS user_surname, u.city AS user_city
+                    FROM dreams d
+                    JOIN users u ON u.id = d.user_id
+                    WHERE COALESCE(d.is_public, true) = true
+                    ORDER BY d.id DESC
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    r["status_code"] = "planned"
+                    r["status_label"] = "Запланировано"
+            result = []
+            for r in rows:
+                full_name = f"{r.get('user_name') or ''} {r.get('user_surname') or ''}".strip() or "Участник"
+                price_val = r.get("price")
+                if price_val is not None:
+                    try:
+                        price_val = float(price_val)
+                    except (TypeError, ValueError):
+                        price_val = None
+                else:
+                    price_val = None
+                result.append({
+                    "id": r["id"],
+                    "dream": r.get("dream") or "",
+                    "deadline": str(r["deadline"]) if r.get("deadline") else None,
+                    "price": price_val,
+                    "date": str(r["date"]) if r.get("date") else None,
+                    "user_id": r["user_id"],
+                    "user_name": full_name,
+                    "city": (r.get("user_city") or "").strip() or None,
+                    "status": r.get("status_code") or "planned",
+                    "status_label": r.get("status_label") or "Запланировано",
+                })
+            return {"dreams": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
 
 # --- Эндпоинт 2: ПОЛУЧЕНИЕ МЕЧТ ПОЛЬЗОВАТЕЛЯ ---
 @app.get("/dreams")
