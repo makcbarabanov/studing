@@ -112,13 +112,25 @@
         .app-sticky-inner { padding: 20px 20px 0 20px; box-sizing: border-box; }
         #app-sticky-spacer { width: 100%; }
         /* Футер: всегда фиксирован внизу экрана (и на мобиле, и на десктопе) */
-        .app-footer { position: fixed; bottom: 0; left: 0; right: 0; height: 48px; background: #fff; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); z-index: 19; }
-        .app-footer-inner { max-width: 980px; margin: 0 auto; height: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
+        .app-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: none;
+            height: calc(48px + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
+            background: #fff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+            z-index: 19;
+        }
+        .app-footer-inner { max-width: 980px; margin: 0 auto; height: 48px; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
         .app-footer-counter { font-size: 14px; color: #555; font-weight: 600; white-space: nowrap; }
-        .app-footer-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-        .app-footer-add { width: 44px; height: 44px; border-radius: 50%; background: #4CAF50; color: #fff; border: none; font-size: 24px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 2px 8px rgba(76,175,80,0.4); transition: opacity 0.2s; pointer-events: auto; }
+        .app-footer-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        .app-footer button { width: auto; margin: 0; }
+        .app-footer-add { width: 44px; height: 44px; border-radius: 50%; background: #4CAF50; color: #fff; border: none; font-size: 24px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 2px 8px rgba(76,175,80,0.4); transition: opacity 0.2s; }
         .app-footer-add:hover { opacity: 0.9; }
-        .app-footer-logout { margin-left: auto; font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; }
+        .app-footer-logout { margin-left: auto; font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; }
         .app-footer-logout:hover { color: #666; }
         .desktop-logout-btn { display: inline-block; }
         /* Хедер: слева аватар (2 ряда), центр — имя + статистика, справа аватар бадди (2 ряда) */
@@ -181,8 +193,9 @@
         #port-hint-banner.show { display: block; }
         /* Мобильная версия */
         @media (max-width: 768px) {
-            body { margin: 10px; }
-            .container { padding: 12px; max-width: 100%; }
+            body { margin: 0; background-attachment: scroll; }
+            /* iOS/мобильные браузеры: backdrop-filter может ломать position:fixed у потомков */
+            .container { padding: 12px; max-width: 100%; backdrop-filter: none !important; }
             .app-sticky-top { width: 100%; left: 0; transform: none; border-radius: 0; }
             .app-sticky-inner { padding: 12px 12px 0; }
             .app-header { gap: 8px; padding-bottom: 8px; min-height: 56px; }
@@ -238,15 +251,9 @@
             .dreams-mobile-add { width: 100%; max-width: 280px; min-height: 44px; }
             /* Трёхсекционная раскладка: хедер сверху, контент по центру, футер снизу */
             #profile-view { display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; }
-            .app-content { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 56px; }
-            .app-footer { position: fixed; bottom: 0; left: 0; right: 0; height: 48px; background: #fff; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); z-index: 19; display: block; }
-            .app-footer-inner { max-width: 980px; margin: 0 auto; height: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
-            .app-footer-counter { font-size: 14px; color: #555; font-weight: 600; white-space: nowrap; }
-            .app-footer-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-            .app-footer-add { width: 44px; height: 44px; border-radius: 50%; background: #4CAF50; color: #fff; border: none; font-size: 24px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 2px 8px rgba(76,175,80,0.4); transition: opacity 0.2s; pointer-events: auto; }
-            .app-footer-add:hover { opacity: 0.9; }
-            .app-footer-logout { margin-left: auto; font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; }
-            .app-footer-logout:hover { color: #666; }
+            .app-content { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+            /* Футер показываем на мобиле; базовые стили (position/fixed/safe-area) — вне media */
+            .app-footer { display: block; }
             .desktop-logout-btn { display: none !important; }
             .dreams-mobile-card { margin: 0; }
         }
