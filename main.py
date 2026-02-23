@@ -68,6 +68,7 @@ class DreamCreate(BaseModel):
     category_id: Optional[int] = None
     deadline: Optional[str] = None  # YYYY-MM-DD
     price: Optional[float] = None  # рубли
+    is_public: Optional[bool] = True  # False = приватная, не в витрине
 
 class DreamUpdate(BaseModel):
     dream: Optional[str] = None
@@ -197,11 +198,13 @@ def login_user(user_login: UserLogin):
             buddy_id = user_data.get("buddy_id")
             buddy_trust = bool(user_data.get("buddy_trust"))
             buddy_name = None
+            buddy_avatar_path = None
             if buddy_id:
-                cur.execute("SELECT name, surname FROM users WHERE id = %s", (buddy_id,))
+                cur.execute("SELECT name, surname, avatar_path FROM users WHERE id = %s", (buddy_id,))
                 buddy_row = cur.fetchone()
                 if buddy_row:
                     buddy_name = f"{buddy_row.get('name') or ''} {buddy_row.get('surname') or ''}".strip() or None
+                    buddy_avatar_path = buddy_row.get("avatar_path")
             return {
                 "id": user_data["id"],
                 "full_name": full_name,
@@ -211,6 +214,7 @@ def login_user(user_login: UserLogin):
                 "buddy_id": buddy_id,
                 "buddy_trust": buddy_trust,
                 "buddy_name": buddy_name,
+                "buddy_avatar_path": buddy_avatar_path,
                 "dream": "Мечта загружается..."
             }
     except HTTPException:
