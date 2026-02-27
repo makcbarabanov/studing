@@ -88,6 +88,12 @@ class StepUpdate(BaseModel):
     deadline: Optional[str] = None  # YYYY-MM-DD
     deleted: Optional[bool] = None  # мягкое удаление / восстановление
 
+class BuddyRequestCreate(BaseModel):
+    to_user_id: int
+
+class BuddyRequestUpdate(BaseModel):
+    status: str  # accepted | declined
+
 def _load_steps(cur, dream_ids):
     """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of {id, title, completed, deadline, deleted}."""
     out = {}
@@ -283,6 +289,201 @@ def upload_avatar(user_id: int, file: UploadFile = File(...)):
     finally:
         conn.close()
     return {"ok": True, "avatar_path": avatar_path}
+
+# --- Список пользователей для модалки «Добавить бадди» ---
+@app.get("/users/list")
+def users_list(exclude_user_id: Optional[int] = None):
+    """Список пользователей без бадди: id, name, surname, avatar_path. exclude_user_id — не включать этого пользователя."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Только пользователи, у которых ещё нет бадди (buddy_id IS NULL)
+            if exclude_user_id is not None:
+                cur.execute(
+                    "SELECT id, name, surname FROM users WHERE id != %s AND buddy_id IS NULL ORDER BY surname, name",
+                    (exclude_user_id,),
+                )
+            else:
+                cur.execute("SELECT id, name, surname FROM users WHERE buddy_id IS NULL ORDER BY surname, name")
+            rows = cur.fetchall()
+            out = [{"id": r["id"], "name": (r.get("name") or "").strip(), "surname": (r.get("surname") or "").strip(), "avatar_path": None} for r in rows]
+            try:
+                cur.execute("SELECT id, avatar_path FROM users WHERE avatar_path IS NOT NULL")
+                for row in cur.fetchall():
+                    for i in out:
+                        if i["id"] == row["id"]:
+                            i["avatar_path"] = row.get("avatar_path")
+                            break
+            except psycopg2.ProgrammingError:
+                pass
+            return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+# --- Запросы в бадди (buddy_requests) ---
+def _ensure_buddy_requests_table(cur):
+    """Создать таблицу buddy_requests, если её нет (для совместимости без ручного запуска миграции)."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS buddy_requests (
+            id SERIAL PRIMARY KEY,
+            from_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            to_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_buddy_requests_to_user ON buddy_requests(to_user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_buddy_requests_from_user ON buddy_requests(from_user_id)")
+    except psycopg2.ProgrammingError:
+        pass
+
+
+@app.get("/buddy_requests")
+def list_buddy_requests(user_id: int):
+    """Список запросов для текущего пользователя: входящие (pending) и исходящие (pending)."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_buddy_requests_table(cur)
+            conn.commit()
+            cur.execute("""
+                SELECT br.id, br.from_user_id, br.to_user_id, br.status, br.created_at,
+                       u.name AS from_name, u.surname AS from_surname
+                FROM buddy_requests br
+                JOIN users u ON u.id = br.from_user_id
+                WHERE br.to_user_id = %s AND br.status = 'pending'
+                ORDER BY br.created_at DESC
+            """, (user_id,))
+            incoming = [dict(r) for r in cur.fetchall()]
+            cur.execute("""
+                SELECT br.id, br.from_user_id, br.to_user_id, br.status, br.created_at,
+                       u.name AS to_name, u.surname AS to_surname
+                FROM buddy_requests br
+                JOIN users u ON u.id = br.to_user_id
+                WHERE br.from_user_id = %s AND br.status = 'pending'
+                ORDER BY br.created_at DESC
+            """, (user_id,))
+            outgoing = [dict(r) for r in cur.fetchall()]
+            return {"incoming": incoming, "outgoing": outgoing}
+    finally:
+        conn.close()
+
+
+@app.post("/buddy_requests")
+def create_buddy_request(body: BuddyRequestCreate, user_id: int):
+    """Отправить запрос в бадди. user_id — отправитель (from_user_id), body.to_user_id — кому."""
+    if body.to_user_id == user_id:
+        raise HTTPException(status_code=400, detail="Нельзя отправить запрос себе")
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_buddy_requests_table(cur)
+            cur.execute("SELECT id, buddy_id FROM users WHERE id IN (%s, %s)", (user_id, body.to_user_id))
+            rows = {r["id"]: r for r in cur.fetchall()}
+            if body.to_user_id not in rows:
+                raise HTTPException(status_code=404, detail="Пользователь не найден")
+            if rows.get(body.to_user_id, {}).get("buddy_id"):
+                raise HTTPException(status_code=400, detail="У этого пользователя уже есть бадди")
+            if rows.get(user_id, {}).get("buddy_id"):
+                raise HTTPException(status_code=400, detail="У вас уже есть бадди")
+            cur.execute(
+                "SELECT id FROM buddy_requests WHERE from_user_id = %s AND to_user_id = %s AND status = 'pending'",
+                (user_id, body.to_user_id),
+            )
+            if cur.fetchone():
+                raise HTTPException(status_code=400, detail="Запрос уже отправлен")
+            cur.execute(
+                "INSERT INTO buddy_requests (from_user_id, to_user_id, status) VALUES (%s, %s, 'pending') RETURNING id, from_user_id, to_user_id, status, created_at",
+                (user_id, body.to_user_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.patch("/buddy_requests/{request_id}")
+def update_buddy_request(request_id: int, body: BuddyRequestUpdate, user_id: int):
+    """Принять или отклонить входящий запрос. Только тот, кому пришёл запрос (to_user_id), может менять статус."""
+    if body.status not in ("accepted", "declined"):
+        raise HTTPException(status_code=400, detail="status должен быть accepted или declined")
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, from_user_id, to_user_id, status FROM buddy_requests WHERE id = %s", (request_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Запрос не найден")
+            if row["to_user_id"] != user_id:
+                raise HTTPException(status_code=403, detail="Только получатель может принять или отклонить запрос")
+            if row["status"] != "pending":
+                raise HTTPException(status_code=400, detail="Запрос уже обработан")
+            from_id = row["from_user_id"]
+            to_id = row["to_user_id"]
+            cur.execute("UPDATE buddy_requests SET status = %s WHERE id = %s", (body.status, request_id))
+            if body.status == "accepted":
+                cur.execute("UPDATE users SET buddy_id = %s WHERE id = %s", (to_id, from_id))
+                cur.execute("UPDATE users SET buddy_id = %s WHERE id = %s", (from_id, to_id))
+                cur.execute("SELECT name, surname, avatar_path FROM users WHERE id = %s", (from_id,))
+                buddy_row = cur.fetchone()
+                buddy_name = ((buddy_row.get("name") or "") + " " + (buddy_row.get("surname") or "")).strip() if buddy_row else ""
+                buddy_avatar_path = buddy_row.get("avatar_path") if buddy_row else None
+            else:
+                buddy_name = None
+                buddy_avatar_path = None
+            conn.commit()
+            out = {"id": request_id, "status": body.status}
+            if body.status == "accepted":
+                out["buddy_id"] = from_id
+                out["buddy_name"] = buddy_name
+                out["buddy_avatar_path"] = buddy_avatar_path
+            return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.delete("/buddy_requests/{request_id}")
+def cancel_buddy_request(request_id: int, user_id: int):
+    """Отменить исходящий запрос. Только отправитель (from_user_id) может отменить."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, from_user_id, status FROM buddy_requests WHERE id = %s", (request_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Запрос не найден")
+            if row["from_user_id"] != user_id:
+                raise HTTPException(status_code=403, detail="Только отправитель может отменить запрос")
+            if row["status"] != "pending":
+                raise HTTPException(status_code=400, detail="Запрос уже обработан")
+            cur.execute("UPDATE buddy_requests SET status = 'cancelled' WHERE id = %s", (request_id,))
+            conn.commit()
+            return {"id": request_id, "status": "cancelled"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
 
 # --- Эндпоинт: РЕГИСТРАЦИЯ ---
 @app.post("/register")

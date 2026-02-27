@@ -123,9 +123,25 @@
 
 ---
 
+### 7. `buddy_requests`
+
+**Назначение:** Запросы «стать бадди». Пользователь A отправляет запрос пользователю B; B при заходе в кабинет видит запрос и может принять или отклонить. При принятии у обоих выставляется `users.buddy_id`. Миграция: `_sql/mig_buddy_requests.sql`.
+
+| Колонка       | Тип            | Описание |
+|---------------|----------------|----------|
+| `id`          | SERIAL PRIMARY KEY | Уникальный идентификатор запроса. |
+| `from_user_id`| INT NOT NULL   | Кто отправил. REFERENCES users(id) ON DELETE CASCADE. |
+| `to_user_id`  | INT NOT NULL   | Кому отправлен запрос. REFERENCES users(id) ON DELETE CASCADE. |
+| `status`      | VARCHAR(20) NOT NULL DEFAULT 'pending' | pending, accepted, declined, cancelled. |
+| `created_at`  | TIMESTAMP WITH TIME ZONE DEFAULT NOW() | Дата создания. |
+
+Индексы: `idx_buddy_requests_to_user`, `idx_buddy_requests_from_user`.
+
+---
+
 ## Актуальные таблицы (без префикса _old_)
 
-Приложение ОСТРОВ использует только: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
+Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **buddy_requests**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
 
 ## Таблицы с префиксом _old_
 

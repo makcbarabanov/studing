@@ -15,6 +15,8 @@
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { opacity: 0.8; }
         .hidden { display: none; }
+        /* Хедер только в кабинете: на лендинге (вход/регистрация) блок кабинета скрыт */
+        #profile-view.hidden { display: none !important; }
         .error { color: red; margin-top: 10px; }
         .profile-info p { margin: 5px 0; }
         .profile-info strong { color: #555; }
@@ -94,6 +96,16 @@
         .modal-actions button { width: auto; padding: 8px 16px; }
         .modal-actions button.secondary { background: #888; }
         .modal-actions button:disabled { opacity: 0.8; cursor: not-allowed; }
+        .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
+        .add-buddy-list { max-height: 50vh; overflow-y: auto; }
+        .add-buddy-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .add-buddy-item:last-child { border-bottom: none; }
+        .add-buddy-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: #555; overflow: hidden; flex-shrink: 0; }
+        .add-buddy-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .add-buddy-name { flex: 1; font-size: 15px; color: #333; min-width: 0; }
+        .add-buddy-invite { flex-shrink: 0; width: 100px; padding: 6px 12px; font-size: 13px; min-height: 36px; background: transparent; border: 1px solid #4CAF50; color: #2e7d32; font-weight: 600; border-radius: 4px; cursor: pointer; }
+        .add-buddy-invite:hover { background: rgba(76, 175, 80, 0.08); }
+        .add-buddy-invite.waiting { border-color: #888; color: #666; background: #f5f5f5; cursor: default; }
         .dreams-table .dream-status-cell { max-width: 120px; }
         .status-picker { position: relative; display: inline-flex; align-items: center; }
         .status-picker-current { cursor: pointer; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-size: 1.2em; min-width: 2em; min-height: 1.8em; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
@@ -126,11 +138,13 @@
         }
         .app-footer-inner { max-width: 980px; margin: 0 auto; height: 48px; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
         .app-footer-counter { font-size: 14px; color: #555; font-weight: 600; white-space: nowrap; }
-        .app-footer-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        .app-footer-spacer { flex: 1; min-width: 0; }
+        .app-footer-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        .app-footer-center .app-footer-add { pointer-events: auto; }
         .app-footer button { width: auto; margin: 0; }
-        .app-footer-add { width: 44px; height: 44px; border-radius: 50%; background: #4CAF50; color: #fff; border: none; font-size: 24px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 2px 8px rgba(76,175,80,0.4); transition: opacity 0.2s; }
+        .app-footer-add { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; background: #4CAF50; color: #fff; border: none; font-size: 24px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; box-shadow: 0 2px 8px rgba(76,175,80,0.4); transition: opacity 0.2s; }
         .app-footer-add:hover { opacity: 0.9; }
-        .app-footer-logout { margin-left: auto; font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; }
+        .app-footer-logout { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
         .app-footer-logout:hover { color: #666; }
         .desktop-logout-btn { display: inline-block; }
         /* Хедер: слева аватар (2 ряда), центр — имя + статистика, справа аватар бадди (2 ряда) */
@@ -147,8 +161,22 @@
         .app-header-buddy-slot { position: relative; width: 72px; min-width: 72px; min-height: 72px; margin-left: auto; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: stretch; cursor: pointer; transition: opacity 0.2s; }
         .app-header-buddy-slot:hover { opacity: 0.9; }
         .app-header-buddy-slot img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
-        .app-header-buddy-slot .buddy-slot-link-me { font-size: 16px; color: #333; text-decoration: none; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 2em; }
+        .app-header-buddy-slot .buddy-slot-link-me { font-size: 16px; color: #333; text-decoration: none; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 2em; position: relative; box-sizing: border-box; }
+        .app-header-buddy-slot .buddy-slot-link-me img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .app-header-buddy-slot .buddy-slot-link-me span:not(.buddy-slot-me-label) { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: inherit; }
         .app-header-buddy-slot .buddy-slot-placeholder { font-size: 14px; color: #999; }
+        .app-header-buddy-slot .buddy-slot-add-btn { background: rgba(76, 175, 80, 0.12); border: 1px solid #4CAF50; color: #2e7d32; border-radius: 50%; width: 100%; height: 100%; font-size: 10px; line-height: 1.2; padding: 4px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
+        .app-header-buddy-slot .buddy-slot-add-btn:hover { background: rgba(76, 175, 80, 0.25); }
+        /* Блок запроса в бадди: не в кружке, а отдельная карточка справа от хедера */
+        .app-header-buddy-slot.buddy-slot-has-request { width: auto; min-width: 140px; max-width: 200px; border-radius: 10px; height: auto; min-height: 72px; }
+        .buddy-slot-request-wrap { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
+        .buddy-slot-request-label { font-size: 12px; color: #333; text-align: center; line-height: 1.3; font-weight: 600; }
+        .buddy-slot-request-btn { padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; border: 1px solid; font-weight: 600; }
+        .buddy-slot-request-btn.accept { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; }
+        .buddy-slot-request-btn.accept:hover { background: #c8e6c9; }
+        .buddy-slot-request-btn.decline { background: #fff; border-color: #ccc; color: #666; }
+        .buddy-slot-request-btn.decline:hover { background: #ffebee; border-color: #c62828; color: #b71c1c; }
+        .app-header-buddy-slot .buddy-slot-me-label { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 600; color: #333; z-index: 1; text-shadow: 0 0 2px #fff; }
         .app-header-divider { height: 1px; background: linear-gradient(90deg, transparent, #ddd 10%, #ddd 90%, transparent); margin: 0 0 16px 0; }
         .app-menu { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin-bottom: 12px; }
         .app-menu-group { display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 0; }
@@ -204,7 +232,12 @@
             .app-header-name { font-size: 0.95em; line-height: 1.25; }
             .app-header-stats { font-size: 11px; }
             .app-header-buddy-slot { width: 48px; min-width: 48px; min-height: 48px; font-size: 14px; }
+            .app-header-buddy-slot.buddy-slot-has-request { min-width: 120px; max-width: 160px; padding: 0; }
+            .buddy-slot-request-wrap { padding: 8px 10px; }
+            .buddy-slot-request-label { font-size: 11px; }
+            .buddy-slot-request-btn { padding: 6px 10px; font-size: 12px; }
             .app-header-buddy-slot .buddy-slot-link-me { font-size: 14px; }
+            .app-header-buddy-slot .buddy-slot-add-btn { font-size: 9px; }
             .stat-label-dreams-word { display: none; }
             .app-menu { display: none !important; }
             .app-header-divider { margin-bottom: 6px; }
@@ -459,16 +492,29 @@
                     </div>
                 </div>
             </div>
+            <!-- Модальное окно: добавить бадди -->
+            <div id="modal-add-buddy" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-buddy-title">
+                <div class="modal modal-add-buddy">
+                    <h3 id="modal-add-buddy-title">Добавить бадди</h3>
+                    <p class="modal-add-buddy-hint">Выберите участника и нажмите «Пригласить». Он увидит запрос при следующем заходе в кабинет.</p>
+                    <div id="add-buddy-list" class="add-buddy-list"></div>
+                    <p id="add-buddy-error" class="error hidden" style="margin-top:10px;"></p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" onclick="closeAddBuddyModal()">Закрыть</button>
+                    </div>
+                </div>
+            </div>
             <!-- Карточки мечт (пока закомментировано)
             <div id="dreams-grid" class="dreams-grid"></div>
             -->
             <footer class="app-footer" id="app-footer" aria-label="Панель действий">
                 <div class="app-footer-inner">
                     <span class="app-footer-counter" id="app-footer-counter">0 / 0</span>
+                    <span class="app-footer-spacer" aria-hidden="true"></span>
                     <div class="app-footer-center">
-                        <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту">+</button>
+                        <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
-                    <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти">Выйти</button>
+                    <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
                 </div>
             </footer>
             <button onclick="logout()" class="desktop-logout-btn" style="margin-top: 20px;">Выйти</button>
@@ -507,6 +553,124 @@
         function updateHelpedStat(n) {
             document.getElementById('stat-helped-n').textContent = n;
         }
+        function closeAddBuddyModal() {
+            var el = document.getElementById('modal-add-buddy');
+            if (el) el.classList.add('hidden');
+        }
+        async function openAddBuddyModal() {
+            var modal = document.getElementById('modal-add-buddy');
+            var listEl = document.getElementById('add-buddy-list');
+            var errEl = document.getElementById('add-buddy-error');
+            if (!modal || !listEl) return;
+            modal.classList.remove('hidden');
+            errEl.classList.add('hidden');
+            errEl.textContent = '';
+            listEl.innerHTML = '<p style="color:#666;">Загрузка...</p>';
+            if (!currentUser || !currentUser.id) {
+                listEl.innerHTML = '';
+                errEl.textContent = 'Войдите в кабинет.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            try {
+                var url = API_BASE_URL + '/users/list?exclude_user_id=' + encodeURIComponent(currentUser.id);
+                var res = await fetch(url, { cache: 'no-store' });
+                var users = null;
+                var ct = res.headers.get('content-type') || '';
+                if (ct.indexOf('application/json') !== -1) users = await res.json();
+                if (!res.ok) {
+                    var msg = res.status + ' ' + res.statusText;
+                    if (users && users.detail) msg += ': ' + (typeof users.detail === 'string' ? users.detail : JSON.stringify(users.detail));
+                    throw new Error(msg);
+                }
+                if (!users || !Array.isArray(users)) users = [];
+                var outRes = await fetch(API_BASE_URL + '/buddy_requests?user_id=' + currentUser.id, { cache: 'no-store' });
+                var outgoing = [];
+                if (outRes.ok) { var outData = await outRes.json(); outgoing = outData.outgoing || []; }
+                listEl.innerHTML = '';
+                if (users.length === 0) {
+                    listEl.innerHTML = '<p style="color:#666;">Кроме вас в системе пока никого нет.</p>';
+                    return;
+                }
+                var mediaBase = API_BASE_URL + '/media/';
+                users.forEach(function(u) {
+                    var outReq = outgoing.find(function(o) { return o.to_user_id === u.id; });
+                    var fullName = ((u.name || '') + ' ' + (u.surname || '')).trim() || 'Участник';
+                    var initials = fullName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
+                    var row = document.createElement('div');
+                    row.className = 'add-buddy-item';
+                    row.dataset.userId = u.id;
+                    var avatarWrap = document.createElement('div');
+                    avatarWrap.className = 'add-buddy-avatar';
+                    if (u.avatar_path) {
+                        var img = document.createElement('img');
+                        img.src = mediaBase + (u.avatar_path || '').replace(/^\//, '');
+                        img.alt = fullName;
+                        img.onerror = function() { img.remove(); var s = document.createElement('span'); s.textContent = initials; avatarWrap.appendChild(s); };
+                        avatarWrap.appendChild(img);
+                    } else {
+                        var span = document.createElement('span');
+                        span.textContent = initials;
+                        avatarWrap.appendChild(span);
+                    }
+                    var nameSpan = document.createElement('span');
+                    nameSpan.className = 'add-buddy-name';
+                    nameSpan.textContent = fullName;
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'add-buddy-invite';
+                    btn.dataset.userId = u.id;
+                    if (outReq) {
+                        btn.textContent = 'Ждём ответа';
+                        btn.classList.add('waiting');
+                        btn.dataset.requestId = outReq.id;
+                    } else {
+                        btn.textContent = 'Пригласить';
+                    }
+                    btn.addEventListener('click', function() {
+                        var uid = parseInt(this.dataset.userId, 10);
+                        var rid = this.dataset.requestId ? parseInt(this.dataset.requestId, 10) : null;
+                        sendBuddyInvite(uid, this, rid);
+                    });
+                    row.appendChild(avatarWrap);
+                    row.appendChild(nameSpan);
+                    row.appendChild(btn);
+                    listEl.appendChild(row);
+                });
+            } catch (e) {
+                listEl.innerHTML = '';
+                errEl.textContent = 'Не удалось загрузить список. ' + (e.message || 'Проверьте соединение с сервером и перезапустите бэкенд (GET /users/list).');
+                errEl.classList.remove('hidden');
+            }
+        }
+        async function sendBuddyInvite(toUserId, btnEl, requestId) {
+            if (!btnEl || !currentUser || !currentUser.id) return;
+            if (btnEl.classList.contains('waiting') && requestId) {
+                try {
+                    var res = await fetch(API_BASE_URL + '/buddy_requests/' + requestId + '?user_id=' + currentUser.id, { method: 'DELETE' });
+                    if (res.ok) {
+                        buddyRequestsCache.outgoing = (buddyRequestsCache.outgoing || []).filter(function(o) { return o.id !== requestId; });
+                        btnEl.textContent = 'Пригласить';
+                        btnEl.classList.remove('waiting');
+                        btnEl.removeAttribute('data-request-id');
+                    } else { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка отмены'); }
+                } catch (e) { alert('Ошибка сети'); }
+                return;
+            }
+            try {
+                var res = await fetch(API_BASE_URL + '/buddy_requests?user_id=' + currentUser.id, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to_user_id: toUserId })
+                });
+                if (!res.ok) { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка отправки'); return; }
+                var data = await res.json();
+                btnEl.textContent = 'Ждём ответа';
+                btnEl.classList.add('waiting');
+                btnEl.dataset.requestId = data.id;
+                if (buddyRequestsCache.outgoing) buddyRequestsCache.outgoing.push({ id: data.id, to_user_id: toUserId });
+            } catch (e) { alert('Ошибка сети'); }
+        }
         function applyHeaderView() {
             var avatarEl = document.getElementById('profile-avatar');
             var nameEl = document.getElementById('profile-full_name');
@@ -516,17 +680,17 @@
             var taskCodeEl = document.getElementById('header-task-code');
             if (taskCodeEl) taskCodeEl.textContent = 'код ' + TASK_CODE;
             if (!avatarEl || !nameEl || !ratioEl || !slotEl) return;
-            if (currentUser && currentUser.buddy_avatar_path && !currentUser.buddy_avatar_url) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + (currentUser.buddy_avatar_path || '').replace(/^\//, '');
-            if (currentUser && currentUser.avatar_path && !currentUser.avatar_url) currentUser.avatar_url = API_BASE_URL + '/media/' + (currentUser.avatar_path || '').replace(/^\//, '');
+            if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '');
+            if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '');
             if (headerView === 'me') {
+                // Левый слот: я. Правый: бадди или «—». Загрузка аватарки временно отключена (см. roadmap).
                 var fullName = (currentUser && (currentUser.full_name || '').trim()) || 'Гость';
                 nameEl.textContent = fullName;
                 ratioEl.textContent = myHeaderStats.ratio;
                 helpedEl.textContent = myHeaderStats.helped;
                 avatarEl.innerHTML = '';
-                avatarEl.title = 'Нажмите, чтобы загрузить фото';
-                avatarEl.style.cursor = 'pointer';
-                avatarEl.addEventListener('click', function() { document.getElementById('avatar-file').click(); });
+                avatarEl.title = fullName;
+                avatarEl.style.cursor = 'default';
                 if (currentUser && currentUser.avatar_url) {
                     var img = document.createElement('img');
                     img.src = currentUser.avatar_url;
@@ -539,6 +703,7 @@
                     avatarEl.appendChild(span);
                 }
                 slotEl.innerHTML = '';
+                slotEl.classList.remove('buddy-slot-has-request');
                 slotEl.setAttribute('aria-label', 'Переключить на бадди');
                 if (currentUser && currentUser.buddy_id) {
                     var buddyName = (currentUser.buddy_name || '').trim() || 'Бадди';
@@ -554,41 +719,84 @@
                         sspan.textContent = buddyName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
                         slotEl.appendChild(sspan);
                     }
+                } else if (buddyRequestsCache.incoming && buddyRequestsCache.incoming.length > 0) {
+                    slotEl.classList.add('buddy-slot-has-request');
+                    var req = buddyRequestsCache.incoming[0];
+                    var fromName = ((req.from_name || '') + ' ' + (req.from_surname || '')).trim() || 'Участник';
+                    var wrap = document.createElement('div');
+                    wrap.className = 'buddy-slot-request-wrap';
+                    var label = document.createElement('span');
+                    label.className = 'buddy-slot-request-label';
+                    label.textContent = 'Запрос от ' + fromName;
+                    var btnAccept = document.createElement('button');
+                    btnAccept.type = 'button';
+                    btnAccept.className = 'buddy-slot-request-btn accept';
+                    btnAccept.textContent = 'Принять';
+                    btnAccept.dataset.requestId = req.id;
+                    var btnDecline = document.createElement('button');
+                    btnDecline.type = 'button';
+                    btnDecline.className = 'buddy-slot-request-btn decline';
+                    btnDecline.textContent = 'Отклонить';
+                    btnDecline.dataset.requestId = req.id;
+                    btnAccept.addEventListener('click', function(e) { e.stopPropagation(); acceptBuddyRequest(parseInt(this.dataset.requestId, 10)); });
+                    btnDecline.addEventListener('click', function(e) { e.stopPropagation(); declineBuddyRequest(parseInt(this.dataset.requestId, 10)); });
+                    wrap.appendChild(label);
+                    wrap.appendChild(btnAccept);
+                    wrap.appendChild(btnDecline);
+                    slotEl.appendChild(wrap);
                 } else {
-                    var ph = document.createElement('span');
-                    ph.className = 'buddy-slot-placeholder';
-                    ph.textContent = '—';
-                    slotEl.appendChild(ph);
+                    var addBuddyBtn = document.createElement('button');
+                    addBuddyBtn.type = 'button';
+                    addBuddyBtn.className = 'buddy-slot-add-btn';
+                    addBuddyBtn.textContent = 'Добавить бадди';
+                    addBuddyBtn.setAttribute('aria-label', 'Добавить бадди');
+                    addBuddyBtn.addEventListener('click', function(e) { e.stopPropagation(); openAddBuddyModal(); });
+                    slotEl.appendChild(addBuddyBtn);
                 }
             } else {
-                // Режим «её мечты»: слева — моя аватарка, справа — ссылка «Я»
+                // Режим «мечты бадди»: слева — бадди (аватар + имя), справа — я (аватар + «Я», клик = вернуться ко мне)
                 var buddyName = (currentUser && (currentUser.buddy_name || '').trim()) || 'Бадди';
                 nameEl.textContent = buddyName;
                 ratioEl.textContent = (buddyStatsCache && buddyStatsCache.ratio) ? buddyStatsCache.ratio : '0/0';
                 helpedEl.textContent = myHeaderStats.helped;
                 avatarEl.innerHTML = '';
-                var myName = (currentUser && (currentUser.full_name || '').trim()) || 'Гость';
-                avatarEl.title = myName;
+                avatarEl.title = buddyName;
                 avatarEl.style.cursor = 'default';
-                var myInitials = myName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
-                if (currentUser && currentUser.avatar_url) {
-                    var img = document.createElement('img');
-                    img.alt = 'Мой аватар';
-                    img.src = currentUser.avatar_url;
-                    img.onerror = function() { img.remove(); var s = document.createElement('span'); s.textContent = myInitials; avatarEl.appendChild(s); };
-                    avatarEl.appendChild(img);
+                var buddyInitials = buddyName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
+                if (currentUser && currentUser.buddy_avatar_url) {
+                    var bimg = document.createElement('img');
+                    bimg.alt = buddyName;
+                    bimg.src = currentUser.buddy_avatar_url;
+                    bimg.onerror = function() { bimg.remove(); var s = document.createElement('span'); s.textContent = buddyInitials; avatarEl.appendChild(s); };
+                    avatarEl.appendChild(bimg);
                 } else {
-                    var span = document.createElement('span');
-                    span.textContent = myInitials;
-                    avatarEl.appendChild(span);
+                    var bspan = document.createElement('span');
+                    bspan.textContent = buddyInitials;
+                    avatarEl.appendChild(bspan);
                 }
                 slotEl.innerHTML = '';
                 slotEl.setAttribute('aria-label', 'Вернуться ко мне');
                 var linkMe = document.createElement('a');
                 linkMe.href = '#';
                 linkMe.className = 'buddy-slot-link-me';
-                linkMe.textContent = 'Я';
                 linkMe.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); headerView = 'me'; applyHeaderView(); switchMenu('dreams'); });
+                var myName = (currentUser && (currentUser.full_name || '').trim()) || 'Гость';
+                var myInitials = myName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
+                if (currentUser && currentUser.avatar_url) {
+                    var myimg = document.createElement('img');
+                    myimg.alt = myName;
+                    myimg.src = currentUser.avatar_url;
+                    myimg.onerror = function() { myimg.remove(); var s = document.createElement('span'); s.textContent = myInitials; linkMe.appendChild(s); };
+                    linkMe.appendChild(myimg);
+                } else {
+                    var myspan = document.createElement('span');
+                    myspan.textContent = myInitials;
+                    linkMe.appendChild(myspan);
+                }
+                var meLabel = document.createElement('span');
+                meLabel.className = 'buddy-slot-me-label';
+                meLabel.textContent = 'Я';
+                linkMe.appendChild(meLabel);
                 slotEl.appendChild(linkMe);
             }
         }
@@ -614,7 +822,10 @@
                     return;
                 }
 
-                currentUser = await response.json(); // Сохраняем данные пользователя
+                currentUser = await response.json();
+                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '');
+                if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '');
+                // Сохраняем данные пользователя
                 try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e) {}
                 showProfile(); // Показываем личный кабинет
 
@@ -631,6 +842,62 @@
         var headerView = 'me';
         var myHeaderStats = { ratio: '0/0', helped: 0 };
         var buddyStatsCache = null;
+        var buddyRequestsCache = { incoming: [], outgoing: [] };
+
+        async function loadBuddyRequests() {
+            if (!currentUser || !currentUser.id) return;
+            try {
+                var res = await fetch(API_BASE_URL + '/buddy_requests?user_id=' + currentUser.id, { cache: 'no-store' });
+                if (res.ok) {
+                    var data = await res.json();
+                    buddyRequestsCache.incoming = data.incoming || [];
+                    buddyRequestsCache.outgoing = data.outgoing || [];
+                } else {
+                    buddyRequestsCache.incoming = [];
+                    buddyRequestsCache.outgoing = [];
+                }
+            } catch (e) {
+                buddyRequestsCache.incoming = [];
+                buddyRequestsCache.outgoing = [];
+            }
+            applyHeaderView();
+        }
+
+        async function acceptBuddyRequest(requestId) {
+            if (!currentUser || !currentUser.id) return;
+            try {
+                var res = await fetch(API_BASE_URL + '/buddy_requests/' + requestId + '?user_id=' + currentUser.id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'accepted' })
+                });
+                if (!res.ok) { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка'); return; }
+                var data = await res.json();
+                if (data.buddy_id != null) {
+                    currentUser.buddy_id = parseInt(data.buddy_id, 10) || data.buddy_id;
+                    currentUser.buddy_name = (data.buddy_name != null && data.buddy_name !== '') ? String(data.buddy_name) : '';
+                    currentUser.buddy_avatar_path = data.buddy_avatar_path || null;
+                    currentUser.buddy_avatar_url = data.buddy_avatar_path ? (API_BASE_URL + '/media/' + String(data.buddy_avatar_path).replace(/^\//, '')) : null;
+                    try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e) {}
+                }
+                await loadBuddyRequests();
+                if (currentUser.buddy_id) await loadBuddyDreams();
+                applyHeaderView();
+            } catch (e) { alert('Ошибка сети'); }
+        }
+
+        async function declineBuddyRequest(requestId) {
+            if (!currentUser || !currentUser.id) return;
+            try {
+                var res = await fetch(API_BASE_URL + '/buddy_requests/' + requestId + '?user_id=' + currentUser.id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'declined' })
+                });
+                if (!res.ok) { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка'); return; }
+                await loadBuddyRequests();
+            } catch (e) { alert('Ошибка сети'); }
+        }
 
         async function showProfile() {
             document.getElementById('landing-view').classList.add('hidden');
@@ -644,7 +911,7 @@
 
             headerView = 'me';
             currentUser.avatar_url = (currentUser.avatar_path && (API_BASE_URL + '/media/' + currentUser.avatar_path)) || null;
-            applyHeaderView();
+            await loadBuddyRequests();
 
             // 2. Мечты и справочники — один параллельный запрос (быстрее)
             dreamEditContext.ownerId = currentUser.id;
@@ -1819,7 +2086,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             try {
                 currentUser = JSON.parse(saved);
-                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + currentUser.buddy_avatar_path;
+                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '');
+                if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '');
                 if (currentUser && currentUser.id) showProfile();
                 else document.body.classList.add('landing-visible');
             } catch (e) {
