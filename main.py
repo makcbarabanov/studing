@@ -785,6 +785,8 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
 @app.post("/dreams")
 def create_dream(body: DreamCreate):
     """Добавить мечту. Обязательно: user_id, dream. Опционально: status_id (по умолчанию 1), category_id, deadline (YYYY-MM-DD)."""
+    if not (body.dream and body.dream.strip()):
+        raise HTTPException(status_code=400, detail="Текст мечты не может быть пустым")
     conn = get_db_connection()
     status_id = body.status_id if body.status_id is not None else 1
     is_public = body.is_public if body.is_public is not None else True

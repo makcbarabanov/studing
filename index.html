@@ -70,6 +70,10 @@
         .modal-actions .btn-danger:hover { background: #b71c1c; }
         .dreams-table tr.accordion-row td { background: #f9f9f9; padding: 12px 12px 16px 24px; border-left: 3px solid #4CAF50; vertical-align: top; }
         .dreams-table tr.add-dream-row td { padding: 12px; background: #f0f8f0; }
+        .dream-new-highlight { animation: dream-highlight 0.4s ease-out; box-shadow: 0 0 0 2px rgba(76,175,80,0.6); }
+        .dreams-table tr.dream-new-highlight td { background: rgba(232,245,233,0.9) !important; }
+        .dreams-mobile-card.dream-new-highlight { box-shadow: 0 0 0 3px rgba(76,175,80,0.5); }
+        @keyframes dream-highlight { from { opacity: 0.7; } to { opacity: 1; } }
         .steps-list { margin-bottom: 10px; }
         /* Шаги: единая вёрстка в Мечтах (аккордеон) и в разделе Шаги */
         .step-row, .step-item-plain { display: flex; align-items: center; gap: 0; margin: 6px 0; min-width: 0; }
@@ -334,7 +338,7 @@
                     <h2>Вход</h2>
                     <input type="tel" id="phone" placeholder="Номер телефона" required>
                     <input type="password" id="password" placeholder="Пароль" required>
-                    <button onclick="login()">Войти</button>
+                    <button type="button" id="login-btn" onclick="login()">Войти</button>
                     <p class="auth-switch"><a href="#" onclick="showRegisterForm(); return false;">Нет аккаунта? Зарегистрироваться</a></p>
                     <div id="login-error" class="error hidden"></div>
                 </div>
@@ -343,8 +347,18 @@
                     <input type="text" id="reg-name" placeholder="Имя" required>
                     <input type="text" id="reg-surname" placeholder="Фамилия" required>
                     <input type="text" id="reg-city" placeholder="Город">
-                    <input type="tel" id="reg-phone" placeholder="Номер телефона" required>
-                    <input type="password" id="reg-password" placeholder="Пароль" required>
+                    <label class="reg-phone-label" style="display:block;margin-top:10px;margin-bottom:4px;color:#555;">Телефон</label>
+                    <div class="reg-phone-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <select id="reg-country" style="flex:0 0 auto; padding:10px; border:1px solid #ccc; border-radius:4px; min-width:140px;">
+                            <option value="+7">+7 Россия 🇷🇺</option>
+                            <option value="+375">+375 Беларусь 🇧🇾</option>
+                            <option value="+49">+49 Германия 🇩🇪</option>
+                        </select>
+                        <input type="tel" id="reg-phone" placeholder="900 123 45 67" style="flex:1;min-width:120px;" required>
+                    </div>
+                    <p class="reg-phone-hint" style="font-size:12px;color:#888;margin-top:4px;">Для +7: можно набирать с 8 (8 автоматически уберётся)</p>
+                    <input type="password" id="reg-password" placeholder="Пароль (не менее 6 символов)" required minlength="6">
+                    <input type="password" id="reg-password-repeat" placeholder="Повторите пароль" required>
                     <button type="button" id="register-btn" onclick="register()">Зарегистрироваться</button>
                     <p class="auth-switch"><a href="#" onclick="showLoginForm(); return false;">← Назад к входу</a></p>
                     <div id="register-error" class="error hidden"></div>
@@ -386,6 +400,7 @@
                 </div>
             </div>
             <div id="app-sticky-spacer" aria-hidden="true"></div>
+            <div id="profile-loading" class="hidden" style="padding:24px;text-align:center;color:#666;">Загрузка кабинета…</div>
             <!-- Контент: таблица мечт, Бадди или Шаги -->
             <div class="app-content">
                 <div id="dreams-block">
@@ -434,12 +449,13 @@
                         <label><input type="radio" name="steps-filter" value="current" checked> Текущие</label>
                         <label style="margin-left:12px;"><input type="radio" name="steps-filter" value="all"> Все</label>
                         <label style="margin-left:12px;"><input type="radio" name="steps-filter" value="completed"> Выполненные</label>
+                        <label style="margin-left:12px;"><input type="radio" name="steps-filter" value="deleted"> Удалённые</label>
                     </div>
                     <ul id="steps-list" class="steps-list-plain"></ul>
                     <p id="steps-empty" class="hidden" style="color:#666;">Нет шагов в выбранном фильтре.</p>
                     <p id="steps-error" class="error hidden"></p>
-                    <div id="steps-deleted-wrap" class="hidden" style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;">
-                        <p style="font-weight:600;color:#666;margin-bottom:8px;">Удалённые</p>
+                    <div id="steps-deleted-wrap" class="hidden" style="margin-top:12px;">
+                        <p id="steps-deleted-empty" class="hidden" style="color:#666;">Нет удалённых шагов.</p>
                         <ul id="steps-deleted-list" class="steps-list-plain"></ul>
                     </div>
                 </div>
@@ -645,6 +661,8 @@
         }
         async function sendBuddyInvite(toUserId, btnEl, requestId) {
             if (!btnEl || !currentUser || !currentUser.id) return;
+            if (btnEl.disabled) return;
+            btnEl.disabled = true;
             if (btnEl.classList.contains('waiting') && requestId) {
                 try {
                     var res = await fetch(API_BASE_URL + '/buddy_requests/' + requestId + '?user_id=' + currentUser.id, { method: 'DELETE' });
@@ -655,6 +673,7 @@
                         btnEl.removeAttribute('data-request-id');
                     } else { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка отмены'); }
                 } catch (e) { alert('Ошибка сети'); }
+                btnEl.disabled = false;
                 return;
             }
             try {
@@ -663,13 +682,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ to_user_id: toUserId })
                 });
-                if (!res.ok) { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка отправки'); return; }
+                if (!res.ok) { var e = await res.json().catch(function() { return {}; }); alert(e.detail || 'Ошибка отправки'); btnEl.disabled = false; return; }
                 var data = await res.json();
                 btnEl.textContent = 'Ждём ответа';
                 btnEl.classList.add('waiting');
                 btnEl.dataset.requestId = data.id;
                 if (buddyRequestsCache.outgoing) buddyRequestsCache.outgoing.push({ id: data.id, to_user_id: toUserId });
             } catch (e) { alert('Ошибка сети'); }
+            btnEl.disabled = false;
         }
         function applyHeaderView() {
             var avatarEl = document.getElementById('profile-avatar');
@@ -802,13 +822,15 @@
         }
 
         async function login() {
+            var loginBtn = document.getElementById('login-btn');
+            if (loginBtn && loginBtn.disabled) return;
             const phone = document.getElementById('phone').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('login-error');
-            errorDiv.classList.add('hidden'); // Скрыть предыдущие ошибки
+            errorDiv.classList.add('hidden');
+            if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Вход…'; }
 
             try {
-                // Отправляем логин и пароль на API
                 const response = await fetch(`${API_BASE_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -819,6 +841,7 @@
                     const errorData = await response.json();
                     errorDiv.innerText = errorData.detail || 'Ошибка входа.';
                     errorDiv.classList.remove('hidden');
+                    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Войти'; }
                     return;
                 }
 
@@ -832,6 +855,7 @@
             } catch (error) {
                 errorDiv.innerText = 'Не удалось подключиться к серверу.';
                 errorDiv.classList.remove('hidden');
+                if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Войти'; }
                 console.error('Ошибка входа:', error);
             }
         }
@@ -865,6 +889,8 @@
 
         async function acceptBuddyRequest(requestId) {
             if (!currentUser || !currentUser.id) return;
+            var wrap = document.querySelector('.buddy-slot-request-wrap');
+            if (wrap) wrap.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
             try {
                 var res = await fetch(API_BASE_URL + '/buddy_requests/' + requestId + '?user_id=' + currentUser.id, {
                     method: 'PATCH',
@@ -888,6 +914,8 @@
 
         async function declineBuddyRequest(requestId) {
             if (!currentUser || !currentUser.id) return;
+            var wrap = document.querySelector('.buddy-slot-request-wrap');
+            if (wrap) wrap.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
             try {
                 var res = await fetch(API_BASE_URL + '/buddy_requests/' + requestId + '?user_id=' + currentUser.id, {
                     method: 'PATCH',
@@ -932,11 +960,11 @@
                 ]);
                 if (stRes.ok) dreamStatusesList = await stRes.json();
                 if (catRes.ok) dreamCategoriesList = await catRes.json();
+                if (dreamsRes.status === 401) { clearSessionAndShowLogin('Сессия истекла. Войдите снова.'); return; }
                 if (!dreamsRes.ok) {
                     errEl.textContent = 'Ошибка загрузки мечт';
                     errEl.classList.remove('hidden');
-                    return;
-                }
+                } else {
                 const data = await dreamsRes.json();
                 const dreams = data.dreams || [];
                 // Статистика в хедере: 0/16 мечт сбылось (или два поля мечт/сбылось), бадди, исполнил
@@ -961,6 +989,7 @@
                 appendAddDreamRow(tbodyEl);
                 document.getElementById('dreams-block').classList.remove('hidden');
                 renderDreamsMobileCards(dreams);
+                }
             } catch (error) {
                 console.error('Не удалось загрузить мечты', error);
                 currentUserDreamsCache = [];
@@ -974,6 +1003,24 @@
             document.getElementById('steps-block').classList.add('hidden');
             document.querySelectorAll('.app-menu a').forEach(function(a) { a.classList.remove('active'); });
             document.getElementById('menu-my-dreams').classList.add('active');
+            var loadingEl = document.getElementById('profile-loading');
+            if (loadingEl) loadingEl.classList.add('hidden');
+            var appContent = document.querySelector('.app-content');
+            if (appContent) appContent.classList.remove('hidden');
+            if (window.lastAddedDreamId) {
+                var id = window.lastAddedDreamId;
+                window.lastAddedDreamId = null;
+                setTimeout(function() {
+                    var row = document.querySelector('.dreams-table tbody tr.dream-row[data-dream-id="' + id + '"]');
+                    var card = document.querySelector('.dreams-mobile-card[data-dream-id="' + id + '"]');
+                    if (row) { row.classList.add('dream-new-highlight'); row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+                    if (card) { card.classList.add('dream-new-highlight'); card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+                    setTimeout(function() {
+                        if (row) row.classList.remove('dream-new-highlight');
+                        if (card) card.classList.remove('dream-new-highlight');
+                    }, 2500);
+                }, 100);
+            }
         }
 
         function switchMenu(section) {
@@ -1032,6 +1079,7 @@
             if (titleEl) titleEl.textContent = isBuddy ? ('Шаги бадди: ' + ((currentUser.buddy_name || '').trim() || 'Бадди')) : 'Все шаги';
             try {
                 var res = await fetch(API_BASE_URL + '/dreams?user_id=' + uid, { cache: 'no-store' });
+                if (res.status === 401) { clearSessionAndShowLogin('Сессия истекла. Войдите снова.'); return; }
                 if (!res.ok) { errEl.textContent = 'Ошибка загрузки'; errEl.classList.remove('hidden'); return; }
                 var data = await res.json();
                 var dreams = data.dreams || [];
@@ -1053,11 +1101,6 @@
                 });
                 var filter = (document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current';
                 renderStepsList(filter, isBuddy);
-                var hasDeleted = !isBuddy && stepsFlatCache.some(function(s) { return s.deleted; });
-                if (hasDeleted) {
-                    deletedWrap.classList.remove('hidden');
-                    renderStepsDeletedList();
-                }
             } catch (e) {
                 console.error('loadSteps', e);
                 errEl.textContent = 'Ошибка загрузки';
@@ -1067,6 +1110,25 @@
         function renderStepsList(filter, isBuddy) {
             var listEl = document.getElementById('steps-list');
             var emptyEl = document.getElementById('steps-empty');
+            var deletedWrap = document.getElementById('steps-deleted-wrap');
+            var deletedEmptyEl = document.getElementById('steps-deleted-empty');
+
+            if (filter === 'deleted' && !isBuddy) {
+                deletedWrap.classList.remove('hidden');
+                listEl.innerHTML = '';
+                emptyEl.classList.add('hidden');
+                var deletedList = stepsFlatCache.filter(function(s) { return s.deleted; });
+                if (deletedList.length === 0) {
+                    if (deletedEmptyEl) deletedEmptyEl.classList.remove('hidden');
+                    document.getElementById('steps-deleted-list').innerHTML = '';
+                } else {
+                    if (deletedEmptyEl) deletedEmptyEl.classList.add('hidden');
+                    renderStepsDeletedList();
+                }
+                return;
+            }
+
+            deletedWrap.classList.add('hidden');
             var list = stepsFlatCache.filter(function(s) {
                 if (s.deleted) return false;
                 if (filter === 'current') return !s.completed;
@@ -1141,8 +1203,6 @@
                 if (s) s.deleted = deleted;
                 var filter = (document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current';
                 renderStepsList(filter, stepsViewIsBuddy);
-                renderStepsDeletedList();
-                document.getElementById('steps-deleted-wrap').classList.toggle('hidden', !stepsFlatCache.some(function(x) { return x.deleted; }));
             } catch (e) { alert('Ошибка сети'); }
         }
         function startEditStepInline(stepObj, el, field) {
@@ -1199,6 +1259,7 @@
             dreamEditContext.viewerId = currentUser.id;
             try {
                 var res = await fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.buddy_id + '&viewer_id=' + currentUser.id, { cache: 'no-store' });
+                if (res.status === 401) { clearSessionAndShowLogin('Сессия истекла. Войдите снова.'); return; }
                 if (!res.ok) {
                     var errData = await res.json().catch(function() { return {}; });
                     errEl.textContent = errData.detail || 'Ошибка загрузки мечт бадди';
@@ -1366,7 +1427,7 @@
                             btn.addEventListener('click', function(ev) { ev.stopPropagation(); var id = parseInt(btn.dataset.statusId, 10); currentSpan.textContent = btn.dataset.statusIcon || ''; dropdown.classList.remove('open'); saveDreamStatus(dreamId, id); });
                         });
                     }
-                    card.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                    card.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId, card.querySelector('.steps-list')); });
                     card.querySelectorAll('.step-row').forEach(function(row) {
                         var stepId = row.dataset.stepId;
                         var s = steps.find(function(x) { return x.id == stepId; });
@@ -1561,6 +1622,7 @@
             });
         }
         async function deleteStepFromAccordion(dreamId, stepId) {
+            if (!confirm('Удалить этот шаг?')) return;
             try {
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deleted: true }) });
                 if (res.ok) refreshAfterDreamChange(); else alert('Ошибка удаления');
@@ -1637,7 +1699,7 @@
                         saveDreamStatus(dreamId, id);
                     });
                 });
-                card.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                card.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId, card.querySelector('.steps-list')); });
                 card.querySelectorAll('.step-row').forEach(function(row) {
                     var stepId = row.dataset.stepId;
                     var s = steps.find(function(x) { return x.id == stepId; });
@@ -1716,6 +1778,7 @@
             var errDiv = document.getElementById('new-dream-error');
             if (errDiv) { errDiv.classList.add('hidden'); errDiv.textContent = ''; }
             document.getElementById('modal-new-dream').classList.remove('hidden');
+            setTimeout(function() { var el = document.getElementById('new-dream-text'); if (el) el.focus(); }, 50);
         }
         function closeNewDreamModal() {
             document.getElementById('modal-new-dream').classList.add('hidden');
@@ -1748,6 +1811,10 @@
         async function deleteDreamFromModal() {
             if (!confirm('Удалить эту мечту? Шаги мечты тоже будут удалены.')) return;
             var dreamId = parseInt(document.getElementById('edit-dream-id').value, 10);
+            var delBtn = document.getElementById('btn-delete-dream');
+            var saveBtn = document.getElementById('btn-submit-edit-dream');
+            if (delBtn) delBtn.disabled = true;
+            if (saveBtn) saveBtn.disabled = true;
             try {
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'DELETE' });
                 if (!res.ok) {
@@ -1759,6 +1826,9 @@
                 showProfile();
             } catch (e) {
                 alert('Ошибка сети');
+            } finally {
+                if (delBtn) delBtn.disabled = false;
+                if (saveBtn) saveBtn.disabled = false;
             }
         }
         async function submitEditDream() {
@@ -1801,13 +1871,6 @@
         async function submitNewDream() {
             var btn = document.getElementById('btn-submit-new-dream');
             if (btn && btn.disabled) return;
-            var text = document.getElementById('new-dream-text').value.trim();
-            if (!text) return;
-            if (btn) { btn.disabled = true; btn.textContent = 'Сохранение…'; }
-            var deadline = document.getElementById('new-dream-deadline').value || null;
-            var statusId = parseInt(document.getElementById('new-dream-status').value, 10) || 1;
-            var categoryIdEl = document.getElementById('new-dream-category');
-            var categoryId = categoryIdEl && categoryIdEl.value ? parseInt(categoryIdEl.value, 10) : null;
             var errDiv = document.getElementById('new-dream-error');
             if (!errDiv) {
                 errDiv = document.createElement('div');
@@ -1816,8 +1879,19 @@
                 errDiv.style.marginTop = '10px';
                 document.querySelector('#modal-new-dream .modal-actions').before(errDiv);
             }
+            var text = document.getElementById('new-dream-text').value.trim();
+            if (!text) {
+                errDiv.textContent = 'Опишите мечту.';
+                errDiv.classList.remove('hidden');
+                return;
+            }
             errDiv.textContent = '';
             errDiv.classList.add('hidden');
+            if (btn) { btn.disabled = true; btn.textContent = 'Сохранение…'; }
+            var deadline = document.getElementById('new-dream-deadline').value || null;
+            var statusId = parseInt(document.getElementById('new-dream-status').value, 10) || 1;
+            var categoryIdEl = document.getElementById('new-dream-category');
+            var categoryId = categoryIdEl && categoryIdEl.value ? parseInt(categoryIdEl.value, 10) : null;
             try {
                 var priceElNew = document.getElementById('new-dream-price');
                 var priceVal = (priceElNew && priceElNew.value.trim() !== '') ? parseInt(priceElNew.value, 10) : null;
@@ -1848,7 +1922,9 @@
                     if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
                     return;
                 }
+                var data = await res.json();
                 closeNewDreamModal();
+                window.lastAddedDreamId = data.id;
                 showProfile();
             } catch (e) {
                 errDiv.textContent = e.name === 'AbortError' ? 'Таймаут. Проверьте соединение с сервером.' : ('Ошибка сети: ' + (e.message || ''));
@@ -1880,8 +1956,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function refreshAfterDreamChange() {
             if (dreamEditContext.viewerId != null) loadBuddyDreams(); else showProfile();
         }
-        function showAddStep(dreamId) {
-            var container = document.querySelector('.steps-list[data-dream-id="' + dreamId + '"]');
+        function showAddStep(dreamId, containerEl) {
+            var container = containerEl || document.querySelector('.steps-list[data-dream-id="' + dreamId + '"]');
             if (!container) return;
             var div = document.createElement('div');
             div.className = 'step-row add-step-form';
@@ -1898,6 +1974,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             btn.onclick = function() {
                 var title = input.value.trim();
                 if (!title) return;
+                if (btn.disabled) return;
+                btn.disabled = true;
                 var deadline = dateInput.value || null;
                 addStep(dreamId, title, deadline, function(step) {
                     container.removeChild(div);
@@ -1913,7 +1991,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     row.querySelector('.step-deadline-inline').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: step.id, title: step.title, deadline: step.deadline }, this, 'deadline'); });
                     var delBtn = row.querySelector('.step-delete-inline');
                     if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, step.id); });
-                });
+                }, btn);
             };
             div.appendChild(input);
             div.appendChild(dateInput);
@@ -1921,15 +1999,15 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             container.appendChild(div);
             input.focus();
         }
-        async function addStep(dreamId, title, deadline, onDone) {
+        async function addStep(dreamId, title, deadline, onDone, optBtn) {
             try {
                 var body = { title: title };
                 if (deadline) body.deadline = deadline;
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?' + dreamApiUserParams(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-                if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); return; }
+                if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); if (optBtn) optBtn.disabled = false; return; }
                 var data = await res.json();
                 onDone(data);
-            } catch (e) { alert('Ошибка сети'); }
+            } catch (e) { alert('Ошибка сети'); if (optBtn) optBtn.disabled = false; }
         }
         async function saveStepCompleted(dreamId, stepId, completed) {
             try {
@@ -1995,9 +2073,19 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         document.addEventListener('click', function(ev) {
             if (!ev.target.closest('.status-picker')) document.querySelectorAll('.status-picker-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
         });
+        document.addEventListener('keydown', function(ev) {
+            if (ev.key !== 'Escape') return;
+            var mNew = document.getElementById('modal-new-dream');
+            var mEdit = document.getElementById('modal-edit-dream');
+            var mBuddy = document.getElementById('modal-add-buddy');
+            if (mNew && !mNew.classList.contains('hidden')) { closeNewDreamModal(); ev.preventDefault(); return; }
+            if (mEdit && !mEdit.classList.contains('hidden')) { closeEditDreamModal(); ev.preventDefault(); return; }
+            if (mBuddy && !mBuddy.classList.contains('hidden')) { closeAddBuddyModal(); ev.preventDefault(); }
+        });
 
         function logout() {
             currentUser = null;
+            try { localStorage.removeItem('savedUser'); } catch (e) {}
             document.getElementById('profile-view').classList.add('hidden');
             document.getElementById('landing-view').classList.remove('hidden');
             document.body.classList.add('landing-visible');
@@ -2009,6 +2097,19 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             loadLandingStats();
         }
 
+        function clearSessionAndShowLogin(message) {
+            currentUser = null;
+            try { localStorage.removeItem('savedUser'); } catch (e) {}
+            document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById('landing-view').classList.remove('hidden');
+            document.body.classList.add('landing-visible');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+            var errEl = document.getElementById('login-error');
+            if (errEl) { errEl.textContent = message || 'Сессия истекла. Войдите снова.'; errEl.classList.remove('hidden'); }
+            loadLandingStats();
+        }
+
         function showRegisterForm() {
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
@@ -2017,8 +2118,13 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             document.getElementById('reg-name').value = '';
             document.getElementById('reg-surname').value = '';
             document.getElementById('reg-phone').value = '';
+            document.getElementById('reg-country').value = '+7';
             document.getElementById('reg-city').value = '';
             document.getElementById('reg-password').value = '';
+            var rep = document.getElementById('reg-password-repeat');
+            if (rep) rep.value = '';
+            var regBtn = document.getElementById('register-btn');
+            if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Зарегистрироваться'; }
         }
 
         function showLoginForm() {
@@ -2026,36 +2132,80 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             document.getElementById('register-error').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
             document.getElementById('login-error').classList.add('hidden');
+            var loginBtn = document.getElementById('login-btn');
+            if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Войти'; }
         }
         window.showLoginForm = showLoginForm;
         window.showRegisterForm = showRegisterForm;
 
+        function normalizePhoneForSubmit(countryCode, raw) {
+            var digits = raw.replace(/\D/g, '');
+            if (countryCode === '+7' && digits.length >= 11 && digits.charAt(0) === '8') digits = digits.slice(1);
+            return countryCode + digits;
+        }
+        function validatePhoneLength(countryCode, digits) {
+            if (countryCode === '+7') return digits.length === 10;
+            if (countryCode === '+375') return digits.length === 9;
+            if (countryCode === '+49') return digits.length >= 10 && digits.length <= 11;
+            return digits.length >= 6;
+        }
         async function register() {
-            const data = {
-                name: document.getElementById('reg-name').value.trim(),
-                surname: document.getElementById('reg-surname').value.trim(),
-                phone: document.getElementById('reg-phone').value.trim(),
-                city: document.getElementById('reg-city').value.trim(),
-                password: document.getElementById('reg-password').value
-            };
-            const errorDiv = document.getElementById('register-error');
+            var regBtn = document.getElementById('register-btn');
+            if (regBtn && regBtn.disabled) return;
+            var countryEl = document.getElementById('reg-country');
+            var countryCode = (countryEl && countryEl.value) || '+7';
+            var rawPhone = document.getElementById('reg-phone').value.trim();
+            var digits = rawPhone.replace(/\D/g, '');
+            if (countryCode === '+7' && digits.length >= 11 && digits.charAt(0) === '8') digits = digits.slice(1);
+            var fullPhone = normalizePhoneForSubmit(countryCode, rawPhone);
+            var password = document.getElementById('reg-password').value;
+            var passwordRepeat = document.getElementById('reg-password-repeat').value;
+            var errorDiv = document.getElementById('register-error');
             errorDiv.classList.add('hidden');
 
+            if (password.length < 6) {
+                errorDiv.innerText = 'Пароль должен быть не менее 6 символов.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (password !== passwordRepeat) {
+                errorDiv.innerText = 'Пароли не совпадают.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (!validatePhoneLength(countryCode, digits)) {
+                if (countryCode === '+7') errorDiv.innerText = 'Введите 10 цифр номера (например 900 123 45 67).';
+                else if (countryCode === '+375') errorDiv.innerText = 'Введите 9 цифр номера.';
+                else if (countryCode === '+49') errorDiv.innerText = 'Введите 10–11 цифр номера.';
+                else errorDiv.innerText = 'Некорректная длина номера.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            var data = {
+                name: document.getElementById('reg-name').value.trim(),
+                surname: document.getElementById('reg-surname').value.trim(),
+                phone: fullPhone,
+                city: document.getElementById('reg-city').value.trim(),
+                password: password
+            };
+            if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Регистрация…'; }
+
             try {
-                const res = await fetch(`${API_BASE_URL}/register`, {
+                var res = await fetch(API_BASE_URL + '/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
 
                 if (!res.ok) {
-                    const err = await res.json();
+                    var err = await res.json();
                     errorDiv.innerText = err.detail || 'Ошибка регистрации';
                     errorDiv.classList.remove('hidden');
+                    if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Зарегистрироваться'; }
                     return;
                 }
 
-                // После успеха — автоматически входим
                 document.getElementById('phone').value = data.phone;
                 document.getElementById('password').value = data.password;
                 showLoginForm();
@@ -2063,9 +2213,20 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             } catch (e) {
                 errorDiv.innerText = 'Не удалось подключиться к серверу.';
                 errorDiv.classList.remove('hidden');
+                if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Зарегистрироваться'; }
             }
         }
 
+        (function initRegPhoneStrip8() {
+            var countryEl = document.getElementById('reg-country');
+            var phoneEl = document.getElementById('reg-phone');
+            if (!countryEl || !phoneEl) return;
+            phoneEl.addEventListener('input', function() {
+                if (countryEl.value !== '+7') return;
+                var v = this.value;
+                if (v.length >= 1 && v.charAt(0) === '8') this.value = v.slice(1);
+            });
+        })();
         // Если открыли с порта 8080 — API там нет, показываем подсказку (единый порт 8000)
         (function () {
             try {
@@ -2088,8 +2249,16 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 currentUser = JSON.parse(saved);
                 if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '');
                 if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '');
-                if (currentUser && currentUser.id) showProfile();
-                else document.body.classList.add('landing-visible');
+                if (currentUser && currentUser.id) {
+                    document.getElementById('profile-view').classList.remove('hidden');
+                    document.getElementById('landing-view').classList.add('hidden');
+                    document.body.classList.remove('landing-visible');
+                    var loadingEl = document.getElementById('profile-loading');
+                    if (loadingEl) loadingEl.classList.remove('hidden');
+                    var appContent = document.querySelector('.app-content');
+                    if (appContent) appContent.classList.add('hidden');
+                    showProfile();
+                } else document.body.classList.add('landing-visible');
             } catch (e) {
                 try { localStorage.removeItem('savedUser'); } catch (e2) {}
                 document.body.classList.add('landing-visible');
