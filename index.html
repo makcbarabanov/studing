@@ -1936,11 +1936,23 @@
             await patchDream(dreamId, { status_id: statusId });
         }
         async function saveDreamPrivacy(dreamId, isPublic) {
-            await patchDream(dreamId, { is_public: isPublic });
+            var eyeButtons = document.querySelectorAll('.dream-eye[data-dream-id="' + dreamId + '"]');
+            var newIcon = isPublic ? '👁️' : '🙈';
+            try {
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_public: isPublic }) });
+                if (!res.ok) {
+                    var e = await res.json().catch(function() { return {}; });
+                    alert(e.detail || 'Ошибка');
+                    return;
+                }
+                eyeButtons.forEach(function(btn) { btn.textContent = newIcon; btn.setAttribute('data-public', isPublic ? '1' : '0'); });
+            } catch (e) {
+                alert('Ошибка сети');
+            }
         }
         async function patchDream(dreamId, body) {
             try {
-var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 if (!res.ok) {
                     var e = await res.json().catch(function() { return {}; });
                     alert(e.detail || 'Ошибка');

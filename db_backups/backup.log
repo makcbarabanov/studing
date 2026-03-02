@@ -6,3 +6,6 @@ Tue Feb 24 03:01:01 UTC 2026: Создан бэкап /home/makc/app/db_backups/
 Wed Feb 25 03:01:01 UTC 2026: Создан бэкап /home/makc/app/db_backups/default_db_20260225_030003.dump (размер БД: 18435219)
 Thu Feb 26 03:00:03 UTC 2026: Размер БД не изменился, бэкап пропущен
 Fri Feb 27 03:01:04 UTC 2026: Создан бэкап /home/makc/app/db_backups/default_db_20260227_030003.dump (размер БД: 18533523)
+Sat Feb 28 03:01:07 UTC 2026: Создан бэкап /home/makc/app/db_backups/default_db_20260228_030003.dump (размер БД: 18541715)
+Sun Mar  1 03:01:05 UTC 2026: Создан бэкап /home/makc/app/db_backups/default_db_20260301_030003.dump (размер БД: 18558099)
+Mon Mar  2 03:00:03 UTC 2026: Размер БД не изменился, бэкап пропущен
