@@ -87,6 +87,7 @@ class StepUpdate(BaseModel):
     completed: Optional[bool] = None
     deadline: Optional[str] = None  # YYYY-MM-DD
     deleted: Optional[bool] = None  # мягкое удаление / восстановление
+    fact_amount: Optional[float] = None  # для шагов финцели — фактический взнос за период
 
 class BuddyRequestCreate(BaseModel):
     to_user_id: int
@@ -95,13 +96,13 @@ class BuddyRequestUpdate(BaseModel):
     status: str  # accepted | declined
 
 def _load_steps(cur, dream_ids):
-    """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of {id, title, completed, deadline, deleted}."""
+    """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of {id, title, completed, deadline, deleted, plan_amount, fact_amount}."""
     out = {}
     if not dream_ids:
         return out
     try:
         cur.execute(
-            "SELECT dream_id, id, title, completed, sort_order, deadline, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+            "SELECT dream_id, id, title, completed, sort_order, deadline, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
             (dream_ids,),
         )
         for s in cur.fetchall():
@@ -109,12 +110,16 @@ def _load_steps(cur, dream_ids):
             if did not in out:
                 out[did] = []
             dl = s.get("deadline")
+            plan = s.get("plan_amount")
+            fact = s.get("fact_amount")
             out[did].append({
                 "id": s["id"],
                 "title": s["title"],
                 "completed": bool(s["completed"]),
                 "deadline": str(dl) if dl else None,
                 "deleted": bool(s.get("deleted", False)),
+                "plan_amount": float(plan) if plan is not None else None,
+                "fact_amount": float(fact) if fact is not None else None,
             })
     except psycopg2.ProgrammingError:
         cur.connection.rollback()
@@ -130,6 +135,7 @@ def _load_steps(cur, dream_ids):
                 out[did].append({
                     "id": s["id"], "title": s["title"], "completed": bool(s["completed"]),
                     "deadline": None, "deleted": False,
+                    "plan_amount": None, "fact_amount": None,
                 })
         except psycopg2.ProgrammingError:
             pass
@@ -1032,6 +1038,9 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             if body.deleted is not None:
                 updates.append("deleted = %s")
                 vals.append(body.deleted)
+            if body.fact_amount is not None:
+                updates.append("fact_amount = %s")
+                vals.append(body.fact_amount)
             if not updates:
                 return {"ok": True}
             vals.append(step_id)

@@ -85,6 +85,19 @@
         .step-row .step-deadline-inline:hover, .step-item-plain .step-deadline:hover { background: #f5f5f5; }
         .step-row .step-delete-inline, .step-item-plain .step-delete { flex-shrink: 0; width: 1em; min-width: 1em; padding: 4px 4px; margin: 0; border-left: 1px solid #ccc; background: none; border-right: none; border-top: none; border-bottom: none; cursor: pointer; color: #666; font-size: 1em; box-sizing: content-box; text-align: center; }
         .step-row .step-delete-inline:hover, .step-item-plain .step-delete:hover { color: #c62828; }
+        /* Таблица шагов финцели: Месяц | ВЗНОС (План/Факт) | СУММА (План/Факт) | Итог */
+        .fin-steps-table { width: 100%; border-collapse: collapse; margin: 0 0 8px 0; font-size: 14px; table-layout: fixed; }
+        .fin-steps-table th, .fin-steps-table td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+        .fin-steps-table th { background: #f0f4f0; font-weight: 600; }
+        .fin-steps-table .fin-month-col { width: 95px; min-width: 95px; } /* по ширине «Сентябрь» */
+        .fin-steps-table .fin-group-header { text-align: center; font-size: 13px; }
+        .fin-steps-table .fin-subheader { font-size: 12px; font-weight: 500; text-align: center; }
+        .fin-steps-table .fin-fact-input { width: 100%; max-width: 90px; padding: 4px 8px; box-sizing: border-box; }
+        .fin-step-result { font-weight: 500; }
+        .fin-step-result.surplus { color: #2e7d32; }
+        .fin-step-result.deficit { color: #c62828; }
+        .fin-step-result.ok { color: #666; }
+        .fin-step-result.past { color: #9e9e9e; }
         .add-step-row { margin-top: 8px; }
         .add-step-row a, .add-step-row button.link { background: none; border: none; color: #2196F3; cursor: pointer; padding: 0; font-size: inherit; text-decoration: underline; }
         .add-step-row a:hover { color: #0d47a1; }
@@ -1549,6 +1562,39 @@
             if (m) return m[3] + '.' + m[2] + '.' + m[1].slice(-2);
             return raw;
         }
+        function formatMoney(n) {
+            if (n == null || isNaN(n)) return '—';
+            return Math.round(Number(n)).toLocaleString('ru-RU');
+        }
+        function getFinResultText(plan, fact) {
+            if (plan == null || plan === '' || isNaN(plan)) return '—';
+            var p = Number(plan);
+            var f = fact == null || fact === '' ? 0 : Number(fact);
+            if (isNaN(f)) f = 0;
+            if (f > p) return 'Профицит ' + formatMoney(f - p) + ' ₽';
+            if (f < p) return 'Нужно ещё ' + formatMoney(p - f) + ' ₽';
+            return 'По плану';
+        }
+        function getFinResultClass(plan, fact) {
+            if (plan == null || isNaN(plan)) return '';
+            var f = fact == null || fact === '' ? 0 : Number(fact);
+            if (isNaN(f)) f = 0;
+            if (f > plan) return 'surplus';
+            if (f < plan) return 'deficit';
+            return 'ok';
+        }
+        function getFinResultTextForMonth(plan, fact, cumPlan, cumFact, totalGoal, isCurrentMonth, isFutureMonth) {
+            if (isFutureMonth) return '';
+            if (isCurrentMonth) {
+                if (cumFact < cumPlan) return 'Внеси ' + Math.round((cumPlan - cumFact) / 1000) + ' т.р.';
+                if (cumFact > cumPlan) return 'Профицит ' + Math.round((cumFact - cumPlan) / 1000) + ' т.р.';
+                return 'По плану';
+            }
+            /* Прошедшие месяцы: по накопительному итогу к концу того месяца */
+            if (cumFact < cumPlan) return 'Нужно ещё ' + Math.round(cumPlan / 1000) + ' т.р.';
+            if (cumFact > cumPlan) return 'Профицит ' + Math.round((cumFact - cumPlan) / 1000) + ' т.р.';
+            return 'По плану';
+        }
         function renderDreamsTable(dreams) {
             const tbodyEl = document.getElementById('dreams-tbody');
             dreams.forEach(function(d, i) {
@@ -1598,27 +1644,99 @@
                 accTr.id = 'accordion-' + dreamId;
                 accTr.dataset.dreamId = dreamId;
                 var steps = (d.steps || []).filter(function(s) { return !s.deleted; });
-                var stepsHtml = steps.length === 0 ? '' : steps.map(function(s) {
-                    var dl = s.deadline ? formatDeadlineDisplay(s.deadline.toString().slice(0, 10)) : '—';
-                    return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span><span class="step-deadline-inline">' + escapeHtml(dl) + '</span><button type="button" class="step-delete-inline" title="Удалить">✕</button></div>';
-                }).join('');
-                accTr.innerHTML = '<td colspan="7"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></td>';
-                tbodyEl.appendChild(accTr);
-                accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
-                accTr.querySelectorAll('.step-row').forEach(function(row) {
-                    var stepId = row.dataset.stepId;
-                    var s = steps.find(function(x) { return x.id == stepId; });
-                    row.querySelector('input[type=checkbox]').addEventListener('change', function() {
-                        var checkbox = this;
-                        var checked = checkbox.checked;
-                        saveStepCompleted(dreamId, stepId, checked).then(function() { if (s) s.completed = checked; row.classList.toggle('completed', checked); }).catch(function() { checkbox.checked = !checked; });
+                var isFinGoal = (steps.length > 0 && steps[0].plan_amount != null) ||
+                    (d.category_obj && d.category_obj.code === 'finance' && steps.length >= 12);
+                var defaultPlan = 17000;
+                var stepsContent = '';
+                if (isFinGoal) {
+                    var currentMonth0 = new Date().getMonth();
+                    var totalGoal = (d.price != null && d.price > 0) ? Number(d.price) : (steps.length * defaultPlan);
+                    var totalGoalTh = Math.round(totalGoal / 1000);
+                    var cumPlan = 0, cumFact = 0;
+                    var rows = steps.map(function(s, idx) {
+                        var plan = s.plan_amount != null ? s.plan_amount : defaultPlan;
+                        var fact = s.fact_amount != null ? s.fact_amount : '';
+                        var factNum = (fact === '' || fact == null) ? 0 : (typeof fact === 'number' ? fact : parseFloat(String(fact)));
+                        if (isNaN(factNum)) factNum = 0;
+                        cumPlan += plan;
+                        cumFact += factNum;
+                        var isCurrentMonth = (idx === currentMonth0);
+                        var isFutureMonth = (idx > currentMonth0);
+                        var resultText = getFinResultTextForMonth(plan, fact, cumPlan, cumFact, totalGoal, isCurrentMonth, isFutureMonth);
+                        var resultClass = isFutureMonth ? '' : (isCurrentMonth ? getFinResultClass(cumPlan, cumFact) : 'past');
+                        var sumPlanStr = Math.round(cumPlan / 1000) + '/' + totalGoalTh;
+                        var sumFactStr = Math.round(cumFact / 1000) + '/' + totalGoalTh;
+                        return '<tr data-step-id="' + s.id + '" data-step-idx="' + idx + '"><td class="fin-month-col">' + escapeHtml(s.title || '') + '</td><td>' + formatMoney(plan) + ' ₽</td><td><input type="number" min="0" step="1000" class="fin-fact-input" data-step-id="' + s.id + '" value="' + (fact !== '' ? fact : '') + '" placeholder="0"></td><td>' + sumPlanStr + ' т.р.</td><td class="fin-cum-fact" data-step-id="' + s.id + '">' + sumFactStr + ' т.р.</td><td class="fin-step-result ' + resultClass + '" data-step-id="' + s.id + '">' + escapeHtml(resultText) + '</td></tr>';
                     });
-                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
-                    var deadlineEl = row.querySelector('.step-deadline-inline');
-                    if (deadlineEl && s) deadlineEl.addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline }, this, 'deadline'); });
-                    var delBtn = row.querySelector('.step-delete-inline');
-                    if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, stepId); });
-                });
+                    stepsContent = '<table class="fin-steps-table"><thead><tr><th class="fin-month-col">Месяц</th><th colspan="2" class="fin-group-header">ВЗНОС</th><th colspan="2" class="fin-group-header">СУММА</th><th>Итог</th></tr><tr><th class="fin-month-col"></th><th class="fin-subheader">План</th><th class="fin-subheader">Факт</th><th class="fin-subheader">План</th><th class="fin-subheader">Факт</th><th></th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+                } else {
+                    stepsContent = steps.length === 0 ? '' : steps.map(function(s) {
+                        var dl = s.deadline ? formatDeadlineDisplay(s.deadline.toString().slice(0, 10)) : '—';
+                        return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span><span class="step-deadline-inline">' + escapeHtml(dl) + '</span><button type="button" class="step-delete-inline" title="Удалить">✕</button></div>';
+                    }).join('');
+                }
+                accTr.innerHTML = '<td colspan="7"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsContent + '</div>' + (isFinGoal ? '' : '<div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div>') + '</td>';
+                tbodyEl.appendChild(accTr);
+                if (!isFinGoal) {
+                    accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                    accTr.querySelectorAll('.step-row').forEach(function(row) {
+                        var stepId = row.dataset.stepId;
+                        var s = steps.find(function(x) { return x.id == stepId; });
+                        row.querySelector('input[type=checkbox]').addEventListener('change', function() {
+                            var checkbox = this;
+                            var checked = checkbox.checked;
+                            saveStepCompleted(dreamId, stepId, checked).then(function() { if (s) s.completed = checked; row.classList.toggle('completed', checked); }).catch(function() { checkbox.checked = !checked; });
+                        });
+                        row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
+                        var deadlineEl = row.querySelector('.step-deadline-inline');
+                        if (deadlineEl && s) deadlineEl.addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline }, this, 'deadline'); });
+                        var delBtn = row.querySelector('.step-delete-inline');
+                        if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, stepId); });
+                    });
+                } else {
+                    var currentMonth0 = new Date().getMonth();
+                    var totalGoal = (d.price != null && d.price > 0) ? Number(d.price) : (steps.length * defaultPlan);
+                    var totalGoalTh = Math.round(totalGoal / 1000);
+                    function updateAllFinCells() {
+                        var inputs = accTr.querySelectorAll('.fin-fact-input');
+                        var cumPlan = 0, cumFact = 0;
+                        inputs.forEach(function(input, idx) {
+                            var stepId = parseInt(input.dataset.stepId, 10);
+                            var s = steps.find(function(x) { return x.id === stepId; });
+                            var plan = (s && s.plan_amount != null) ? s.plan_amount : defaultPlan;
+                            var factVal = input.value.trim();
+                            var factNum = factVal === '' ? 0 : parseFloat(factVal.replace(/\s/g, '').replace(',', '.'));
+                            if (isNaN(factNum)) factNum = 0;
+                            cumPlan += plan;
+                            cumFact += factNum;
+                            var sumFactStr = Math.round(cumFact / 1000) + '/' + totalGoalTh + ' т.р.';
+                            var cumFactCell = accTr.querySelector('.fin-cum-fact[data-step-id="' + stepId + '"]');
+                            if (cumFactCell) cumFactCell.textContent = sumFactStr;
+                            var isCurrentMonth = (idx === currentMonth0);
+                            var isFutureMonth = (idx > currentMonth0);
+                            var resultText = getFinResultTextForMonth(plan, factVal, cumPlan, cumFact, totalGoal, isCurrentMonth, isFutureMonth);
+                            var resultClass = isFutureMonth ? '' : (isCurrentMonth ? getFinResultClass(cumPlan, cumFact) : 'past');
+                            var resultCell = accTr.querySelector('.fin-step-result[data-step-id="' + stepId + '"]');
+                            if (resultCell) {
+                                resultCell.textContent = resultText;
+                                resultCell.className = 'fin-step-result ' + resultClass;
+                            }
+                        });
+                    }
+                    accTr.querySelectorAll('.fin-fact-input').forEach(function(input) {
+                        var stepId = parseInt(input.dataset.stepId, 10);
+                        var s = steps.find(function(x) { return x.id === stepId; });
+                        input.addEventListener('blur', function() {
+                            var val = input.value.trim();
+                            var num = val === '' ? 0 : parseFloat(val.replace(/\s/g, '').replace(',', '.'));
+                            if (isNaN(num)) num = 0;
+                            fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fact_amount: num }) })
+                                .then(function(r) { if (r.ok && s) s.fact_amount = num; updateAllFinCells(); })
+                                .catch(function() {});
+                        });
+                        input.addEventListener('input', updateAllFinCells);
+                    });
+                }
             });
         }
         async function deleteStepFromAccordion(dreamId, stepId) {
