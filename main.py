@@ -2,6 +2,7 @@ import os
 import time
 from pathlib import Path
 import psycopg2
+from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +37,49 @@ app.add_middleware(
     allow_headers=["*"], # Разрешить любые заголовки
 )
 # -------------------------------
+
+# Пул соединений с БД (Connection Pool) — переиспользуем соединения вместо создания нового на каждый запрос
+db_pool = None
+
+@app.on_event("startup")
+def startup_event():
+    global db_pool
+    if not os.getenv("DB_HOST"):
+        return  # Локальный запуск без БД (например, только статика)
+    try:
+        db_pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=20,
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASS"),
+            dbname=os.getenv("DB_NAME"),
+            cursor_factory=RealDictCursor,
+        )
+    except Exception as e:
+        print("⚠ Пул БД не создан:", e)
+
+@app.on_event("shutdown")
+def shutdown_event():
+    global db_pool
+    if db_pool:
+        try:
+            db_pool.closeall()
+        except Exception:
+            pass
+        db_pool = None
+
+def _return_conn(conn):
+    """Вернуть соединение в пул или закрыть, если пула нет (разовое подключение)."""
+    if conn is None:
+        return
+    try:
+        if db_pool is not None:
+            db_pool.putconn(conn)
+        else:
+            conn.close()
+    except Exception:
+        pass
 
 # Модели данных
 class UserLogin(BaseModel):
@@ -142,13 +186,15 @@ def _load_steps(cur, dream_ids):
     return out
 
 def get_db_connection():
-    """Создаёт мост к Складу (PostgreSQL) используя данные из .env"""
+    """Берёт соединение из пула. Если пула нет (запуск без БД) — создаёт разовое подключение."""
+    if db_pool is not None:
+        return db_pool.getconn()
     return psycopg2.connect(
         host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASS"),
         dbname=os.getenv("DB_NAME"),
-        cursor_factory=RealDictCursor
+        cursor_factory=RealDictCursor,
     )
 
 @app.get("/", response_class=FileResponse)
@@ -174,8 +220,9 @@ def login_user(user_login: UserLogin):
     Эндпоинт для авторизации.
     Ищет по телефону, проверяет пароль через bcrypt, отдаёт full_name (name + surname).
     """
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             phone_alt = ("+7" + user_login.phone[1:]) if user_login.phone.startswith("8") and len(user_login.phone) >= 11 else user_login.phone
             try:
@@ -234,14 +281,15 @@ def login_user(user_login: UserLogin):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.get("/landing_stats")
 def landing_stats():
     """Публичная статистика для лендинга: сколько мечт исполнено (из dreams_log), сколько участников (users)."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             fulfilled_dreams = 0
             try:
@@ -257,7 +305,7 @@ def landing_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 # --- Эндпоинт: ЗАГРУЗКА АВАТАРА ---
@@ -284,8 +332,9 @@ def upload_avatar(user_id: int, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Не удалось сохранить файл: {str(e)}")
     avatar_path = f"avatars/{filename}"
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("UPDATE users SET avatar_path = %s WHERE id = %s", (avatar_path, user_id))
         conn.commit()
@@ -293,15 +342,16 @@ def upload_avatar(user_id: int, file: UploadFile = File(...)):
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка БД: {str(e)}")
     finally:
-        conn.close()
+        _return_conn(conn)
     return {"ok": True, "avatar_path": avatar_path}
 
 # --- Список пользователей для модалки «Добавить бадди» ---
 @app.get("/users/list")
 def users_list(exclude_user_id: Optional[int] = None):
     """Список пользователей без бадди: id, name, surname, avatar_path. exclude_user_id — не включать этого пользователя."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Только пользователи, у которых ещё нет бадди (buddy_id IS NULL)
             if exclude_user_id is not None:
@@ -328,7 +378,7 @@ def users_list(exclude_user_id: Optional[int] = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 # --- Запросы в бадди (buddy_requests) ---
@@ -353,8 +403,9 @@ def _ensure_buddy_requests_table(cur):
 @app.get("/buddy_requests")
 def list_buddy_requests(user_id: int):
     """Список запросов для текущего пользователя: входящие (pending) и исходящие (pending)."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _ensure_buddy_requests_table(cur)
             conn.commit()
@@ -378,7 +429,7 @@ def list_buddy_requests(user_id: int):
             outgoing = [dict(r) for r in cur.fetchall()]
             return {"incoming": incoming, "outgoing": outgoing}
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.post("/buddy_requests")
@@ -386,8 +437,9 @@ def create_buddy_request(body: BuddyRequestCreate, user_id: int):
     """Отправить запрос в бадди. user_id — отправитель (from_user_id), body.to_user_id — кому."""
     if body.to_user_id == user_id:
         raise HTTPException(status_code=400, detail="Нельзя отправить запрос себе")
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _ensure_buddy_requests_table(cur)
             cur.execute("SELECT id, buddy_id FROM users WHERE id IN (%s, %s)", (user_id, body.to_user_id))
@@ -417,7 +469,7 @@ def create_buddy_request(body: BuddyRequestCreate, user_id: int):
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.patch("/buddy_requests/{request_id}")
@@ -425,8 +477,9 @@ def update_buddy_request(request_id: int, body: BuddyRequestUpdate, user_id: int
     """Принять или отклонить входящий запрос. Только тот, кому пришёл запрос (to_user_id), может менять статус."""
     if body.status not in ("accepted", "declined"):
         raise HTTPException(status_code=400, detail="status должен быть accepted или declined")
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id, from_user_id, to_user_id, status FROM buddy_requests WHERE id = %s", (request_id,))
             row = cur.fetchone()
@@ -462,14 +515,15 @@ def update_buddy_request(request_id: int, body: BuddyRequestUpdate, user_id: int
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.delete("/buddy_requests/{request_id}")
 def cancel_buddy_request(request_id: int, user_id: int):
     """Отменить исходящий запрос. Только отправитель (from_user_id) может отменить."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id, from_user_id, status FROM buddy_requests WHERE id = %s", (request_id,))
             row = cur.fetchone()
@@ -488,15 +542,16 @@ def cancel_buddy_request(request_id: int, user_id: int):
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 # --- Эндпоинт: РЕГИСТРАЦИЯ ---
 @app.post("/register")
 def register_user(user: UserRegister):
     """Регистрация: name, surname, phone, city; пароль хешируется bcrypt."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor() as cur:
             phone_alt = ("+7" + user.phone[1:]) if user.phone.startswith("8") and len(user.phone) >= 11 else user.phone
             cur.execute("SELECT id FROM users WHERE phone = %s OR phone = %s", (user.phone, phone_alt))
@@ -516,31 +571,33 @@ def register_user(user: UserRegister):
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
     finally:
-        conn.close()
+        _return_conn(conn)
 
 # --- Справочники для мечт ---
 @app.get("/dreams_statuses")
 def list_dream_statuses():
     """Список статусов мечты (id, code, label_ru, icon)."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id, code, label_ru, icon FROM dreams_statuses ORDER BY id")
             return [dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _return_conn(conn)
 
 @app.get("/dreams_categories")
 @app.get("/dream_categories")  # алиас для обратной совместимости
 def list_dream_categories():
     """Список категорий мечты (id, code, label_ru, icon)."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id, code, label_ru, icon FROM dreams_categories ORDER BY id")
             return [dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _return_conn(conn)
 
 def _can_edit_buddy_dream(cur, editor_id: int, dream_owner_id: int) -> bool:
     """Проверяет, может ли editor_id редактировать мечты владельца dream_owner_id (свои или бадди с доверием)."""
@@ -603,8 +660,9 @@ def _build_dream_item(row, steps_by_dream):
 @app.get("/dreams/showcase")
 def get_dreams_showcase():
     """Витрина мечт: все публичные мечты с именем автора. Без авторизации."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             try:
                 cur.execute("""
@@ -660,15 +718,16 @@ def get_dreams_showcase():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 # --- Эндпоинт 2: ПОЛУЧЕНИЕ МЕЧТ ПОЛЬЗОВАТЕЛЯ ---
 @app.get("/dreams")
 def get_dreams(user_id: int, viewer_id: Optional[int] = None):
     """Список мечт пользователя user_id. Если передан viewer_id: отдаём только если viewer_id == user_id или viewer — бадди user_id (users.buddy_id у viewer = user_id)."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             if viewer_id is not None and viewer_id != user_id:
                 cur.execute("SELECT buddy_id FROM users WHERE id = %s", (viewer_id,))
@@ -785,7 +844,7 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
             detail=f"Ошибка: {str(e)}\n{traceback.format_exc()}"
         )
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.post("/dreams")
@@ -793,10 +852,11 @@ def create_dream(body: DreamCreate):
     """Добавить мечту. Обязательно: user_id, dream. Опционально: status_id (по умолчанию 1), category_id, deadline (YYYY-MM-DD)."""
     if not (body.dream and body.dream.strip()):
         raise HTTPException(status_code=400, detail="Текст мечты не может быть пустым")
-    conn = get_db_connection()
     status_id = body.status_id if body.status_id is not None else 1
     is_public = body.is_public if body.is_public is not None else False
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             try:
                 if body.deadline:
@@ -839,7 +899,7 @@ def create_dream(body: DreamCreate):
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 # Маппинг status_id -> code для старой схемы (колонка status VARCHAR)
@@ -848,8 +908,9 @@ _STATUS_ID_TO_CODE = {1: "planned", 2: "in_progress", 3: "done"}
 @app.patch("/dreams/{dream_id}")
 def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
     """Обновить мечту (текст, статус, дедлайн). Только если мечта принадлежит user_id."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id FROM dreams WHERE id = %s AND user_id = %s", (dream_id, user_id))
             if not cur.fetchone():
@@ -956,14 +1017,15 @@ def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.delete("/dreams/{dream_id}")
 def delete_dream(dream_id: int, user_id: int, viewer_id: Optional[int] = None):
     """Удалить мечту. Разрешено владельцу или бадди с buddy_trust=true (viewer_id=кто удаляет)."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             cur.execute("DELETE FROM dreams_steps WHERE dream_id = %s", (dream_id,))
@@ -976,14 +1038,15 @@ def delete_dream(dream_id: int, user_id: int, viewer_id: Optional[int] = None):
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.post("/dreams/{dream_id}/steps")
 def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Optional[int] = None):
     """Добавить шаг к мечте. Разрешено владельцу или бадди с buddy_trust=true."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             cur.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM dreams_steps WHERE dream_id = %s", (dream_id,))
@@ -1015,14 +1078,15 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 @app.patch("/dreams/{dream_id}/steps/{step_id}")
 def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, viewer_id: Optional[int] = None):
     """Обновить шаг. Разрешено владельцу мечты или бадди с buddy_trust=true."""
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             updates, vals = [], []
@@ -1076,7 +1140,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
+        _return_conn(conn)
 
 
 def _full_name(row: dict) -> str:
@@ -1093,19 +1157,21 @@ def _split_full_name(full_name: str) -> tuple:
 # --- Админ API (схема БД: name, surname) ---
 @app.get("/admin/users")
 def admin_list_users():
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("SELECT id, name, surname, phone, city FROM users ORDER BY id")
             rows = cur.fetchall()
             return [{"id": r["id"], "full_name": _full_name(r), "phone": r["phone"], "city": r["city"]} for r in rows]
     finally:
-        conn.close()
+        _return_conn(conn)
 
 @app.get("/admin/users/{user_id}")
 def admin_get_user(user_id: int):
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("SELECT id, name, surname, phone, city FROM users WHERE id = %s", (user_id,))
             row = cur.fetchone()
@@ -1113,12 +1179,13 @@ def admin_get_user(user_id: int):
                 raise HTTPException(status_code=404, detail="Пользователь не найден")
             return {"id": row["id"], "full_name": _full_name(row), "phone": row["phone"], "city": row["city"]}
     finally:
-        conn.close()
+        _return_conn(conn)
 
 @app.post("/admin/users")
 def admin_create_user(user: UserCreate):
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         conn.autocommit = False
         name, surname = _split_full_name(user.full_name)
         with conn.cursor() as cur:
@@ -1134,12 +1201,13 @@ def admin_create_user(user: UserCreate):
         conn.rollback()
         raise HTTPException(status_code=400, detail="Телефон уже занят")
     finally:
-        conn.close()
+        _return_conn(conn)
 
 @app.put("/admin/users/{user_id}")
 def admin_update_user(user_id: int, user: UserUpdate):
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("SELECT id, name, surname, phone, city, password_hash FROM users WHERE id = %s", (user_id,))
@@ -1161,12 +1229,13 @@ def admin_update_user(user_id: int, user: UserUpdate):
         conn.rollback()
         raise HTTPException(status_code=400, detail="Телефон уже занят")
     finally:
-        conn.close()
+        _return_conn(conn)
 
 @app.delete("/admin/users/{user_id}")
 def admin_delete_user(user_id: int):
-    conn = get_db_connection()
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("DELETE FROM users WHERE id = %s RETURNING id", (user_id,))
             if cur.fetchone() is None:
@@ -1174,4 +1243,4 @@ def admin_delete_user(user_id: int):
         conn.commit()
         return {"message": "Пользователь удалён"}
     finally:
-        conn.close()
+        _return_conn(conn)

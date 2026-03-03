@@ -1496,11 +1496,12 @@
                 var price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
                 var statusList = getStatusList();
                 var statusObj = statusList.find(function(o) { return o.id === statusId; }) || statusList[0];
-                var statusDisplay = (statusObj.icon || '') + (statusObj.label_ru ? ' ' + statusObj.label_ru : '');
+                var statusIconOnly = (statusObj.icon || '').trim();
+                var statusTitle = (statusObj.label_ru || statusObj.code || '').trim();
                 var tr = document.createElement('tr');
                 tr.className = 'dream-row buddy-dream-row';
                 tr.dataset.dreamId = dreamId;
-                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell">' + escapeHtml(statusDisplay.trim()) + '</td>';
+                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" title="' + escapeAttr(statusTitle) + '">' + escapeHtml(statusIconOnly) + '</td>';
                 tbodyEl.appendChild(tr);
                 var steps = (d.steps || []).filter(function(s) { return !s.deleted; });
                 if (steps.length > 0) {
@@ -1539,11 +1540,12 @@
                 var tr = document.createElement('tr');
                 tr.className = 'dream-row buddy-dream-row';
                 tr.dataset.dreamId = dreamId;
-                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" title="' + escapeAttr(eyeTitle) + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
+                var ownerIdBuddy = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id);
+                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + (ownerIdBuddy || '') + '" title="' + escapeAttr(eyeTitle) + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
                 tbodyEl.appendChild(tr);
                 tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = tr.querySelector('.dream-eye');
-                eyeBtn.addEventListener('click', function(ev) { ev.stopPropagation(); var nowPublic = this.getAttribute('data-public') === '1'; saveDreamPrivacy(dreamId, !nowPublic); });
+                eyeBtn.addEventListener('click', function(ev) { ev.stopPropagation(); var nowPublic = this.getAttribute('data-public') === '1'; var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, !nowPublic, oid ? parseInt(oid, 10) : undefined); });
                 var picker = tr.querySelector('.status-picker');
                 if (picker) {
                     var currentSpan = picker.querySelector('.status-picker-current');
@@ -1621,9 +1623,10 @@
                         var dl = s.deadline ? formatDeadlineDisplay(s.deadline.toString().slice(0, 10)) : '—';
                         return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span><span class="step-deadline-inline">' + escapeHtml(dl) + '</span></div>';
                     }).join('');
-                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list">' + stepsEditableHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></div>';
+                    var cardOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
+                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list">' + stepsEditableHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></div>';
                     card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
-                    card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.stopPropagation(); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1'); });
+                    card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.stopPropagation(); var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1', oid ? parseInt(oid, 10) : undefined); });
                     var picker = card.querySelector('.status-picker');
                     if (picker) {
                         var currentSpan = picker.querySelector('.status-picker-current');
@@ -1806,14 +1809,16 @@
                 var isPublic = d.is_public !== false;
                 var eyeIcon = isPublic ? '👁️' : '🙈';
                 var eyeTitle = isPublic ? 'Открытая (в витрине). Клик — сделать приватной' : 'Приватная (анонимно). Клик — открыть';
-                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" data-dream-id="' + dreamId + '" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" title="' + escapeAttr(eyeTitle) + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
+                var ownerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id);
+                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" data-dream-id="' + dreamId + '" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + (ownerId || '') + '" title="' + escapeAttr(eyeTitle) + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
                 tbodyEl.appendChild(tr);
                 tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = tr.querySelector('.dream-eye');
                 eyeBtn.addEventListener('click', function(ev) {
                     ev.stopPropagation();
                     var nowPublic = this.getAttribute('data-public') === '1';
-                    saveDreamPrivacy(dreamId, !nowPublic);
+                    var oid = this.getAttribute('data-owner-id');
+                    saveDreamPrivacy(dreamId, !nowPublic, oid ? parseInt(oid, 10) : undefined);
                 });
                 var picker = tr.querySelector('.status-picker');
                 var currentSpan = picker.querySelector('.status-picker-current');
@@ -1987,14 +1992,16 @@
                 var card = document.createElement('div');
                 card.className = 'dreams-mobile-card';
                 card.dataset.dreamId = dreamId;
-                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></div>';
+                var mobileOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
+                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></div>';
                 track.appendChild(card);
                 card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = card.querySelector('.dream-eye');
                 eyeBtn.addEventListener('click', function(ev) {
                     ev.stopPropagation();
                     var nowPublic = this.getAttribute('data-public') === '1';
-                    saveDreamPrivacy(dreamId, !nowPublic);
+                    var oid = this.getAttribute('data-owner-id');
+                    saveDreamPrivacy(dreamId, !nowPublic, oid ? parseInt(oid, 10) : undefined);
                 });
                 var picker = card.querySelector('.status-picker');
                 var currentSpan = picker.querySelector('.status-picker-current');
@@ -2249,18 +2256,24 @@
         async function saveDreamStatus(dreamId, statusId) {
             await patchDream(dreamId, { status_id: statusId });
         }
-        async function saveDreamPrivacy(dreamId, isPublic) {
+        async function saveDreamPrivacy(dreamId, isPublic, ownerId) {
             var eyeButtons = document.querySelectorAll('.dream-eye[data-dream-id="' + dreamId + '"]');
             var newIcon = isPublic ? '👁️' : '🙈';
+            var oldIcon = isPublic ? '🙈' : '👁️';
+            var oldPublic = isPublic ? '0' : '1';
+            eyeButtons.forEach(function(btn) { btn.textContent = newIcon; btn.setAttribute('data-public', isPublic ? '1' : '0'); });
+            var userId = (ownerId != null && ownerId !== 0) ? ownerId : (dreamEditContext.ownerId || (currentUser && currentUser.id));
+            if (userId == null || userId === 0) { eyeButtons.forEach(function(btn) { btn.textContent = oldIcon; btn.setAttribute('data-public', oldPublic); }); alert('Не указан владелец мечты'); return; }
             try {
-                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_public: isPublic }) });
+                var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?user_id=' + userId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_public: isPublic }) });
                 if (!res.ok) {
                     var e = await res.json().catch(function() { return {}; });
+                    eyeButtons.forEach(function(btn) { btn.textContent = oldIcon; btn.setAttribute('data-public', oldPublic); });
                     alert(e.detail || 'Ошибка');
                     return;
                 }
-                eyeButtons.forEach(function(btn) { btn.textContent = newIcon; btn.setAttribute('data-public', isPublic ? '1' : '0'); });
             } catch (e) {
+                eyeButtons.forEach(function(btn) { btn.textContent = oldIcon; btn.setAttribute('data-public', oldPublic); });
                 alert('Ошибка сети');
             }
         }
