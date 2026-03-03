@@ -459,10 +459,11 @@
                 <div id="steps-block" class="hidden">
                     <p class="steps-section-title" style="margin-bottom:10px;font-weight:600;color:#333;">Все шаги</p>
                     <div class="steps-filter" style="margin-bottom:12px;">
-                        <label><input type="radio" name="steps-filter" value="current" checked> Текущие</label>
-                        <label style="margin-left:12px;"><input type="radio" name="steps-filter" value="all"> Все</label>
-                        <label style="margin-left:12px;"><input type="radio" name="steps-filter" value="completed"> Выполненные</label>
-                        <label style="margin-left:12px;"><input type="radio" name="steps-filter" value="deleted"> Удалённые</label>
+                        <label><input type="checkbox" name="steps-filter" value="all" id="steps-filter-all"> Все</label>
+                        <label style="margin-left:12px;"><input type="checkbox" name="steps-filter" value="current" id="steps-filter-current" checked> Текущие (7 дней)</label>
+                        <label style="margin-left:12px;"><input type="checkbox" name="steps-filter" value="overdue" id="steps-filter-overdue"> Просроченные</label>
+                        <label style="margin-left:12px;"><input type="checkbox" name="steps-filter" value="completed" id="steps-filter-completed"> Выполненные</label>
+                        <label style="margin-left:12px;"><input type="checkbox" name="steps-filter" value="deleted" id="steps-filter-deleted"> Удалённые</label>
                     </div>
                     <ul id="steps-list" class="steps-list-plain"></ul>
                     <p id="steps-empty" class="hidden" style="color:#666;">Нет шагов в выбранном фильтре.</p>
@@ -530,6 +531,23 @@
                     <p id="add-buddy-error" class="error hidden" style="margin-top:10px;"></p>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeAddBuddyModal()">Закрыть</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Модальное окно: подтверждение суммы взноса (фин-шаг в Расписании) -->
+            <div id="modal-fin-step-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true">
+                <div class="modal">
+                    <h3 id="modal-fin-step-title">Внести сумму</h3>
+                    <p id="modal-fin-step-text" style="margin:12px 0;"></p>
+                    <div id="modal-fin-step-other-wrap" class="hidden" style="margin-top:12px;">
+                        <label>Сумма (руб.)</label>
+                        <input type="number" id="modal-fin-step-amount" min="0" step="1000" style="width:120px;">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="modal-fin-step-btn-yes">Да</button>
+                        <button type="button" class="secondary" id="modal-fin-step-btn-other">Указать другую сумму</button>
+                        <button type="button" class="secondary hidden" id="modal-fin-step-btn-save">Сохранить</button>
+                        <button type="button" class="secondary hidden" id="modal-fin-step-btn-cancel">Отмена</button>
                     </div>
                 </div>
             </div>
@@ -1069,6 +1087,7 @@
             }
         }
         var stepsFlatCache = [];
+        var stepsViewUserId = null;
         async function loadSteps(userId, isBuddy) {
             var listEl = document.getElementById('steps-list');
             var emptyEl = document.getElementById('steps-empty');
@@ -1083,10 +1102,11 @@
             deletedWrap.classList.add('hidden');
             if (!currentUser) return;
             var uid = userId == null ? 0 : Number(userId);
+            stepsViewUserId = uid;
             if (!uid) {
                 stepsFlatCache = [];
                 if (titleEl) titleEl.textContent = isBuddy ? 'Шаги бадди' : 'Все шаги';
-                renderStepsList((document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current', isBuddy);
+                renderStepsList(getStepsFilterActive(), isBuddy);
                 return;
             }
             if (titleEl) titleEl.textContent = isBuddy ? ('Шаги бадди: ' + ((currentUser.buddy_name || '').trim() || 'Бадди')) : 'Все шаги';
@@ -1097,36 +1117,86 @@
                 var data = await res.json();
                 var dreams = data.dreams || [];
                 stepsFlatCache = [];
+                var today = new Date();
+                var todayStr = today.toISOString().slice(0, 10);
+                var currentYear = today.getFullYear();
+                function lastDayOfMonth(month0, year) {
+                    var d = new Date(year, month0 + 1, 0);
+                    return year + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                }
+                var defaultPlan = 17000;
                 dreams.forEach(function(d) {
                     var steps = d.steps || [];
                     var dreamTitle = (d.dream || d.title || '').trim().slice(0, 60) || 'Мечта';
-                    steps.forEach(function(s) {
-                        stepsFlatCache.push({
-                            dream_id: d.id,
-                            dream_title: dreamTitle,
-                            id: s.id,
-                            title: s.title || '',
-                            completed: s.completed,
-                            deadline: s.deadline || null,
-                            deleted: s.deleted || false
+                    var isFinGoal = steps.length > 0 && steps[0].plan_amount != null;
+                    if (isFinGoal) {
+                        for (var monthIdx = 0; monthIdx < steps.length && monthIdx < 12; monthIdx++) {
+                            var s = steps[monthIdx];
+                            if (!s || s.deleted) continue;
+                            var deadlineStr = lastDayOfMonth(monthIdx, currentYear);
+                            var prevCompleted = monthIdx > 0 && (steps[monthIdx - 1].completed || (steps[monthIdx - 1].fact_amount != null && steps[monthIdx - 1].fact_amount !== ''));
+                            var showStep = (deadlineStr <= todayStr) || prevCompleted;
+                            if (!showStep) continue;
+                            var isEarly = deadlineStr > todayStr;
+                            var N;
+                            if (isEarly) {
+                                N = (s.plan_amount != null ? s.plan_amount : defaultPlan);
+                            } else {
+                                var cumPlan = 0, cumFactPrev = 0;
+                                for (var i = 0; i <= monthIdx; i++) cumPlan += (steps[i].plan_amount != null ? steps[i].plan_amount : defaultPlan);
+                                for (var j = 0; j < monthIdx; j++) cumFactPrev += (steps[j].fact_amount != null ? Number(steps[j].fact_amount) : 0);
+                                N = Math.round((cumPlan - cumFactPrev) / 1000) * 1000;
+                                if (N < 0) N = 0;
+                            }
+                            stepsFlatCache.push({
+                                dream_id: d.id,
+                                dream_title: dreamTitle,
+                                id: s.id,
+                                title: 'Внеси ' + (N / 1000) + ' т.р.',
+                                completed: s.completed,
+                                deadline: deadlineStr,
+                                deleted: s.deleted || false,
+                                isFinStep: true,
+                                amountN: N
+                            });
+                        }
+                    } else {
+                        steps.forEach(function(s) {
+                            stepsFlatCache.push({
+                                dream_id: d.id,
+                                dream_title: dreamTitle,
+                                id: s.id,
+                                title: s.title || '',
+                                completed: s.completed,
+                                deadline: s.deadline || null,
+                                deleted: s.deleted || false
+                            });
                         });
-                    });
+                    }
                 });
-                var filter = (document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current';
-                renderStepsList(filter, isBuddy);
+                renderStepsList(getStepsFilterActive(), isBuddy);
             } catch (e) {
                 console.error('loadSteps', e);
                 errEl.textContent = 'Ошибка загрузки';
                 errEl.classList.remove('hidden');
             }
         }
-        function renderStepsList(filter, isBuddy) {
+        function getStepsFilterActive() {
+            var chk = document.querySelectorAll('input[name="steps-filter"]:checked');
+            var arr = [];
+            chk.forEach(function(el) { arr.push(el.value); });
+            if (arr.length === 0) return ['current'];
+            return arr;
+        }
+        function renderStepsList(activeFilters, isBuddy) {
             var listEl = document.getElementById('steps-list');
             var emptyEl = document.getElementById('steps-empty');
             var deletedWrap = document.getElementById('steps-deleted-wrap');
             var deletedEmptyEl = document.getElementById('steps-deleted-empty');
+            var filters = Array.isArray(activeFilters) ? activeFilters : [activeFilters];
 
-            if (filter === 'deleted' && !isBuddy) {
+            var showDeleted = !isBuddy && filters.indexOf('deleted') !== -1;
+            if (showDeleted) {
                 deletedWrap.classList.remove('hidden');
                 listEl.innerHTML = '';
                 emptyEl.classList.add('hidden');
@@ -1138,19 +1208,37 @@
                     if (deletedEmptyEl) deletedEmptyEl.classList.add('hidden');
                     renderStepsDeletedList();
                 }
-                return;
+            } else {
+                deletedWrap.classList.add('hidden');
             }
 
-            deletedWrap.classList.add('hidden');
+            var today = new Date();
+            var todayStr = today.toISOString().slice(0, 10);
+            var in7Days = new Date(today);
+            in7Days.setDate(in7Days.getDate() + 7);
+            var in7DaysStr = in7Days.toISOString().slice(0, 10);
+
             var list = stepsFlatCache.filter(function(s) {
                 if (s.deleted) return false;
-                if (filter === 'current') return !s.completed;
-                if (filter === 'completed') return s.completed;
-                return true;
+                if (filters.indexOf('all') !== -1) return true;
+                var dl = (s.deadline || '').toString().slice(0, 10);
+                var isCurrent = dl && dl >= todayStr && dl <= in7DaysStr && !s.completed;
+                var isOverdue = dl && dl < todayStr && !s.completed;
+                var isCompleted = s.completed;
+                if (filters.indexOf('current') !== -1 && isCurrent) return true;
+                if (filters.indexOf('overdue') !== -1 && isOverdue) return true;
+                if (filters.indexOf('completed') !== -1 && isCompleted) return true;
+                return false;
             });
             list.sort(function(a, b) {
                 var da = (a.deadline || '').toString().slice(0, 10);
                 var db = (b.deadline || '').toString().slice(0, 10);
+                var aToday = (da === todayStr) ? 1 : 0;
+                var bToday = (db === todayStr) ? 1 : 0;
+                if (aToday !== bToday) return bToday - aToday;
+                var aOverdue = (da && da < todayStr && !a.completed) ? 1 : 0;
+                var bOverdue = (db && db < todayStr && !b.completed) ? 1 : 0;
+                if (aOverdue !== bOverdue) return bOverdue - aOverdue;
                 if (!da && !db) return 0;
                 if (!da) return 1;
                 if (!db) return -1;
@@ -1175,15 +1263,25 @@
                 if (cb && !isBuddy) cb.addEventListener('change', function() {
                     var checkbox = this;
                     var checked = checkbox.checked;
+                    if (s.isFinStep && checked) {
+                        openFinStepConfirmModal(s, checkbox);
+                        return;
+                    }
+                    if (s.isFinStep && !checked) {
+                        saveStepCompleted(s.dream_id, s.id, false).then(function() {
+                            s.completed = false;
+                            renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
+                        }).catch(function() { checkbox.checked = true; });
+                        return;
+                    }
                     saveStepCompleted(s.dream_id, s.id, checked).then(function() {
                         s.completed = checked;
-                        var filter = (document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current';
-                        renderStepsList(filter, stepsViewIsBuddy);
+                        renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
                     }).catch(function() { checkbox.checked = !checked; });
                 });
                 var delBtn = li.querySelector('.step-delete');
                 if (delBtn) delBtn.addEventListener('click', function() { setStepDeleted(s.dream_id, s.id, true); });
-                if (!isBuddy) {
+                if (!isBuddy && !s.isFinStep) {
                     li.querySelector('.step-title-text').addEventListener('click', function() { startEditStepInline(s, this, 'title'); });
                     li.querySelector('.step-deadline').addEventListener('click', function() { startEditStepInline(s, this, 'deadline'); });
                 } else {
@@ -1214,10 +1312,75 @@
                 if (!res.ok) { alert('Ошибка'); return; }
                 var s = stepsFlatCache.find(function(x) { return x.dream_id === dreamId && x.id === stepId; });
                 if (s) s.deleted = deleted;
-                var filter = (document.querySelector('input[name="steps-filter"]:checked') || {}).value || 'current';
-                renderStepsList(filter, stepsViewIsBuddy);
+                renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
             } catch (e) { alert('Ошибка сети'); }
         }
+        var finStepModalContext = null;
+        function openFinStepConfirmModal(stepObj, checkboxEl) {
+            finStepModalContext = { step: stepObj, checkbox: checkboxEl };
+            var N = stepObj.amountN != null ? stepObj.amountN : 0;
+            var textEl = document.getElementById('modal-fin-step-text');
+            var otherWrap = document.getElementById('modal-fin-step-other-wrap');
+            var amountInput = document.getElementById('modal-fin-step-amount');
+            var btnYes = document.getElementById('modal-fin-step-btn-yes');
+            var btnOther = document.getElementById('modal-fin-step-btn-other');
+            var btnSave = document.getElementById('modal-fin-step-btn-save');
+            var btnCancel = document.getElementById('modal-fin-step-btn-cancel');
+            textEl.textContent = 'Я правильно понимаю, что ты вносишь сумму ровно ' + formatNum(Math.round(N)) + ' руб?';
+            otherWrap.classList.add('hidden');
+            amountInput.value = N;
+            btnYes.classList.remove('hidden');
+            btnOther.classList.remove('hidden');
+            btnSave.classList.add('hidden');
+            btnCancel.classList.add('hidden');
+            document.getElementById('modal-fin-step-confirm').classList.remove('hidden');
+        }
+        function closeFinStepConfirmModal() {
+            document.getElementById('modal-fin-step-confirm').classList.add('hidden');
+            if (finStepModalContext && finStepModalContext.checkbox) finStepModalContext.checkbox.checked = false;
+            finStepModalContext = null;
+        }
+        function confirmFinStepAmount(amount) {
+            if (!finStepModalContext) return;
+            var dreamId = finStepModalContext.step.dream_id;
+            var stepId = finStepModalContext.step.id;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: true, fact_amount: amount }) })
+                .then(function(r) {
+                    if (!r.ok) return Promise.reject();
+                    document.getElementById('modal-fin-step-confirm').classList.add('hidden');
+                    finStepModalContext = null;
+                    if (stepsViewUserId != null) loadSteps(stepsViewUserId, stepsViewIsBuddy);
+                })
+                .catch(function() { alert('Ошибка сохранения'); });
+        }
+        (function setupFinStepModal() {
+            var overlay = document.getElementById('modal-fin-step-confirm');
+            var btnYes = document.getElementById('modal-fin-step-btn-yes');
+            var btnOther = document.getElementById('modal-fin-step-btn-other');
+            var btnSave = document.getElementById('modal-fin-step-btn-save');
+            var btnCancel = document.getElementById('modal-fin-step-btn-cancel');
+            var otherWrap = document.getElementById('modal-fin-step-other-wrap');
+            var amountInput = document.getElementById('modal-fin-step-amount');
+            btnYes.addEventListener('click', function() {
+                if (finStepModalContext) confirmFinStepAmount(finStepModalContext.step.amountN);
+            });
+            btnOther.addEventListener('click', function() {
+                otherWrap.classList.remove('hidden');
+                btnYes.classList.add('hidden');
+                btnOther.classList.add('hidden');
+                btnSave.classList.remove('hidden');
+                btnCancel.classList.remove('hidden');
+                amountInput.focus();
+            });
+            btnSave.addEventListener('click', function() {
+                var val = amountInput.value.trim();
+                var num = val === '' ? 0 : parseFloat(val.replace(/\s/g, '').replace(',', '.'));
+                if (isNaN(num)) num = 0;
+                confirmFinStepAmount(num);
+            });
+            btnCancel.addEventListener('click', closeFinStepConfirmModal);
+            overlay.addEventListener('click', function(e) { if (e.target === overlay) closeFinStepConfirmModal(); });
+        })();
         function startEditStepInline(stepObj, el, field) {
             var isTitle = field === 'title';
             var current = isTitle ? stepObj.title : ((stepObj.deadline || '').toString().slice(0, 10));
@@ -1246,9 +1409,31 @@
             input.addEventListener('blur', save);
             input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); save(); } });
         }
-        document.querySelectorAll('input[name="steps-filter"]').forEach(function(radio) {
-            radio.addEventListener('change', function() { if (stepsFlatCache.length) renderStepsList(this.value, stepsViewIsBuddy); });
-        });
+        (function setupStepsFilterCheckboxes() {
+            var allCb = document.getElementById('steps-filter-all');
+            var currentCb = document.getElementById('steps-filter-current');
+            var overdueCb = document.getElementById('steps-filter-overdue');
+            var completedCb = document.getElementById('steps-filter-completed');
+            var deletedCb = document.getElementById('steps-filter-deleted');
+            function syncAll() {
+                if (allCb && allCb.checked) {
+                    if (currentCb) currentCb.checked = false;
+                    if (overdueCb) overdueCb.checked = false;
+                    if (completedCb) completedCb.checked = false;
+                    if (deletedCb) deletedCb.checked = false;
+                }
+            }
+            function syncOthers() {
+                if (allCb && (currentCb && currentCb.checked || overdueCb && overdueCb.checked || completedCb && completedCb.checked || deletedCb && deletedCb.checked))
+                    allCb.checked = false;
+            }
+            document.querySelectorAll('input[name="steps-filter"]').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    if (this.value === 'all') syncAll(); else syncOthers();
+                    if (stepsFlatCache.length) renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
+                });
+            });
+        })();
         async function loadBuddyDreams() {
             var titleEl = document.getElementById('buddy-title');
             var tbodyEl = document.getElementById('buddy-dreams-tbody');
@@ -1368,7 +1553,15 @@
                         btn.addEventListener('click', function(ev) { ev.stopPropagation(); var id = parseInt(btn.dataset.statusId, 10); var icon = btn.dataset.statusIcon || ''; var label = btn.dataset.statusLabel || btn.textContent.trim(); currentSpan.textContent = icon; currentSpan.title = (icon + ' ' + label).trim() || 'Статус'; dropdown.classList.remove('open'); saveDreamStatus(dreamId, id); });
                     });
                 }
-                tr.addEventListener('click', function(ev) { if (!ev.target.closest('.status-picker') && !ev.target.closest('.dream-edit-btn') && !ev.target.closest('input')) { var acc = document.getElementById('buddy-accordion-' + dreamId); if (acc) acc.classList.toggle('hidden'); } });
+                tr.addEventListener('click', function(ev) {
+                    if (!ev.target.closest('.status-picker') && !ev.target.closest('.dream-edit-btn') && !ev.target.closest('input')) {
+                        document.querySelectorAll('#buddy-dreams-tbody tr.accordion-row[id^="buddy-accordion-"]').forEach(function(acc) {
+                            if (acc.id !== 'buddy-accordion-' + dreamId) acc.classList.add('hidden');
+                        });
+                        var acc = document.getElementById('buddy-accordion-' + dreamId);
+                        if (acc) acc.classList.toggle('hidden');
+                    }
+                });
                 var accTr = document.createElement('tr');
                 accTr.className = 'accordion-row hidden';
                 accTr.id = 'buddy-accordion-' + dreamId;
@@ -1862,6 +2055,9 @@
         function toggleAccordion(dreamId) {
             var el = document.getElementById('accordion-' + dreamId);
             if (!el) return;
+            document.querySelectorAll('#dreams-tbody tr.accordion-row[id^="accordion-"]').forEach(function(acc) {
+                if (acc.id !== 'accordion-' + dreamId) acc.classList.add('hidden');
+            });
             el.classList.toggle('hidden');
         }
         function setDeadlineFromHint(inputId, hint) {
@@ -1879,7 +2075,7 @@
             var priceEl = document.getElementById('new-dream-price');
             if (priceEl) priceEl.value = '';
             var privateEl = document.getElementById('new-dream-private');
-            if (privateEl) privateEl.checked = false;
+            if (privateEl) privateEl.checked = true;
             document.querySelectorAll('#modal-new-dream .modal-deadline-hints a').forEach(function(a) {
                 a.onclick = function(ev) { ev.preventDefault(); setDeadlineFromHint('new-dream-deadline', a.dataset.deadline); };
             });

@@ -68,7 +68,7 @@ class DreamCreate(BaseModel):
     category_id: Optional[int] = None
     deadline: Optional[str] = None  # YYYY-MM-DD
     price: Optional[float] = None  # рубли
-    is_public: Optional[bool] = True  # False = приватная, не в витрине
+    is_public: Optional[bool] = False  # по умолчанию закрыто от витрины
 
 class DreamUpdate(BaseModel):
     dream: Optional[str] = None
@@ -795,7 +795,7 @@ def create_dream(body: DreamCreate):
         raise HTTPException(status_code=400, detail="Текст мечты не может быть пустым")
     conn = get_db_connection()
     status_id = body.status_id if body.status_id is not None else 1
-    is_public = body.is_public if body.is_public is not None else True
+    is_public = body.is_public if body.is_public is not None else False
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             try:
