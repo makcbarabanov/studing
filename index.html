@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет ОСТРОВ</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
+    <link href="https://fonts.cdnfonts.com/css/harp" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; min-height: 100vh; background-color: #e8e4df; background-image: url('examples/breakfast.png'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat; }
         .container { max-width: min(980px, 95vw); margin: auto; background: rgba(255, 255, 255, 0.88); padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.08); box-sizing: border-box; backdrop-filter: blur(8px); }
@@ -173,12 +174,13 @@
         .app-footer-logout { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
         .app-footer-logout:hover { color: #666; }
         .desktop-logout-btn { display: inline-block; }
-        /* Хедер: слева аватар (2 ряда), центр — имя + статистика, справа аватар бадди (2 ряда) */
+        /* Хедер: аватар (высота = 3 строки) + справа: имя, сбылось|помог, Мечты|Шаги */
         .app-header { display: flex; align-items: stretch; gap: 12px; padding-bottom: 16px; min-height: 72px; }
         .app-header-avatar { width: 72px; min-width: 72px; min-height: 72px; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: stretch; }
         .app-header-avatar { position: relative; }
         .app-header-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
         .app-header-center { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; gap: 4px; }
+        .app-header-nav { font-family: 'HARP', sans-serif; font-size: 21px; letter-spacing: 0.05em; line-height: 1.4; }
         .app-header-name-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
         .app-header-name { font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; }
         .header-task-code { font-size: 0.75rem; color: #777; font-weight: normal; margin-left: 4px; }
@@ -186,6 +188,8 @@
         .app-header-stats .stat-num { font-weight: 600; }
         .app-header-stats .stat-clickable { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .app-header-stats .stat-clickable:hover { color: #4CAF50; }
+        .app-header-stats .stat-clickable .stat-num { font-weight: 600; }
+        .app-header-stats .stat-sep { color: #ccc; user-select: none; pointer-events: none; }
         .showcase-filter-link { color:#888; text-decoration:none; }
         .showcase-filter-link:hover { color:#4CAF50; }
         .showcase-filter-link.active { color:#333; font-weight:600; }
@@ -218,7 +222,16 @@
         .buddy-slot-request-btn.decline { background: #fff; border-color: #ccc; color: #666; }
         .buddy-slot-request-btn.decline:hover { background: #ffebee; border-color: #c62828; color: #b71c1c; }
         .app-header-buddy-slot .buddy-slot-me-label { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 600; color: #333; z-index: 1; text-shadow: 0 0 2px #fff; }
+        .header-nav-item { color: #555; }
+        .header-nav-item.active { font-weight: 600; color: #333; }
+        .header-nav-sep { color: #ccc; }
         .app-header-divider { height: 1px; background: linear-gradient(90deg, transparent, #ddd 10%, #ddd 90%, transparent); margin: 0 0 16px 0; }
+        @media (min-width: 769px) {
+            .app-menu-desktop-hidden { display: none !important; }
+        }
+        .app-showcase-title:hover { color: #333; }
+        .app-menu-group-label, .app-menu a { color: #555; }
+        .app-menu a.active { color: #333; font-weight: 600; }
         .app-menu { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin-bottom: 12px; }
         .app-menu-group { display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 0; }
         .app-menu-group:not(:first-child) { margin-left: 16px; padding-left: 16px; border-left: 2px solid #ccc; }
@@ -238,6 +251,8 @@
         .step-item-plain .step-restore { font-size: 12px; color: #2196F3; cursor: pointer; }
         /* Лендинг: приветственная страница, блок по центру экрана, полупрозрачный фон */
         body.landing-visible .container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; box-shadow: none; backdrop-filter: none; }
+        /* Кабинет: убираем backdrop-filter у контейнера, чтобы position:fixed хедера работал на десктопе */
+        body.profile-visible .container { backdrop-filter: none; }
         #landing-view { width: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         #landing-view.hidden { display: none; }
         .landing-card { background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(10px); padding: 40px 36px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); width: 100%; max-width: 480px; box-sizing: border-box; }
@@ -279,7 +294,6 @@
             .buddy-slot-request-btn { padding: 6px 10px; font-size: 12px; }
             .app-header-buddy-slot .buddy-slot-link-me { font-size: 14px; }
             .app-header-buddy-slot .buddy-slot-add-btn { font-size: 9px; }
-            .stat-label-dreams-word { display: none; }
             .app-menu { display: none !important; }
             .app-header-divider { margin-bottom: 6px; }
             .app-content { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -12px; padding: 0 12px; }
@@ -411,20 +425,24 @@
             <input type="file" id="avatar-file" accept="image/*" class="hidden" aria-hidden="true">
             <div class="app-sticky-top">
                 <div class="app-sticky-inner">
-            <!-- Хедер: аватар, имя, статистика -->
+            <!-- Хедер: аватар (3 строки по высоте) + справа: имя, сбылось|помог, Мечты|Шаги -->
             <header class="app-header">
                 <div class="app-header-avatar" id="profile-avatar" title="Аватар"><span id="profile-initials">—</span></div>
                 <div class="app-header-center">
                     <div class="app-header-name" id="profile-full_name">—</div>
                     <div class="app-header-stats">
-                        <span id="stat-dreams-ratio" class="stat-num stat-clickable" role="button" tabindex="0" title="Нажми, чтобы вернуться к своим мечтам">0/0</span><span class="stat-label stat-label-dreams"><span class="stat-label-dreams-word">мечт </span>сбылось</span>, <span id="stat-helped-n" class="stat-num stat-clickable" role="button" tabindex="0" title="Нажми, чтобы открыть витрину и помочь другим">0</span> выполнил
+                        <span id="stat-ratio-wrap" class="stat-clickable" role="button" tabindex="0" title="Нажми, чтобы вернуться к своим мечтам"><span id="stat-dreams-ratio" class="stat-num">0/0</span> сбылось</span><span class="stat-sep"> | </span><span id="stat-helped-wrap" class="stat-clickable" role="button" tabindex="0" title="Нажми, чтобы открыть витрину и помочь другим"><span id="stat-helped-n" class="stat-num">0</span> помог</span>
+                    </div>
+                    <div class="app-header-nav">
+                        <span id="header-nav-dreams" class="header-nav-item stat-clickable" role="button" tabindex="0">Мечты</span><span class="stat-sep header-nav-sep"> | </span><span id="header-nav-steps" class="header-nav-item stat-clickable" role="button" tabindex="0">Шаги</span>
                     </div>
                 </div>
                 <div class="app-header-buddy-slot" id="header-buddy-slot" role="button" tabindex="0" aria-label="Переключить на бадди"><span class="buddy-slot-placeholder">—</span></div>
             </header>
             <div class="app-header-divider"></div>
-            <!-- Меню (на мобильном скрыто) -->
-            <nav class="app-menu" id="app-menu-nav">
+            <!-- Меню: на десктопе скрыто; breadcrumbs счётчиков витрины — всегда видны -->
+            <div id="app-menu-area" class="app-menu-area">
+            <nav class="app-menu app-menu-desktop-hidden" id="app-menu-nav">
                 <div class="app-menu-group">
                     <span class="app-menu-group-label">Мечты</span>
                     <a href="#" id="menu-my-dreams" class="active">Мои</a>
@@ -436,6 +454,18 @@
                     <a href="#" id="menu-steps-buddy">Бадди</a>
                 </div>
             </nav>
+            <div id="app-showcase-breadcrumbs" class="app-showcase-breadcrumbs" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:12px;font-size:13px;">
+                <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">💫 Витрина мечт</a>
+                <span class="showcase-sep">·</span>
+                <a href="#" class="showcase-filter-link active" data-filter="new">Новые (<span class="showcase-count" data-count="new">0</span>)</a>
+                <span class="showcase-sep">·</span>
+                <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю (<span class="showcase-count" data-count="helping">0</span>)</a>
+                <span class="showcase-sep">·</span>
+                <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
+                <span class="showcase-sep">·</span>
+                <a href="#" class="showcase-filter-link" data-filter="all">Все (<span class="showcase-count" data-count="all">0</span>)</a>
+            </div>
+            </div>
                 </div>
             </div>
             <div id="app-sticky-spacer" aria-hidden="true"></div>
@@ -499,20 +529,8 @@
                         <ul id="steps-deleted-list" class="steps-list-plain"></ul>
                     </div>
                 </div>
-                <!-- Витрина мечт (чужие мечты — помочь другим) -->
+                <!-- Витрина мечт (чужие мечты — помочь другим). Фильтры в хедере #app-showcase-breadcrumbs -->
                 <div id="showcase-block" class="hidden">
-                    <div class="showcase-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-                        <span class="steps-section-title" style="font-weight:600;color:#333;">💫 Витрина мечт</span>
-                        <span class="showcase-breadcrumbs" style="font-size:13px;color:#888;">
-                            <a href="#" class="showcase-filter-link active" data-filter="new">Новые</a>
-                            <span class="showcase-sep">·</span>
-                            <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю</a>
-                            <span class="showcase-sep">·</span>
-                            <a href="#" class="showcase-filter-link" data-filter="all">Все</a>
-                            <span class="showcase-sep">·</span>
-                            <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные</a>
-                        </span>
-                    </div>
                     <div id="showcase-grid" class="showcase-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
                     <p id="showcase-empty" class="hidden" style="color:#666;">Мечт не найдено.</p>
                     <p id="showcase-error" class="error hidden"></p>
@@ -590,10 +608,6 @@
                     <div class="modal-section">
                         <h4>Описание мечты</h4>
                         <p id="modal-help-dream-text" style="white-space:pre-wrap;color:#555;">—</p>
-                    </div>
-                    <div class="modal-section">
-                        <h4>Твоё имя</h4>
-                        <input type="text" id="modal-help-helper-name" placeholder="Например, Максим">
                     </div>
                     <div class="modal-section">
                         <h4>Готовое сообщение</h4>
@@ -1098,6 +1112,7 @@
         async function showProfile() {
             document.getElementById('landing-view').classList.add('hidden');
             document.body.classList.remove('landing-visible');
+            document.body.classList.add('profile-visible');
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('register-form').classList.add('hidden');
             document.getElementById('profile-view').classList.remove('hidden');
@@ -1177,6 +1192,12 @@
             if (appContent) appContent.classList.remove('hidden');
             if (window.location.hash === '#showcase' && currentUser) {
                 switchMenu('showcase');
+            } else {
+                loadShowcaseCounts();
+                var nd = document.getElementById('header-nav-dreams');
+                var ns = document.getElementById('header-nav-steps');
+                if (nd) nd.classList.add('active');
+                if (ns) ns.classList.remove('active');
             }
             if (window.lastAddedDreamId) {
                 var id = window.lastAddedDreamId;
@@ -1205,10 +1226,20 @@
             if (section === 'showcase') {
                 lastCabinetSection = 'dreams';
                 if (sb) sb.classList.remove('hidden');
+                document.querySelectorAll('.showcase-filter-link').forEach(function(l) {
+                    l.classList.toggle('active', (l.dataset.filter || '') === (showcaseFilter || 'new'));
+                });
                 var footerAdd = document.getElementById('app-footer-add');
                 if (footerAdd) footerAdd.classList.add('hidden');
                 loadShowcase();
-            } else if (section === 'dreams') {
+            } else {
+                loadShowcaseCounts();
+            }
+            var navDreams = document.getElementById('header-nav-dreams');
+            var navSteps = document.getElementById('header-nav-steps');
+            if (navDreams) navDreams.classList.toggle('active', section === 'dreams' || section === 'buddy');
+            if (navSteps) navSteps.classList.toggle('active', section === 'steps' || section === 'steps-buddy');
+            if (section === 'dreams') {
                 lastCabinetSection = 'dreams';
                 dreamEditContext.ownerId = currentUser ? currentUser.id : 0;
                 dreamEditContext.viewerId = null;
@@ -1244,7 +1275,18 @@
 
         var showcaseDreamsCache = [];
         var showcaseFilter = 'new';
-        var showcaseHelperNameKey = 'showcaseHelperName_v1';
+        function loadShowcaseCounts() {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/showcase/counts?user_id=' + currentUser.id, { cache: 'no-store' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.querySelectorAll('.showcase-count').forEach(function(el) {
+                        var key = el.dataset.count;
+                        el.textContent = data[key] != null ? data[key] : 0;
+                    });
+                })
+                .catch(function() {});
+        }
         function loadShowcase() {
             var grid = document.getElementById('showcase-grid');
             var emptyEl = document.getElementById('showcase-empty');
@@ -1258,6 +1300,11 @@
             if (userId) url += '&user_id=' + userId;
             fetch(url, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
                 showcaseDreamsCache = data.dreams || [];
+                var counts = data.counts || {};
+                document.querySelectorAll('.showcase-count').forEach(function(el) {
+                    var key = el.dataset.count;
+                    el.textContent = counts[key] != null ? counts[key] : 0;
+                });
                 renderShowcase(showcaseDreamsCache);
                 if (showcaseDreamsCache.length === 0) emptyEl.classList.remove('hidden');
             }).catch(function(e) {
@@ -1272,8 +1319,6 @@
             if (!grid) return;
             grid.innerHTML = '';
             emptyEl.classList.add('hidden');
-            var savedName = '';
-            try { savedName = localStorage.getItem(showcaseHelperNameKey) || ''; } catch (e) {}
             dreams.forEach(function(d) {
                 var card = document.createElement('div');
                 card.className = 'showcase-card';
@@ -1318,6 +1363,10 @@
                 body: JSON.stringify({ user_id: currentUser.id })
             }).catch(function() {});
         }
+        function updateShowcaseCount(key, delta) {
+            var el = document.querySelector('.showcase-count[data-count="' + key + '"]');
+            if (el) { var n = parseInt(el.textContent, 10) || 0; el.textContent = Math.max(0, n + delta); }
+        }
         function toggleShowcaseFavorite(dreamId, btnEl) {
             if (!currentUser || !currentUser.id) return;
             var isFav = btnEl.textContent === '❤️';
@@ -1328,6 +1377,7 @@
                     btnEl.title = 'В избранное';
                     var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
                     if (d) d.is_favorite = false;
+                    updateShowcaseCount('favorites', -1);
                 });
             } else {
                 fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.id }) }).then(function() {
@@ -1335,6 +1385,7 @@
                     btnEl.title = 'Убрать из избранного';
                     var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
                     if (d) d.is_favorite = true;
+                    updateShowcaseCount('favorites', 1);
                 });
             }
         }
@@ -1343,57 +1394,71 @@
             currentHelpDream = dream;
             var authorEl = document.getElementById('modal-help-author');
             var dreamTextEl = document.getElementById('modal-help-dream-text');
-            var helperNameEl = document.getElementById('modal-help-helper-name');
-            var messageEl = document.getElementById('modal-help-message');
             var contactBtns = document.getElementById('modal-help-contact-buttons');
             var contactFallback = document.getElementById('modal-help-contact-fallback');
+            var msg = (function() {
+                var hn = (currentUser && (currentUser.full_name || '').trim()) || '...';
+                return 'Привет ' + (dream.user_name || 'тебя') + '. Меня зовут ' + hn + '. Я хочу помочь тебе в осуществлении мечты: «' + (dream.dream || '') + '», которую я увидел в «Завтраке исполняющем желания».';
+            })();
+            var messageEl = document.getElementById('modal-help-message');
+            if (messageEl) messageEl.value = msg;
             if (authorEl) authorEl.textContent = (dream.user_name || 'Участник') + (dream.city ? ', ' + dream.city : '');
             if (dreamTextEl) dreamTextEl.textContent = (dream.dream || 'Нет описания') + (dream.deadline ? '\n\nДедлайн: до ' + new Date(dream.deadline).toLocaleDateString('ru-RU') : '');
-            try { if (helperNameEl) helperNameEl.value = localStorage.getItem(showcaseHelperNameKey) || ''; } catch (e) {}
-            updateHelpModalMessage();
             contactBtns.innerHTML = '';
-            contactFallback.textContent = '';
-            var helperName = (helperNameEl && helperNameEl.value.trim()) || '...';
-            var msg = 'Привет ' + (dream.user_name || 'тебя') + '. Меня зовут ' + helperName + '. Я хочу помочь тебе в осуществлении мечты: «' + (dream.dream || '') + '», которую я увидел в «Завтраке исполняющем желания».';
-            var buttons = [];
-            var phone = (dream.phone || '').replace(/\D/g, '');
-            if (phone.length >= 10) {
-                var waPhone = (dream.phone || '').replace(/^\+/, '').replace(/\D/g, '');
-                buttons.push({ url: 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), label: 'WhatsApp' });
-            }
-            var tg = (dream.telegram || '').trim();
-            if (tg) {
-                var username = tg.replace(/^@/, '').replace(/^https?:\/\/t\.me\//i, '');
-                if (username) buttons.push({ url: 'https://t.me/' + username + '?text=' + encodeURIComponent(msg), label: 'Telegram' });
-            }
-            var vk = (dream.vk || '').trim();
-            if (vk) {
-                var vkUrl = vk;
-                if (!/^https?:\/\//i.test(vkUrl)) vkUrl = 'https://' + vkUrl;
-                buttons.push({ url: vkUrl, label: 'VK' });
-            }
-            if (buttons.length > 0) {
-                buttons.forEach(function(b) {
-                    var a = document.createElement('a');
-                    a.href = b.url;
-                    a.target = '_blank';
-                    a.rel = 'noopener';
-                    a.textContent = b.label;
-                    contactBtns.appendChild(a);
-                });
-            } else {
-                contactFallback.textContent = 'Автор не оставил контактов. Скопируйте сообщение и отправьте удобным способом.';
-            }
+            contactFallback.textContent = 'Загрузка контактов…';
             document.getElementById('modal-help-dream').classList.remove('hidden');
             fetch(API_BASE_URL + '/dreams/' + dream.id + '/help-intent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.id }) }).catch(function() {});
             var d = showcaseDreamsCache.find(function(x) { return x.id === dream.id; });
-            if (d) d.is_helping = true;
+            if (d && !d.is_helping) { d.is_helping = true; updateShowcaseCount('helping', 1); }
+            function renderContactButtons(contact) {
+                contactFallback.textContent = '';
+                var buttons = [];
+                var phone = (contact.phone || '').toString().replace(/\D/g, '');
+                if (phone.length >= 10) {
+                    var waPhone = (contact.phone || '').toString().replace(/^\+/, '').replace(/\D/g, '');
+                    buttons.push({ url: 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), label: 'WhatsApp' });
+                }
+                var tg = (contact.telegram || '').trim();
+                if (tg) {
+                    var username = tg.replace(/^@/, '').replace(/^https?:\/\/t\.me\//i, '');
+                    if (username) buttons.push({ url: 'https://t.me/' + username + '?text=' + encodeURIComponent(msg), label: 'Telegram' });
+                }
+                var vk = (contact.vk || '').trim();
+                if (vk) {
+                    var vkUrl = vk;
+                    if (!/^https?:\/\//i.test(vkUrl)) vkUrl = 'https://' + vkUrl;
+                    buttons.push({ url: vkUrl, label: 'VK' });
+                }
+                if (buttons.length > 0) {
+                    buttons.forEach(function(b) {
+                        var a = document.createElement('a');
+                        a.href = b.url;
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                        a.textContent = b.label;
+                        contactBtns.appendChild(a);
+                    });
+                } else {
+                    contactFallback.textContent = 'Автор не оставил контактов. Скопируйте сообщение и отправьте удобным способом.';
+                }
+            }
+            var ctrl = new AbortController();
+            var timeout = setTimeout(function() { ctrl.abort(); }, 5000);
+            fetch(API_BASE_URL + '/dreams/' + dream.id + '/contact', { cache: 'no-store', signal: ctrl.signal })
+                .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+                .then(function(contact) {
+                    clearTimeout(timeout);
+                    renderContactButtons(contact);
+                })
+                .catch(function() {
+                    clearTimeout(timeout);
+                    renderContactButtons({ telegram: dream.telegram, vk: dream.vk, phone: dream.phone });
+                });
         }
         function updateHelpModalMessage() {
             if (!currentHelpDream) return;
-            var helperNameEl = document.getElementById('modal-help-helper-name');
             var messageEl = document.getElementById('modal-help-message');
-            var helperName = (helperNameEl && helperNameEl.value.trim()) || '...';
+            var helperName = (currentUser && (currentUser.full_name || '').trim()) || '...';
             var msg = 'Привет ' + (currentHelpDream.user_name || 'тебя') + '. Меня зовут ' + helperName + '. Я хочу помочь тебе в осуществлении мечты: «' + (currentHelpDream.dream || '') + '», которую я увидел в «Завтраке исполняющем желания».';
             if (messageEl) messageEl.value = msg;
         }
@@ -1402,19 +1467,22 @@
             currentHelpDream = null;
         }
         (function initShowcase() {
+            var showcaseTitle = document.getElementById('app-showcase-title');
+            if (showcaseTitle) {
+                showcaseTitle.addEventListener('click', function(e) { e.preventDefault(); if (currentUser) switchMenu('showcase'); });
+            }
             document.querySelectorAll('.showcase-filter-link').forEach(function(link) {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     document.querySelectorAll('.showcase-filter-link').forEach(function(l) { l.classList.remove('active'); });
                     this.classList.add('active');
                     showcaseFilter = this.dataset.filter || 'new';
-                    loadShowcase();
+                    if (document.getElementById('showcase-block').classList.contains('hidden')) {
+                        switchMenu('showcase');
+                    } else {
+                        loadShowcase();
+                    }
                 });
-            });
-            var helperNameEl = document.getElementById('modal-help-helper-name');
-            if (helperNameEl) helperNameEl.addEventListener('input', function() {
-                try { localStorage.setItem(showcaseHelperNameKey, this.value.trim()); } catch (e) {}
-                updateHelpModalMessage();
             });
             document.getElementById('modal-help-close').addEventListener('click', closeHelpModal);
             document.getElementById('modal-help-dream').addEventListener('click', function(e) { if (e.target === this) closeHelpModal(); });
@@ -2048,16 +2116,26 @@
             applyHeaderView();
             switchMenu('buddy');
         });
-        document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
-        var statRatioEl = document.getElementById('stat-dreams-ratio');
-        var statHelpedEl = document.getElementById('stat-helped-n');
-        if (statRatioEl) {
-            statRatioEl.addEventListener('click', function() { if (document.getElementById('showcase-block').classList.contains('hidden')) return; switchMenu(lastCabinetSection); });
-            statRatioEl.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!document.getElementById('showcase-block').classList.contains('hidden')) switchMenu(lastCabinetSection); } });
+        var headerNavDreams = document.getElementById('header-nav-dreams');
+        var headerNavSteps = document.getElementById('header-nav-steps');
+        if (headerNavDreams) {
+            headerNavDreams.addEventListener('click', function() { switchMenu(headerView === 'buddy' ? 'buddy' : 'dreams'); });
+            headerNavDreams.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchMenu(headerView === 'buddy' ? 'buddy' : 'dreams'); } });
         }
-        if (statHelpedEl) {
-            statHelpedEl.addEventListener('click', function() { if (!currentUser) return; switchMenu('showcase'); });
-            statHelpedEl.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('showcase'); } });
+        if (headerNavSteps) {
+            headerNavSteps.addEventListener('click', function() { switchMenu(headerView === 'buddy' ? 'steps-buddy' : 'steps'); });
+            headerNavSteps.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchMenu(headerView === 'buddy' ? 'steps-buddy' : 'steps'); } });
+        }
+        document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
+        var statRatioWrap = document.getElementById('stat-ratio-wrap');
+        var statHelpedWrap = document.getElementById('stat-helped-wrap');
+        if (statRatioWrap) {
+            statRatioWrap.addEventListener('click', function() { if (document.getElementById('showcase-block').classList.contains('hidden')) return; switchMenu(lastCabinetSection); });
+            statRatioWrap.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!document.getElementById('showcase-block').classList.contains('hidden')) switchMenu(lastCabinetSection); } });
+        }
+        if (statHelpedWrap) {
+            statHelpedWrap.addEventListener('click', function() { if (!currentUser) return; switchMenu('showcase'); });
+            statHelpedWrap.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('showcase'); } });
         }
         var showcaseBackLink = document.getElementById('showcase-back-link');
         if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
@@ -3008,6 +3086,7 @@
             document.getElementById('profile-view').classList.add('hidden');
             document.getElementById('landing-view').classList.remove('hidden');
             document.body.classList.add('landing-visible');
+            document.body.classList.remove('profile-visible');
             document.getElementById('page-title').classList.add('hidden');
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('register-form').classList.add('hidden');
@@ -3022,6 +3101,7 @@
             document.getElementById('profile-view').classList.add('hidden');
             document.getElementById('landing-view').classList.remove('hidden');
             document.body.classList.add('landing-visible');
+            document.body.classList.remove('profile-visible');
             document.getElementById('login-form').classList.remove('hidden');
             document.getElementById('register-form').classList.add('hidden');
             var errEl = document.getElementById('login-error');
@@ -3166,12 +3246,14 @@
             try { saved = localStorage.getItem('savedUser'); } catch (e) { return; }
             if (!saved) {
                 document.body.classList.add('landing-visible');
+                document.body.classList.remove('profile-visible');
                 return;
             }
             try {
                 currentUser = JSON.parse(saved);
                 if (!currentUser || !currentUser.id) {
                     document.body.classList.add('landing-visible');
+                    document.body.classList.remove('profile-visible');
                     return;
                 }
                 // Подтянуть актуальные данные с сервера (аватар бадди, имя и т.д.), чтобы в браузере на ПК не показывались устаревшие
@@ -3194,10 +3276,11 @@
                     var appContent = document.querySelector('.app-content');
                     if (appContent) appContent.classList.add('hidden');
                     showProfile();
-                } else document.body.classList.add('landing-visible');
+                } else { document.body.classList.add('landing-visible'); document.body.classList.remove('profile-visible'); }
             } catch (e) {
                 try { localStorage.removeItem('savedUser'); } catch (e2) {}
                 document.body.classList.add('landing-visible');
+                document.body.classList.remove('profile-visible');
             }
         })();
     </script>

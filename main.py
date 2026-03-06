@@ -876,6 +876,49 @@ def _build_dream_item(row, steps_by_dream, books_by_dream=None):
     }
 
 
+@app.get("/dreams/showcase/counts")
+def get_dreams_showcase_counts(user_id: Optional[int] = None):
+    """Счётчики витрины: new, helping, favorites, all. Для отображения при просмотре своих мечт."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS n FROM dreams WHERE COALESCE(is_public, true) = true"
+            )
+            count_all = cur.fetchone()["n"] or 0
+            count_new = count_all
+            count_helping = 0
+            count_favorites = 0
+            if user_id:
+                cur.execute(
+                    """SELECT COUNT(*) AS n FROM dreams d
+                       WHERE COALESCE(d.is_public, true) = true
+                       AND NOT EXISTS (SELECT 1 FROM user_dream_views v WHERE v.user_id = %s AND v.dream_id = d.id)""",
+                    (user_id,),
+                )
+                count_new = cur.fetchone()["n"] or 0
+                cur.execute(
+                    """SELECT COUNT(*) AS n FROM user_dream_help_intent h
+                       JOIN dreams d ON d.id = h.dream_id AND COALESCE(d.is_public, true) = true
+                       WHERE h.user_id = %s""",
+                    (user_id,),
+                )
+                count_helping = cur.fetchone()["n"] or 0
+                cur.execute(
+                    """SELECT COUNT(*) AS n FROM user_dream_favorites f
+                       JOIN dreams d ON d.id = f.dream_id AND COALESCE(d.is_public, true) = true
+                       WHERE f.user_id = %s""",
+                    (user_id,),
+                )
+                count_favorites = cur.fetchone()["n"] or 0
+            return {"new": count_new, "helping": count_helping, "favorites": count_favorites, "all": count_all}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
 @app.get("/dreams/showcase")
 def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional[str] = None):
     """Витрина мечт: публичные мечты. user_id — для флагов viewed/favorite/helping. showcase_filter: new, helping, all, favorites, viewed."""
@@ -980,7 +1023,13 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                 result.sort(key=lambda x: x["is_viewed"])
             else:
                 result.sort(key=lambda x: x["date"] or "", reverse=True)
-            return {"dreams": result}
+            # Счётчики для фильтров: Новые (N) Помогаю (M) Избранные (I) Все (V)
+            count_all = len(rows)
+            count_new = count_all - len(viewed) if user_id else count_all
+            count_helping = len(helping)
+            count_favorites = len(favorites)
+            counts = {"new": count_new, "helping": count_helping, "favorites": count_favorites, "all": count_all}
+            return {"dreams": result, "counts": counts}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -989,6 +1038,37 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
 
 class ShowcaseActionBody(BaseModel):
     user_id: int
+
+
+@app.get("/dreams/{dream_id}/contact")
+def get_dream_contact(dream_id: int):
+    """Контакты автора мечты (telegram, vk, phone) — для модалки «Хочу помочь». Всегда актуальные из БД."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT u.name, u.surname, u.city, u.telegram, u.vk, u.phone
+                FROM dreams d JOIN users u ON u.id = d.user_id
+                WHERE d.id = %s AND COALESCE(d.is_public, true) = true
+            """, (dream_id,))
+            r = cur.fetchone()
+            if not r:
+                raise HTTPException(status_code=404, detail="Мечта не найдена")
+            full_name = f"{r.get('name') or ''} {r.get('surname') or ''}".strip() or "Участник"
+            return {
+                "user_name": full_name,
+                "city": (r.get("user_city") or "").strip() or None,
+                "telegram": (r.get("telegram") or "").strip() or None,
+                "vk": (r.get("vk") or "").strip() or None,
+                "phone": r.get("phone"),
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
 
 
 @app.post("/dreams/{dream_id}/view")
