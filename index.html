@@ -102,8 +102,10 @@
         .add-step-row a, .add-step-row button.link { background: none; border: none; color: #2196F3; cursor: pointer; padding: 0; font-size: inherit; text-decoration: underline; }
         .add-step-row a:hover { color: #0d47a1; }
         .step-row.add-step-form { gap: 10px; }
-        .step-row.add-step-form input { flex: 1; min-width: 0; padding: 4px 8px; }
+        .step-row.add-step-form input[type="text"] { flex: 1; min-width: 0; padding: 4px 8px; }
+        .step-row.add-step-form input[type="date"] { width: 10.5em; min-width: 0; padding: 4px 8px; box-sizing: border-box; }
         .step-row.add-step-form button { padding: 6px 12px; width: auto; flex: 0 0 auto; }
+        input[type="date"] { width: 10.5em; box-sizing: border-box; }
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.hidden { display: none; }
         .modal { background: white; padding: 24px; border-radius: 8px; min-width: 320px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
@@ -114,6 +116,13 @@
         .modal-actions button.secondary { background: #888; }
         .modal-actions button:disabled { opacity: 0.8; cursor: not-allowed; }
         .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
+        .modal-add-step .modal-add-step-title-input { width: 100%; max-width: 100%; padding: 8px; box-sizing: border-box; }
+        .modal-add-step .modal-add-step-date { width: 10.5em; padding: 8px; box-sizing: border-box; }
+        .modal-add-step .modal-add-step-days-label { margin-top: 12px; }
+        .modal-add-step .modal-add-step-days { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+        .modal-add-step .modal-add-step-days label { display: inline-flex; align-items: center; margin: 0; cursor: pointer; }
+        .modal-add-step .modal-add-step-days input { width: auto; margin-right: 4px; }
+        .modal-add-step .modal-add-step-count { font-size: 13px; color: #666; margin: 10px 0 0 0; }
         .add-buddy-list { max-height: 50vh; overflow-y: auto; }
         .add-buddy-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
         .add-buddy-item:last-child { border-bottom: none; }
@@ -175,6 +184,21 @@
         .header-task-code { font-size: 0.75rem; color: #777; font-weight: normal; margin-left: 4px; }
         .app-header-stats { font-size: 13px; color: #666; line-height: 1.4; }
         .app-header-stats .stat-num { font-weight: 600; }
+        .app-header-stats .stat-clickable { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .app-header-stats .stat-clickable:hover { color: #4CAF50; }
+        .showcase-filter-link { color:#888; text-decoration:none; }
+        .showcase-filter-link:hover { color:#4CAF50; }
+        .showcase-filter-link.active { color:#333; font-weight:600; }
+        .showcase-sep { margin:0 4px; color:#ccc; user-select:none; }
+        .showcase-card { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,0.08); position:relative; }
+        .showcase-card .showcase-fav { position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer; font-size:1.2em; }
+        .showcase-card .showcase-fav:hover { opacity:0.8; }
+        .showcase-card .showcase-author { font-size:0.9em; color:#666; margin-bottom:8px; }
+        .showcase-card .showcase-dream { font-weight:500; color:#333; margin-bottom:8px; line-height:1.4; }
+        .showcase-card .showcase-help-btn { width:100%; padding:10px; background:#4CAF50; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:600; margin-top:8px; }
+        .showcase-card .showcase-help-btn:hover { opacity:0.9; }
+        .contact-buttons a { display:inline-flex; align-items:center; padding:8px 14px; border-radius:6px; border:2px solid #4CAF50; background:#fff; color:#2e7d32; font-weight:600; text-decoration:none; transition:all 0.2s; }
+        .contact-buttons a:hover { background:#4CAF50; color:#fff; }
         .app-header-buddy-slot { position: relative; width: 72px; min-width: 72px; min-height: 72px; margin-left: auto; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: stretch; cursor: pointer; transition: opacity 0.2s; }
         .app-header-buddy-slot:hover { opacity: 0.9; }
         .app-header-buddy-slot img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
@@ -370,6 +394,8 @@
                         <input type="tel" id="reg-phone" placeholder="900 123 45 67" style="flex:1;min-width:120px;" required>
                     </div>
                     <p class="reg-phone-hint" style="font-size:12px;color:#888;margin-top:4px;">Для +7: можно набирать с 8 (8 автоматически уберётся)</p>
+                    <input type="text" id="reg-telegram" placeholder="Telegram (@username или t.me/...)">
+                    <input type="text" id="reg-vk" placeholder="VK (ссылка на профиль)">
                     <input type="password" id="reg-password" placeholder="Пароль (не менее 6 символов)" required minlength="6">
                     <input type="password" id="reg-password-repeat" placeholder="Повторите пароль" required>
                     <button type="button" id="register-btn" onclick="register()">Зарегистрироваться</button>
@@ -391,7 +417,7 @@
                 <div class="app-header-center">
                     <div class="app-header-name" id="profile-full_name">—</div>
                     <div class="app-header-stats">
-                        <span id="stat-dreams-ratio" class="stat-num">0/0</span><span class="stat-label stat-label-dreams"><span class="stat-label-dreams-word">мечт </span>сбылось</span>, <span id="stat-helped-n" class="stat-num">0</span> выполнил
+                        <span id="stat-dreams-ratio" class="stat-num stat-clickable" role="button" tabindex="0" title="Нажми, чтобы вернуться к своим мечтам">0/0</span><span class="stat-label stat-label-dreams"><span class="stat-label-dreams-word">мечт </span>сбылось</span>, <span id="stat-helped-n" class="stat-num stat-clickable" role="button" tabindex="0" title="Нажми, чтобы открыть витрину и помочь другим">0</span> выполнил
                     </div>
                 </div>
                 <div class="app-header-buddy-slot" id="header-buddy-slot" role="button" tabindex="0" aria-label="Переключить на бадди"><span class="buddy-slot-placeholder">—</span></div>
@@ -473,6 +499,25 @@
                         <ul id="steps-deleted-list" class="steps-list-plain"></ul>
                     </div>
                 </div>
+                <!-- Витрина мечт (чужие мечты — помочь другим) -->
+                <div id="showcase-block" class="hidden">
+                    <div class="showcase-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+                        <span class="steps-section-title" style="font-weight:600;color:#333;">💫 Витрина мечт</span>
+                        <span class="showcase-breadcrumbs" style="font-size:13px;color:#888;">
+                            <a href="#" class="showcase-filter-link active" data-filter="new">Новые</a>
+                            <span class="showcase-sep">·</span>
+                            <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю</a>
+                            <span class="showcase-sep">·</span>
+                            <a href="#" class="showcase-filter-link" data-filter="all">Все</a>
+                            <span class="showcase-sep">·</span>
+                            <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные</a>
+                        </span>
+                    </div>
+                    <div id="showcase-grid" class="showcase-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+                    <p id="showcase-empty" class="hidden" style="color:#666;">Мечт не найдено.</p>
+                    <p id="showcase-error" class="error hidden"></p>
+                    <p style="margin-top:12px;font-size:13px;color:#888;"><a href="#" id="showcase-back-link">← К своим мечтам</a></p>
+                </div>
             </div>
             <!-- Модальное окно: новая мечта -->
             <div id="modal-new-dream" class="modal-overlay hidden">
@@ -534,6 +579,37 @@
                     </div>
                 </div>
             </div>
+            <!-- Модальное окно: Хочу помочь (витрина) -->
+            <div id="modal-help-dream" class="modal-overlay hidden" role="dialog" aria-modal="true">
+                <div class="modal">
+                    <button type="button" class="modal-close" id="modal-help-close" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5em;cursor:pointer;color:#666;">×</button>
+                    <h3>Как помочь мечте</h3>
+                    <div class="modal-section">
+                        <div id="modal-help-author" style="font-weight:600;color:#333;">Автор</div>
+                    </div>
+                    <div class="modal-section">
+                        <h4>Описание мечты</h4>
+                        <p id="modal-help-dream-text" style="white-space:pre-wrap;color:#555;">—</p>
+                    </div>
+                    <div class="modal-section">
+                        <h4>Твоё имя</h4>
+                        <input type="text" id="modal-help-helper-name" placeholder="Например, Максим">
+                    </div>
+                    <div class="modal-section">
+                        <h4>Готовое сообщение</h4>
+                        <textarea id="modal-help-message" readonly rows="4" style="width:100%;padding:8px;box-sizing:border-box;"></textarea>
+                        <div class="modal-actions" style="margin-top:8px;">
+                            <button type="button" class="secondary" id="modal-help-copy">Скопировать</button>
+                            <span id="modal-help-copy-feedback" style="color:#2e7d32;font-size:0.9em;margin-left:8px;"></span>
+                        </div>
+                    </div>
+                    <div class="modal-section">
+                        <h4>Связаться с автором</h4>
+                        <div id="modal-help-contact-buttons" class="contact-buttons" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+                        <p id="modal-help-contact-fallback" style="margin-top:8px;font-size:0.9em;color:#888;"></p>
+                    </div>
+                </div>
+            </div>
             <!-- Модальное окно: подтверждение суммы взноса (фин-шаг в Расписании) -->
             <div id="modal-fin-step-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true">
                 <div class="modal">
@@ -548,6 +624,67 @@
                         <button type="button" class="secondary" id="modal-fin-step-btn-other">Указать другую сумму</button>
                         <button type="button" class="secondary hidden" id="modal-fin-step-btn-save">Сохранить</button>
                         <button type="button" class="secondary hidden" id="modal-fin-step-btn-cancel">Отмена</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Модальное окно: добавить шаг(и) -->
+            <div id="modal-add-step" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-title">
+                <div class="modal modal-add-step">
+                    <h3 id="modal-add-step-title">Добавить шаг</h3>
+                    <label>Название шага</label>
+                    <input type="text" id="modal-add-step-title-input" placeholder="Напр. Урок английского 15 мин" class="modal-add-step-title-input">
+                    <label>Дата начала</label>
+                    <input type="date" id="modal-add-step-date-from" class="modal-add-step-date">
+                    <label>Дата окончания</label>
+                    <input type="date" id="modal-add-step-date-to" class="modal-add-step-date">
+                    <label class="modal-add-step-days-label">Дни недели (все активны — нажмите, чтобы исключить день)</label>
+                    <div class="modal-add-step-days" id="modal-add-step-days">
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="1" checked> ПН</label>
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="2" checked> ВТ</label>
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="3" checked> СР</label>
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="4" checked> ЧТ</label>
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="5" checked> ПТ</label>
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="6" checked> СБ</label>
+                        <label><input type="checkbox" class="modal-add-step-day" data-day="0" checked> ВС</label>
+                    </div>
+                    <p class="modal-add-step-count" id="modal-add-step-count"></p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="modal-add-step-cancel">Отмена</button>
+                        <button type="button" id="modal-add-step-create">Создать</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Модалка: добавить шаги по финцели (анкета) -->
+            <div id="modal-add-step-finance" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-finance-title">
+                <div class="modal modal-add-step-finance">
+                    <h3 id="modal-add-step-finance-title">Добавить шаги по финансовой цели</h3>
+                    <label>Заработать / Накопить</label>
+                    <p class="modal-add-step-finance-hint" style="font-size:12px;color:#666;margin:2px 0 8px 0;">Выберите формулировку для подписей в расписании.</p>
+                    <div style="display:flex;gap:16px;margin-bottom:12px;">
+                        <label style="display:inline-flex;align-items:center;margin:0;"><input type="radio" name="modal-fin-goal-type" value="earn" checked> Заработать</label>
+                        <label style="display:inline-flex;align-items:center;margin:0;"><input type="radio" name="modal-fin-goal-type" value="save"> Накопить</label>
+                    </div>
+                    <label>Нужная сумма (₽)</label>
+                    <input type="number" id="modal-fin-target-amount" min="1" step="1000" placeholder="Напр. 3000000" style="max-width:200px;">
+                    <label>Срок (дата окончания)</label>
+                    <input type="date" id="modal-fin-end-date" class="modal-add-step-date">
+                    <p class="modal-deadline-hints">Подсказки: <a href="#" data-fin-end="12months">12 месяцев</a>, <a href="#" data-fin-end="eoy">До конца года</a></p>
+                    <label style="margin-top:12px;">Доли по месяцам</label>
+                    <div style="display:flex;gap:16px;margin-bottom:8px;">
+                        <label style="display:inline-flex;align-items:center;margin:0;"><input type="radio" name="modal-fin-distribution" value="equal" checked> Равные</label>
+                        <label style="display:inline-flex;align-items:center;margin:0;"><input type="radio" name="modal-fin-distribution" value="custom"> Разные</label>
+                    </div>
+                    <p class="modal-add-step-finance-equal-hint" id="modal-fin-equal-hint" style="font-size:12px;color:#666;"></p>
+                    <div id="modal-fin-custom-block" class="hidden" style="margin-top:12px;padding:10px;background:#f5f5f5;border-radius:6px;">
+                        <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Введите сумму по каждому месяцу (₽). Пустое = 0. Итог подгонится под целевую сумму.</p>
+                        <div id="modal-fin-monthly-amounts"></div>
+                    </div>
+                    <label style="margin-top:12px;">Число внесения (день месяца для дедлайна шага)</label>
+                    <input type="number" id="modal-fin-due-day" min="1" max="31" value="31" style="width:4em;">
+                    <p class="modal-deadline-hints" style="margin-top:4px;">Подсказка: <a href="#" id="modal-fin-due-day-last">Последний день месяца</a> — подставит 31 (в феврале дедлайн будет 28 или 29).</p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="modal-add-step-finance-cancel">Отмена</button>
+                        <button type="button" id="modal-add-step-finance-create">Создать шаги</button>
                     </div>
                 </div>
             </div>
@@ -1038,6 +1175,9 @@
             if (loadingEl) loadingEl.classList.add('hidden');
             var appContent = document.querySelector('.app-content');
             if (appContent) appContent.classList.remove('hidden');
+            if (window.location.hash === '#showcase' && currentUser) {
+                switchMenu('showcase');
+            }
             if (window.lastAddedDreamId) {
                 var id = window.lastAddedDreamId;
                 window.lastAddedDreamId = null;
@@ -1054,18 +1194,31 @@
             }
         }
 
+        var lastCabinetSection = 'dreams';
         function switchMenu(section) {
             document.getElementById('dreams-block').classList.add('hidden');
             document.getElementById('buddy-block').classList.add('hidden');
             document.getElementById('steps-block').classList.add('hidden');
+            var sb = document.getElementById('showcase-block');
+            if (sb) sb.classList.add('hidden');
             document.querySelectorAll('.app-menu a').forEach(function(a) { a.classList.remove('active'); });
-            if (section === 'dreams') {
+            if (section === 'showcase') {
+                lastCabinetSection = 'dreams';
+                if (sb) sb.classList.remove('hidden');
+                var footerAdd = document.getElementById('app-footer-add');
+                if (footerAdd) footerAdd.classList.add('hidden');
+                loadShowcase();
+            } else if (section === 'dreams') {
+                lastCabinetSection = 'dreams';
                 dreamEditContext.ownerId = currentUser ? currentUser.id : 0;
                 dreamEditContext.viewerId = null;
                 document.getElementById('dreams-block').classList.remove('hidden');
                 document.getElementById('menu-my-dreams').classList.add('active');
+                var footerAddD = document.getElementById('app-footer-add');
+                if (footerAddD) footerAddD.classList.remove('hidden');
                 renderDreamsMobileCards(currentUserDreamsCache);
             } else if (section === 'buddy') {
+                lastCabinetSection = 'buddy';
                 dreamEditContext.ownerId = currentUser ? currentUser.buddy_id : 0;
                 dreamEditContext.viewerId = currentUser ? currentUser.id : null;
                 document.getElementById('buddy-block').classList.remove('hidden');
@@ -1073,12 +1226,14 @@
                 var footerAddB = document.getElementById('app-footer-add'); if (footerAddB) footerAddB.classList.add('hidden');
                 loadBuddyDreams();
             } else if (section === 'steps') {
+                lastCabinetSection = 'steps';
                 stepsViewIsBuddy = false;
                 document.getElementById('steps-block').classList.remove('hidden');
                 document.getElementById('menu-my-steps').classList.add('active');
                 var footerAddS = document.getElementById('app-footer-add'); if (footerAddS) footerAddS.classList.add('hidden');
                 loadSteps(currentUser ? currentUser.id : 0);
             } else if (section === 'steps-buddy') {
+                lastCabinetSection = 'steps-buddy';
                 stepsViewIsBuddy = true;
                 document.getElementById('steps-block').classList.remove('hidden');
                 document.getElementById('menu-steps-buddy').classList.add('active');
@@ -1086,6 +1241,199 @@
                 loadSteps(currentUser ? currentUser.buddy_id : 0, true);
             }
         }
+
+        var showcaseDreamsCache = [];
+        var showcaseFilter = 'new';
+        var showcaseHelperNameKey = 'showcaseHelperName_v1';
+        function loadShowcase() {
+            var grid = document.getElementById('showcase-grid');
+            var emptyEl = document.getElementById('showcase-empty');
+            var errEl = document.getElementById('showcase-error');
+            if (!grid) return;
+            grid.innerHTML = '<p style="color:#666;">Загрузка...</p>';
+            emptyEl.classList.add('hidden');
+            errEl.classList.add('hidden');
+            var userId = currentUser ? currentUser.id : null;
+            var url = API_BASE_URL + '/dreams/showcase?showcase_filter=' + (showcaseFilter || 'new');
+            if (userId) url += '&user_id=' + userId;
+            fetch(url, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
+                showcaseDreamsCache = data.dreams || [];
+                renderShowcase(showcaseDreamsCache);
+                if (showcaseDreamsCache.length === 0) emptyEl.classList.remove('hidden');
+            }).catch(function(e) {
+                grid.innerHTML = '';
+                errEl.textContent = 'Не удалось загрузить витрину.';
+                errEl.classList.remove('hidden');
+            });
+        }
+        function renderShowcase(dreams) {
+            var grid = document.getElementById('showcase-grid');
+            var emptyEl = document.getElementById('showcase-empty');
+            if (!grid) return;
+            grid.innerHTML = '';
+            emptyEl.classList.add('hidden');
+            var savedName = '';
+            try { savedName = localStorage.getItem(showcaseHelperNameKey) || ''; } catch (e) {}
+            dreams.forEach(function(d) {
+                var card = document.createElement('div');
+                card.className = 'showcase-card';
+                card.dataset.dreamId = d.id;
+                var favBtn = document.createElement('button');
+                favBtn.type = 'button';
+                favBtn.className = 'showcase-fav';
+                favBtn.title = d.is_favorite ? 'Убрать из избранного' : 'В избранное';
+                favBtn.textContent = d.is_favorite ? '❤️' : '🤍';
+                favBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleShowcaseFavorite(d.id, favBtn); });
+                var author = document.createElement('div');
+                author.className = 'showcase-author';
+                author.textContent = '👤 ' + (d.user_name || 'Участник') + (d.date ? ' · ' + new Date(d.date).toLocaleDateString('ru-RU') : '');
+                var dreamText = document.createElement('div');
+                dreamText.className = 'showcase-dream';
+                dreamText.textContent = (d.dream || '').slice(0, 200) + ((d.dream || '').length > 200 ? '…' : '');
+                var helpBtn = document.createElement('button');
+                helpBtn.type = 'button';
+                helpBtn.className = 'showcase-help-btn';
+                helpBtn.textContent = '🤝 Хочу помочь!';
+                helpBtn.addEventListener('click', function() { openHelpModal(d); });
+                card.appendChild(favBtn);
+                card.appendChild(author);
+                card.appendChild(dreamText);
+                if (d.price != null && d.price !== '') {
+                    var priceEl = document.createElement('div');
+                    priceEl.style.fontSize = '0.9em';
+                    priceEl.style.color = '#888';
+                    priceEl.textContent = '💰 ' + d.price;
+                    card.appendChild(priceEl);
+                }
+                card.appendChild(helpBtn);
+                grid.appendChild(card);
+                recordDreamView(d.id);
+            });
+        }
+        function recordDreamView(dreamId) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            }).catch(function() {});
+        }
+        function toggleShowcaseFavorite(dreamId, btnEl) {
+            if (!currentUser || !currentUser.id) return;
+            var isFav = btnEl.textContent === '❤️';
+            var url = API_BASE_URL + '/dreams/' + dreamId + '/favorite';
+            if (isFav) {
+                fetch(url + '?user_id=' + currentUser.id, { method: 'DELETE' }).then(function() {
+                    btnEl.textContent = '🤍';
+                    btnEl.title = 'В избранное';
+                    var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
+                    if (d) d.is_favorite = false;
+                });
+            } else {
+                fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.id }) }).then(function() {
+                    btnEl.textContent = '❤️';
+                    btnEl.title = 'Убрать из избранного';
+                    var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
+                    if (d) d.is_favorite = true;
+                });
+            }
+        }
+        var currentHelpDream = null;
+        function openHelpModal(dream) {
+            currentHelpDream = dream;
+            var authorEl = document.getElementById('modal-help-author');
+            var dreamTextEl = document.getElementById('modal-help-dream-text');
+            var helperNameEl = document.getElementById('modal-help-helper-name');
+            var messageEl = document.getElementById('modal-help-message');
+            var contactBtns = document.getElementById('modal-help-contact-buttons');
+            var contactFallback = document.getElementById('modal-help-contact-fallback');
+            if (authorEl) authorEl.textContent = (dream.user_name || 'Участник') + (dream.city ? ', ' + dream.city : '');
+            if (dreamTextEl) dreamTextEl.textContent = (dream.dream || 'Нет описания') + (dream.deadline ? '\n\nДедлайн: до ' + new Date(dream.deadline).toLocaleDateString('ru-RU') : '');
+            try { if (helperNameEl) helperNameEl.value = localStorage.getItem(showcaseHelperNameKey) || ''; } catch (e) {}
+            updateHelpModalMessage();
+            contactBtns.innerHTML = '';
+            contactFallback.textContent = '';
+            var helperName = (helperNameEl && helperNameEl.value.trim()) || '...';
+            var msg = 'Привет ' + (dream.user_name || 'тебя') + '. Меня зовут ' + helperName + '. Я хочу помочь тебе в осуществлении мечты: «' + (dream.dream || '') + '», которую я увидел в «Завтраке исполняющем желания».';
+            var buttons = [];
+            var phone = (dream.phone || '').replace(/\D/g, '');
+            if (phone.length >= 10) {
+                var waPhone = (dream.phone || '').replace(/^\+/, '').replace(/\D/g, '');
+                buttons.push({ url: 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), label: 'WhatsApp' });
+            }
+            var tg = (dream.telegram || '').trim();
+            if (tg) {
+                var username = tg.replace(/^@/, '').replace(/^https?:\/\/t\.me\//i, '');
+                if (username) buttons.push({ url: 'https://t.me/' + username + '?text=' + encodeURIComponent(msg), label: 'Telegram' });
+            }
+            var vk = (dream.vk || '').trim();
+            if (vk) {
+                var vkUrl = vk;
+                if (!/^https?:\/\//i.test(vkUrl)) vkUrl = 'https://' + vkUrl;
+                buttons.push({ url: vkUrl, label: 'VK' });
+            }
+            if (buttons.length > 0) {
+                buttons.forEach(function(b) {
+                    var a = document.createElement('a');
+                    a.href = b.url;
+                    a.target = '_blank';
+                    a.rel = 'noopener';
+                    a.textContent = b.label;
+                    contactBtns.appendChild(a);
+                });
+            } else {
+                contactFallback.textContent = 'Автор не оставил контактов. Скопируйте сообщение и отправьте удобным способом.';
+            }
+            document.getElementById('modal-help-dream').classList.remove('hidden');
+            fetch(API_BASE_URL + '/dreams/' + dream.id + '/help-intent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.id }) }).catch(function() {});
+            var d = showcaseDreamsCache.find(function(x) { return x.id === dream.id; });
+            if (d) d.is_helping = true;
+        }
+        function updateHelpModalMessage() {
+            if (!currentHelpDream) return;
+            var helperNameEl = document.getElementById('modal-help-helper-name');
+            var messageEl = document.getElementById('modal-help-message');
+            var helperName = (helperNameEl && helperNameEl.value.trim()) || '...';
+            var msg = 'Привет ' + (currentHelpDream.user_name || 'тебя') + '. Меня зовут ' + helperName + '. Я хочу помочь тебе в осуществлении мечты: «' + (currentHelpDream.dream || '') + '», которую я увидел в «Завтраке исполняющем желания».';
+            if (messageEl) messageEl.value = msg;
+        }
+        function closeHelpModal() {
+            document.getElementById('modal-help-dream').classList.add('hidden');
+            currentHelpDream = null;
+        }
+        (function initShowcase() {
+            document.querySelectorAll('.showcase-filter-link').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelectorAll('.showcase-filter-link').forEach(function(l) { l.classList.remove('active'); });
+                    this.classList.add('active');
+                    showcaseFilter = this.dataset.filter || 'new';
+                    loadShowcase();
+                });
+            });
+            var helperNameEl = document.getElementById('modal-help-helper-name');
+            if (helperNameEl) helperNameEl.addEventListener('input', function() {
+                try { localStorage.setItem(showcaseHelperNameKey, this.value.trim()); } catch (e) {}
+                updateHelpModalMessage();
+            });
+            document.getElementById('modal-help-close').addEventListener('click', closeHelpModal);
+            document.getElementById('modal-help-dream').addEventListener('click', function(e) { if (e.target === this) closeHelpModal(); });
+            document.getElementById('modal-help-copy').addEventListener('click', function() {
+                var msg = document.getElementById('modal-help-message');
+                if (!msg) return;
+                navigator.clipboard.writeText(msg.value).then(function() {
+                    var fb = document.getElementById('modal-help-copy-feedback');
+                    if (fb) { fb.textContent = 'Скопировано!'; setTimeout(function() { fb.textContent = ''; }, 2000); }
+                }).catch(function() {
+                    msg.select();
+                    document.execCommand('copy');
+                    var fb = document.getElementById('modal-help-copy-feedback');
+                    if (fb) { fb.textContent = 'Скопировано!'; setTimeout(function() { fb.textContent = ''; }, 2000); }
+                });
+            });
+            document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && document.getElementById('modal-help-dream') && !document.getElementById('modal-help-dream').classList.contains('hidden')) closeHelpModal(); });
+        })();
+
         var stepsFlatCache = [];
         var stepsViewUserId = null;
         async function loadSteps(userId, isBuddy) {
@@ -1572,9 +1920,10 @@
                 var stepsHtml = steps.length === 0 ? '' : steps.map(function(s) {
                     return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span></div>';
                 }).join('');
-                accTr.innerHTML = '<td colspan="6"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></td>';
+                accTr.innerHTML = '<td colspan="6"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div></td>';
                 tbodyEl.appendChild(accTr);
-                accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                var isFinCatBuddy = !!(d.category_obj && d.category_obj.code === 'finance');
+                accTr.querySelector('.add-step-btn').addEventListener('click', function(ev) { ev.stopPropagation(); if (isFinCatBuddy) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                 accTr.querySelectorAll('.step-row').forEach(function(row) {
                     var stepId = row.dataset.stepId;
                     row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, stepId, this.checked); });
@@ -1624,7 +1973,7 @@
                         return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span><span class="step-deadline-inline">' + escapeHtml(dl) + '</span></div>';
                     }).join('');
                     var cardOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
-                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list">' + stepsEditableHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></div>';
+                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list">' + stepsEditableHtml + '</div><div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div></div>';
                     card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                     card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.stopPropagation(); var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1', oid ? parseInt(oid, 10) : undefined); });
                     var picker = card.querySelector('.status-picker');
@@ -1636,7 +1985,8 @@
                             btn.addEventListener('click', function(ev) { ev.stopPropagation(); var id = parseInt(btn.dataset.statusId, 10); currentSpan.textContent = btn.dataset.statusIcon || ''; dropdown.classList.remove('open'); saveDreamStatus(dreamId, id); });
                         });
                     }
-                    card.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId, card.querySelector('.steps-list')); });
+                    var isFinCatCard = !!(d.category_obj && d.category_obj.code === 'finance');
+                    card.querySelector('.add-step-btn').addEventListener('click', function(ev) { ev.stopPropagation(); if (isFinCatCard) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                     card.querySelectorAll('.step-row').forEach(function(row) {
                         var stepId = row.dataset.stepId;
                         var s = steps.find(function(x) { return x.id == stepId; });
@@ -1699,6 +2049,18 @@
             switchMenu('buddy');
         });
         document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
+        var statRatioEl = document.getElementById('stat-dreams-ratio');
+        var statHelpedEl = document.getElementById('stat-helped-n');
+        if (statRatioEl) {
+            statRatioEl.addEventListener('click', function() { if (document.getElementById('showcase-block').classList.contains('hidden')) return; switchMenu(lastCabinetSection); });
+            statRatioEl.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!document.getElementById('showcase-block').classList.contains('hidden')) switchMenu(lastCabinetSection); } });
+        }
+        if (statHelpedEl) {
+            statHelpedEl.addEventListener('click', function() { if (!currentUser) return; switchMenu('showcase'); });
+            statHelpedEl.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('showcase'); } });
+        }
+        var showcaseBackLink = document.getElementById('showcase-back-link');
+        if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         window.addEventListener('resize', updateStickySpacer);
 
         var avatarFileEl = document.getElementById('avatar-file');
@@ -1842,8 +2204,10 @@
                 accTr.id = 'accordion-' + dreamId;
                 accTr.dataset.dreamId = dreamId;
                 var steps = (d.steps || []).filter(function(s) { return !s.deleted; });
+                var isFinanceCategory = !!(d.category_obj && d.category_obj.code === 'finance');
                 var isFinGoal = (steps.length > 0 && steps[0].plan_amount != null) ||
-                    (d.category_obj && d.category_obj.code === 'finance' && steps.length >= 12);
+                    (isFinanceCategory && steps.length >= 12);
+                var showAddStepBtn = !isFinGoal || (isFinanceCategory && steps.length < 12);
                 var defaultPlan = 17000;
                 var stepsContent = '';
                 if (isFinGoal) {
@@ -1862,9 +2226,9 @@
                         var isFutureMonth = (idx > currentMonth0);
                         var resultText = getFinResultTextForMonth(plan, fact, cumPlan, cumFact, totalGoal, isCurrentMonth, isFutureMonth);
                         var resultClass = isFutureMonth ? '' : (isCurrentMonth ? getFinResultClass(cumPlan, cumFact) : 'past');
-                        var sumPlanStr = Math.round(cumPlan / 1000) + '/' + totalGoalTh;
-                        var sumFactStr = Math.round(cumFact / 1000) + '/' + totalGoalTh;
-                        return '<tr data-step-id="' + s.id + '" data-step-idx="' + idx + '"><td class="fin-month-col">' + escapeHtml(s.title || '') + '</td><td>' + formatMoney(plan) + ' ₽</td><td><input type="number" min="0" step="1000" class="fin-fact-input" data-step-id="' + s.id + '" value="' + (fact !== '' ? fact : '') + '" placeholder="0"></td><td>' + sumPlanStr + ' т.р.</td><td class="fin-cum-fact" data-step-id="' + s.id + '">' + sumFactStr + ' т.р.</td><td class="fin-step-result ' + resultClass + '" data-step-id="' + s.id + '">' + escapeHtml(resultText) + '</td></tr>';
+                        var sumPlanStr = Math.round(cumPlan / 1000) + ' т.р.';
+                        var sumFactStr = Math.round(cumFact / 1000) + ' т.р.';
+                        return '<tr data-step-id="' + s.id + '" data-step-idx="' + idx + '"><td class="fin-month-col">' + escapeHtml(s.title || '') + '</td><td>' + formatMoney(plan) + ' ₽</td><td><input type="number" min="0" step="1000" class="fin-fact-input" data-step-id="' + s.id + '" value="' + (fact !== '' ? fact : '') + '" placeholder="0"></td><td>' + sumPlanStr + '</td><td class="fin-cum-fact" data-step-id="' + s.id + '">' + sumFactStr + '</td><td class="fin-step-result ' + resultClass + '" data-step-id="' + s.id + '">' + escapeHtml(resultText) + '</td></tr>';
                     });
                     stepsContent = '<table class="fin-steps-table"><thead><tr><th class="fin-month-col">Месяц</th><th colspan="2" class="fin-group-header">ВЗНОС</th><th colspan="2" class="fin-group-header">СУММА</th><th>Итог</th></tr><tr><th class="fin-month-col"></th><th class="fin-subheader">План</th><th class="fin-subheader">Факт</th><th class="fin-subheader">План</th><th class="fin-subheader">Факт</th><th></th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
                 } else {
@@ -1873,10 +2237,13 @@
                         return '<div class="step-row" data-step-id="' + s.id + '"><input type="checkbox" ' + (s.completed ? 'checked' : '') + '><span class="step-title">' + escapeHtml(s.title || '') + '</span><span class="step-deadline-inline">' + escapeHtml(dl) + '</span><button type="button" class="step-delete-inline" title="Удалить">✕</button></div>';
                     }).join('');
                 }
-                accTr.innerHTML = '<td colspan="7"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsContent + '</div>' + (isFinGoal ? '' : '<div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div>') + '</td>';
+                accTr.innerHTML = '<td colspan="7"><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsContent + '</div>' + (showAddStepBtn ? '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>' : '') + '</td>';
                 tbodyEl.appendChild(accTr);
-                if (!isFinGoal) {
-                    accTr.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId); });
+                if (showAddStepBtn) {
+                    accTr.querySelector('.add-step-btn').addEventListener('click', function(ev) {
+                        ev.stopPropagation();
+                        if (isFinanceCategory) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId);
+                    });
                     accTr.querySelectorAll('.step-row').forEach(function(row) {
                         var stepId = row.dataset.stepId;
                         var s = steps.find(function(x) { return x.id == stepId; });
@@ -1907,7 +2274,7 @@
                             if (isNaN(factNum)) factNum = 0;
                             cumPlan += plan;
                             cumFact += factNum;
-                            var sumFactStr = Math.round(cumFact / 1000) + '/' + totalGoalTh + ' т.р.';
+                            var sumFactStr = Math.round(cumFact / 1000) + ' т.р.';
                             var cumFactCell = accTr.querySelector('.fin-cum-fact[data-step-id="' + stepId + '"]');
                             if (cumFactCell) cumFactCell.textContent = sumFactStr;
                             var isCurrentMonth = (idx === currentMonth0);
@@ -1993,7 +2360,7 @@
                 card.className = 'dreams-mobile-card';
                 card.dataset.dreamId = dreamId;
                 var mobileOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
-                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row"><button type="button" class="link">+ Добавить шаг</button></div></div>';
+                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div><div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div></div>';
                 track.appendChild(card);
                 card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = card.querySelector('.dream-eye');
@@ -2017,7 +2384,8 @@
                         saveDreamStatus(dreamId, id);
                     });
                 });
-                card.querySelector('.add-step-row button').addEventListener('click', function(ev) { ev.stopPropagation(); showAddStep(dreamId, card.querySelector('.steps-list')); });
+                var isFinCatMobile = !!(d.category_obj && d.category_obj.code === 'finance');
+                card.querySelector('.add-step-btn').addEventListener('click', function(ev) { ev.stopPropagation(); if (isFinCatMobile) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                 card.querySelectorAll('.step-row').forEach(function(row) {
                     var stepId = row.dataset.stepId;
                     var s = steps.find(function(x) { return x.id == stepId; });
@@ -2295,58 +2663,266 @@
         function refreshAfterDreamChange() {
             if (dreamEditContext.viewerId != null) loadBuddyDreams(); else showProfile();
         }
-        function showAddStep(dreamId, containerEl) {
-            var container = containerEl || document.querySelector('.steps-list[data-dream-id="' + dreamId + '"]');
-            if (!container) return;
-            var div = document.createElement('div');
-            div.className = 'step-row add-step-form';
-            var input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'Название шага';
-            input.style.flex = '1';
-            var dateInput = document.createElement('input');
-            dateInput.type = 'date';
-            dateInput.placeholder = 'Дедлайн';
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = 'Сохранить';
-            btn.onclick = function() {
-                var title = input.value.trim();
-                if (!title) return;
-                if (btn.disabled) return;
-                btn.disabled = true;
-                var deadline = dateInput.value || null;
-                addStep(dreamId, title, deadline, function(step) {
-                    container.removeChild(div);
-                    var dl = (step.deadline || '').toString().slice(0, 10);
-                    var dlStr = dl ? formatDeadlineDisplay(dl) : '—';
+        function openAddStepModal(dreamId) {
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay) return;
+            overlay.dataset.dreamId = String(dreamId);
+            var titleIn = document.getElementById('modal-add-step-title-input');
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            if (titleIn) titleIn.value = '';
+            if (fromIn) fromIn.value = '';
+            if (toIn) toIn.value = '';
+            overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) { cb.checked = true; });
+            updateAddStepModalCount();
+            overlay.classList.remove('hidden');
+            if (titleIn) titleIn.focus();
+        }
+        function openAddStepFinanceModal(dreamId, dream) {
+            var overlay = document.getElementById('modal-add-step-finance');
+            if (!overlay) return;
+            overlay.dataset.dreamId = String(dreamId);
+            var amountIn = document.getElementById('modal-fin-target-amount');
+            var endIn = document.getElementById('modal-fin-end-date');
+            var dueIn = document.getElementById('modal-fin-due-day');
+            if (amountIn) amountIn.value = (dream && dream.price != null && dream.price > 0) ? String(Math.round(dream.price)) : '';
+            if (endIn) {
+                var eoy = new Date();
+                if (eoy.getMonth() >= 10) eoy.setFullYear(eoy.getFullYear() + 1);
+                eoy.setMonth(11); eoy.setDate(31);
+                endIn.value = eoy.getFullYear() + '-' + '12' + '-' + '31';
+            }
+            if (dueIn) dueIn.value = '31';
+            updateFinanceEqualHint();
+            overlay.classList.remove('hidden');
+            if (amountIn) amountIn.focus();
+        }
+        function closeAddStepFinanceModal() {
+            var overlay = document.getElementById('modal-add-step-finance');
+            if (overlay) overlay.classList.add('hidden');
+        }
+        function updateFinanceEqualHint() {
+            var amountIn = document.getElementById('modal-fin-target-amount');
+            var hintEl = document.getElementById('modal-fin-equal-hint');
+            if (!hintEl) return;
+            var v = amountIn && amountIn.value ? parseFloat(amountIn.value) : NaN;
+            if (isNaN(v) || v <= 0) { hintEl.textContent = ''; return; }
+            var perMonth = Math.round(v / 12 / 1000) * 1000;
+            hintEl.textContent = 'При равных долях: ≈ ' + (perMonth >= 1000 ? (perMonth / 1000) + ' т.р.' : perMonth + ' ₽') + ' в месяц';
+        }
+        function closeAddStepModal() {
+            var overlay = document.getElementById('modal-add-step');
+            if (overlay) overlay.classList.add('hidden');
+        }
+        function updateAddStepModalCount() {
+            var overlay = document.getElementById('modal-add-step');
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            var countEl = document.getElementById('modal-add-step-count');
+            if (!overlay || !fromIn || !toIn || !countEl) return;
+            var fromStr = fromIn.value;
+            var toStr = toIn.value;
+            var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day:checked'), function(c) { return parseInt(c.dataset.day, 10); });
+            if (!fromStr || !toStr) { countEl.textContent = ''; return; }
+            var from = new Date(fromStr);
+            var to = new Date(toStr);
+            if (from > to) { countEl.textContent = 'Укажите период: дата начала ≤ дата окончания'; return; }
+            var n = 0;
+            var d = new Date(from);
+            while (d <= to) {
+                if (checked.indexOf(d.getDay()) !== -1) n++;
+                d.setDate(d.getDate() + 1);
+            }
+            countEl.textContent = 'Будет создано шагов: ' + n;
+        }
+        function initAddStepModal() {
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay) return;
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            var cancelBtn = document.getElementById('modal-add-step-cancel');
+            var createBtn = document.getElementById('modal-add-step-create');
+            function update() { updateAddStepModalCount(); }
+            if (fromIn) fromIn.addEventListener('input', update);
+            if (fromIn) fromIn.addEventListener('change', update);
+            if (toIn) toIn.addEventListener('input', update);
+            if (toIn) toIn.addEventListener('change', update);
+            overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) { cb.addEventListener('change', update); });
+            if (cancelBtn) cancelBtn.addEventListener('click', closeAddStepModal);
+            overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeAddStepModal(); });
+            if (createBtn) createBtn.addEventListener('click', function() {
+                var dreamId = overlay.dataset.dreamId;
+                if (!dreamId) return;
+                var titleIn = document.getElementById('modal-add-step-title-input');
+                var title = (titleIn && titleIn.value) ? titleIn.value.trim() : '';
+                if (!title) { alert('Введите название шага'); return; }
+                var fromStr = fromIn && fromIn.value ? fromIn.value : '';
+                var toStr = toIn && toIn.value ? toIn.value : '';
+                if (!fromStr || !toStr) { alert('Укажите дату начала и дату окончания'); return; }
+                var from = new Date(fromStr);
+                var to = new Date(toStr);
+                if (from > to) { alert('Дата начала должна быть не позже даты окончания'); return; }
+                var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day:checked'), function(c) { return parseInt(c.dataset.day, 10); });
+                var dates = [];
+                var d = new Date(from);
+                while (d <= to) {
+                    if (checked.indexOf(d.getDay()) !== -1) dates.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+                    d.setDate(d.getDate() + 1);
+                }
+                if (dates.length === 0) { alert('Выберите хотя бы один день недели и проверьте период.'); return; }
+                var total = dates.length;
+                createBtn.disabled = true;
+                createBtn.dataset.restoreText = 'Создать';
+                createBtn.textContent = 'Создаём… 0 / ' + total;
+                var done = 0;
+                function onOneDone() { done++; createBtn.textContent = 'Создаём… ' + done + ' / ' + total; }
+                var promises = dates.map(function(dateStr) {
+                    return addStepPromise(dreamId, title, dateStr).then(function(data) { onOneDone(); return data; });
+                });
+                Promise.all(promises).then(function() {
+                    closeAddStepModal();
+                    createBtn.disabled = false;
+                    createBtn.textContent = 'Создать';
+                    refreshAfterDreamChange();
+                }).catch(function(err) {
+                    createBtn.disabled = false;
+                    createBtn.textContent = createBtn.dataset.restoreText || 'Создать';
+                    alert(err && err.message ? err.message : 'Ошибка при создании шагов');
+                });
+            });
+        }
+        function addStepPromise(dreamId, title, deadline) {
+            var body = { title: title };
+            if (deadline) body.deadline = deadline;
+            return fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?' + dreamApiUserParams(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(function(res) { if (!res.ok) return res.json().then(function(e) { throw new Error(e.detail || 'Ошибка'); }); return res.json(); })
+                .catch(function(e) { if (e instanceof Error) throw e; throw new Error('Ошибка сети'); });
+        }
+        var FIN_MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        function initAddStepFinanceModal() {
+            var overlay = document.getElementById('modal-add-step-finance');
+            if (!overlay) return;
+            var amountIn = document.getElementById('modal-fin-target-amount');
+            var endIn = document.getElementById('modal-fin-end-date');
+            var dueIn = document.getElementById('modal-fin-due-day');
+            var cancelBtn = document.getElementById('modal-add-step-finance-cancel');
+            var createBtn = document.getElementById('modal-add-step-finance-create');
+            var monthlyContainer = document.getElementById('modal-fin-monthly-amounts');
+            if (monthlyContainer) {
+                monthlyContainer.innerHTML = '';
+                FIN_MONTH_NAMES.forEach(function(name, idx) {
                     var row = document.createElement('div');
-                    row.className = 'step-row';
-                    row.dataset.stepId = step.id;
-                    row.innerHTML = '<input type="checkbox"><span class="step-title">' + escapeHtml(step.title) + '</span><span class="step-deadline-inline">' + escapeHtml(dlStr) + '</span><button type="button" class="step-delete-inline" title="Удалить">✕</button>';
-                    container.appendChild(row);
-                    row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, step.id, this.checked); });
-                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, step.id, this); });
-                    row.querySelector('.step-deadline-inline').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: step.id, title: step.title, deadline: step.deadline }, this, 'deadline'); });
-                    var delBtn = row.querySelector('.step-delete-inline');
-                    if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, step.id); });
-                }, btn);
-            };
-            div.appendChild(input);
-            div.appendChild(dateInput);
-            div.appendChild(btn);
-            container.appendChild(div);
-            input.focus();
+                    row.style.display = 'flex';
+                    row.style.alignItems = 'center';
+                    row.style.gap = '10px';
+                    row.style.marginBottom = '6px';
+                    var label = document.createElement('label');
+                    label.textContent = name;
+                    label.style.margin = '0';
+                    label.style.minWidth = '85px';
+                    label.style.fontSize = '13px';
+                    var input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.step = '1000';
+                    input.placeholder = '0';
+                    input.className = 'modal-fin-month-inp';
+                    input.dataset.month = String(idx);
+                    input.style.maxWidth = '140px';
+                    input.style.padding = '6px 8px';
+                    row.appendChild(label);
+                    row.appendChild(input);
+                    monthlyContainer.appendChild(row);
+                });
+            }
+            overlay.querySelectorAll('.modal-deadline-hints a[data-fin-end]').forEach(function(a) {
+                a.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    if (!endIn) return;
+                    if (this.dataset.finEnd === '12months') {
+                        var d = new Date();
+                        d.setMonth(d.getMonth() + 12);
+                        endIn.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    } else if (this.dataset.finEnd === 'eoy') {
+                        var y = new Date().getFullYear();
+                        if (new Date().getMonth() >= 10) y++;
+                        endIn.value = y + '-12-31';
+                    }
+                });
+            });
+            if (amountIn) amountIn.addEventListener('input', updateFinanceEqualHint);
+            if (amountIn) amountIn.addEventListener('change', updateFinanceEqualHint);
+            var dueDayLastLink = document.getElementById('modal-fin-due-day-last');
+            if (dueDayLastLink && dueIn) dueDayLastLink.addEventListener('click', function(ev) { ev.preventDefault(); dueIn.value = '31'; });
+            var customBlock = document.getElementById('modal-fin-custom-block');
+            var equalHintEl = document.getElementById('modal-fin-equal-hint');
+            overlay.querySelectorAll('input[name="modal-fin-distribution"]').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    var isCustom = this.value === 'custom';
+                    if (customBlock) customBlock.classList.toggle('hidden', !isCustom);
+                    if (equalHintEl) equalHintEl.style.display = isCustom ? 'none' : '';
+                });
+            });
+            if (cancelBtn) cancelBtn.addEventListener('click', closeAddStepFinanceModal);
+            overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeAddStepFinanceModal(); });
+            if (createBtn) createBtn.addEventListener('click', function() {
+                var dreamId = overlay.dataset.dreamId;
+                if (!dreamId) return;
+                var targetAmount = amountIn && amountIn.value ? parseFloat(amountIn.value) : NaN;
+                if (isNaN(targetAmount) || targetAmount <= 0) { alert('Введите нужную сумму'); return; }
+                var endDate = endIn && endIn.value ? endIn.value : '';
+                if (!endDate) { alert('Укажите дату окончания срока'); return; }
+                var dueDay = dueIn && dueIn.value ? parseInt(dueIn.value, 10) : 31;
+                if (isNaN(dueDay) || dueDay < 1) dueDay = 1;
+                if (dueDay > 31) dueDay = 31;
+                var distRadio = overlay.querySelector('input[name="modal-fin-distribution"]:checked');
+                var distribution = (distRadio && distRadio.value) || 'equal';
+                var body = { target_amount: targetAmount, end_date: endDate, due_day: dueDay, distribution: distribution };
+                if (distribution === 'custom') {
+                    var inputs = overlay.querySelectorAll('.modal-fin-month-inp');
+                    var amounts = [];
+                    for (var i = 0; i < 12; i++) {
+                        var inp = overlay.querySelector('.modal-fin-month-inp[data-month="' + i + '"]');
+                        var v = (inp && inp.value && inp.value.trim()) ? parseFloat(inp.value) : 0;
+                        amounts.push(isNaN(v) || v < 0 ? 0 : v);
+                    }
+                    var sum = amounts.reduce(function(a, b) { return a + b; }, 0);
+                    if (sum <= 0) { alert('Введите хотя бы одну сумму по месяцам'); return; }
+                    body.monthly_amounts = amounts;
+                }
+                createBtn.disabled = true;
+                createBtn.textContent = 'Создаём…';
+                fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/finance?' + dreamApiUserParams(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                })
+                .then(function(res) {
+                    if (!res.ok) return res.json().then(function(e) { throw new Error(e.detail || 'Ошибка'); });
+                    return res.json();
+                })
+                .then(function() {
+                    closeAddStepFinanceModal();
+                    refreshAfterDreamChange();
+                })
+                .catch(function(e) {
+                    alert(e && e.message ? e.message : 'Ошибка при создании шагов');
+                })
+                .finally(function() {
+                    createBtn.disabled = false;
+                    createBtn.textContent = 'Создать шаги';
+                });
+            });
         }
         async function addStep(dreamId, title, deadline, onDone, optBtn) {
             try {
                 var body = { title: title };
                 if (deadline) body.deadline = deadline;
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?' + dreamApiUserParams(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-                if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); if (optBtn) optBtn.disabled = false; return; }
+                if (!res.ok) { var e = await res.json(); alert(e.detail || 'Ошибка'); if (optBtn) { optBtn.disabled = false; if (optBtn.dataset.restoreText) optBtn.textContent = optBtn.dataset.restoreText; } return; }
                 var data = await res.json();
                 onDone(data);
-            } catch (e) { alert('Ошибка сети'); if (optBtn) optBtn.disabled = false; }
+            } catch (e) { alert('Ошибка сети'); if (optBtn) { optBtn.disabled = false; if (optBtn.dataset.restoreText) optBtn.textContent = optBtn.dataset.restoreText; } }
         }
         async function saveStepCompleted(dreamId, stepId, completed) {
             try {
@@ -2417,10 +2993,14 @@
             var mNew = document.getElementById('modal-new-dream');
             var mEdit = document.getElementById('modal-edit-dream');
             var mBuddy = document.getElementById('modal-add-buddy');
+            var mAddStep = document.getElementById('modal-add-step');
             if (mNew && !mNew.classList.contains('hidden')) { closeNewDreamModal(); ev.preventDefault(); return; }
             if (mEdit && !mEdit.classList.contains('hidden')) { closeEditDreamModal(); ev.preventDefault(); return; }
-            if (mBuddy && !mBuddy.classList.contains('hidden')) { closeAddBuddyModal(); ev.preventDefault(); }
+            if (mBuddy && !mBuddy.classList.contains('hidden')) { closeAddBuddyModal(); ev.preventDefault(); return; }
+            if (mAddStep && !mAddStep.classList.contains('hidden')) { closeAddStepModal(); ev.preventDefault(); }
         });
+        initAddStepModal();
+        initAddStepFinanceModal();
 
         function logout() {
             currentUser = null;
@@ -2459,6 +3039,8 @@
             document.getElementById('reg-phone').value = '';
             document.getElementById('reg-country').value = '+7';
             document.getElementById('reg-city').value = '';
+            var rt = document.getElementById('reg-telegram'); if (rt) rt.value = '';
+            var rv = document.getElementById('reg-vk'); if (rv) rv.value = '';
             document.getElementById('reg-password').value = '';
             var rep = document.getElementById('reg-password-repeat');
             if (rep) rep.value = '';
@@ -2526,7 +3108,9 @@
                 surname: document.getElementById('reg-surname').value.trim(),
                 phone: fullPhone,
                 city: document.getElementById('reg-city').value.trim(),
-                password: password
+                password: password,
+                telegram: (document.getElementById('reg-telegram') && document.getElementById('reg-telegram').value.trim()) || null,
+                vk: (document.getElementById('reg-vk') && document.getElementById('reg-vk').value.trim()) || null
             };
             if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Регистрация…'; }
 
@@ -2575,9 +3159,9 @@
                 }
             } catch (e) {}
         })();
-        // При загрузке страницы — восстановить сессию из localStorage (запомнить пользователя)
+        // При загрузке страницы — восстановить сессию из localStorage и обновить данные с сервера (чтобы аватар бадди и др. не устаревали)
         loadLandingStats();
-        (function tryRestoreUser() {
+        (async function tryRestoreUser() {
             var saved = null;
             try { saved = localStorage.getItem('savedUser'); } catch (e) { return; }
             if (!saved) {
@@ -2586,6 +3170,19 @@
             }
             try {
                 currentUser = JSON.parse(saved);
+                if (!currentUser || !currentUser.id) {
+                    document.body.classList.add('landing-visible');
+                    return;
+                }
+                // Подтянуть актуальные данные с сервера (аватар бадди, имя и т.д.), чтобы в браузере на ПК не показывались устаревшие
+                try {
+                    var res = await fetch(API_BASE_URL + '/users/me?user_id=' + encodeURIComponent(currentUser.id), { cache: 'no-store' });
+                    if (res.ok) {
+                        var fresh = await res.json();
+                        currentUser = fresh;
+                        try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e2) {}
+                    }
+                } catch (e2) { /* оставляем данные из localStorage */ }
                 if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '');
                 if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '');
                 if (currentUser && currentUser.id) {

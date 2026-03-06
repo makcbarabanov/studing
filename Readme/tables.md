@@ -21,6 +21,8 @@
 | `avatar_path`   | VARCHAR(255) NULL | Путь к файлу аватарки относительно каталога `media/` (например `avatars/123.jpg`). Файлы лежат в `media/avatars/`. Миграция mig_012. |
 | `buddy_id`      | INT NULL           | ID бадди (другой пользователь). Связь один-на-один: бадди может просматривать мечты этого пользователя в разделе «Бадди». Взаимно: у бадди в `buddy_id` указывается этот пользователь. Миграция mig_013. |
 | `buddy_trust`   | BOOLEAN DEFAULT false | Уровень доверия к бадди: true — бадди может редактировать мечты этого пользователя (статус, шаги, удаление и т.д.); false — только просмотр. Миграция mig_014. |
+| `telegram`      | VARCHAR(100) NULL | Telegram (@username или t.me/...) для модалки «Хочу помочь» в витрине. Миграция mig_showcase_tables. |
+| `vk`            | VARCHAR(255) NULL | VK (ссылка на профиль) для модалки «Хочу помочь». Миграция mig_showcase_tables. |
 
 ---
 
@@ -49,6 +51,8 @@
 | `deadline`        | DATE          | Дедлайн (дата, до которой нужно осуществить). В формате YYYY-MM-DD, в API отдаётся строкой. |
 | `status_id`       | INT NOT NULL DEFAULT 1 | Ссылка на `dreams_statuses.id`. Добавлен в mig_006. |
 | `category_id`     | INT NULL      | Ссылка на `dreams_categories.id`. Добавлен в mig_006. NULL — без категории. |
+| `rule_code`       | VARCHAR(100) NULL | Код правила из `steps_rules.rule_code` (например, `books_reading`). Если задан, к мечте применяется спецлогика (книги, финцель и т.д.). Миграция mig_books_module. |
+| `settings`        | JSONB NULL    | Настройки мечты по правилу: для книг — `{"minutes_per_day": 15}`; для финцели — параметры анкеты (срок, «равные/разные», число внесения в месяц, при разных — суммы по месяцам или формула). Миграция mig_books_module. |
 
 **Примечание:** Колонки `status` и `category` (VARCHAR) после mig_006/mig_006b удалены; вместо них используются `status_id` и `category_id`. Колонка `is_public` гарантируется миграцией mig_011 (ADD COLUMN IF NOT EXISTS, по умолчанию true).
 
@@ -86,6 +90,41 @@
 | `fact_amount` | NUMERIC(12,2) NULL | Для шагов финцели: фактически внесённая сумма за период. Редактируется пользователем; колонка «Итог» (профицит/дефицит/по плану) считается по плану и факту. |
 
 Индекс (не таблица): `idx_dreams_steps_dream_id` на столбец `dreams_steps(dream_id)` — для быстрого поиска шагов по мечте (mig_001, имя обновлено в mig_017). Всё, что касается мечт, имеет префикс `dreams_`.
+
+---
+
+### 4a. `dream_books`
+
+**Назначение:** Книги внутри мечты с правилом «чтение» (`dreams.rule_code = 'books_reading'`). Отдельный домен: картотека книг, статус (в плане / читаю / слушаю / завершил), даты. Расписание по таким мечтам генерируется виртуально (одна строка на день на каждую активную книгу). Миграция mig_books_module.
+
+| Колонка     | Тип            | Описание |
+|-------------|----------------|----------|
+| `id`        | SERIAL PRIMARY KEY | Уникальный идентификатор книги. |
+| `dream_id`  | INT NOT NULL   | Мечта. REFERENCES `dreams(id)` ON DELETE CASCADE. |
+| `title`     | VARCHAR(500) NOT NULL | Название книги. |
+| `author`    | VARCHAR(300) NULL | Автор. |
+| `status`    | VARCHAR(20) NOT NULL DEFAULT 'planned' | planned, reading, listening, finished. |
+| `started_at`| DATE NULL      | Дата перехода в «читаю»/«слушаю». |
+| `deadline`  | DATE NULL      | Планирую закончить до. |
+| `finished_at` | DATE NULL    | Фактическая дата завершения. |
+
+Индексы: `idx_dream_books_dream_id`, `idx_dream_books_status`.
+
+---
+
+### 4b. `dream_books_log`
+
+**Назначение:** Дневник чтения: факт по дням (дата, минуты, страницы). По наличию записи за дату в Расписании ставится галочка «Выполнено». Миграция mig_books_module.
+
+| Колонка       | Тип            | Описание |
+|---------------|----------------|----------|
+| `id`          | SERIAL PRIMARY KEY | Уникальный идентификатор записи. |
+| `book_id`     | INT NOT NULL   | Книга. REFERENCES `dream_books(id)` ON DELETE CASCADE. |
+| `date`        | DATE NOT NULL  | Дата. |
+| `minutes_spent` | INT NULL     | Сколько минут читал/слушал. |
+| `pages_read`  | INT NULL       | Сколько страниц прочитал. |
+
+UNIQUE(book_id, date). Индекс: `idx_dream_books_log_book_date`.
 
 ---
 
@@ -141,7 +180,52 @@
 
 ---
 
-### 8. `steps_rules`
+### 8. `user_dream_views`
+
+**Назначение:** Просмотры мечт в витрине. Одна запись = пользователь просмотрел мечту (карточка во вьюпорте). Используется для фильтра «Новые» (непросмотренные в приоритете) и «Просмотренные». Миграция mig_showcase_tables.
+
+| Колонка   | Тип            | Описание |
+|-----------|----------------|----------|
+| `id`      | SERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `user_id` | INT NOT NULL   | Кто просмотрел. REFERENCES users(id) ON DELETE CASCADE. |
+| `dream_id`| INT NOT NULL   | Какую мечту. REFERENCES dreams(id) ON DELETE CASCADE. |
+| `viewed_at` | TIMESTAMP DEFAULT NOW() | Когда просмотрено. |
+
+UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_views_user`, `idx_user_dream_views_dream`.
+
+---
+
+### 9. `user_dream_favorites`
+
+**Назначение:** Избранные мечты (лайки). Пользователь добавляет мечту в избранное для быстрого возврата. Миграция mig_showcase_tables.
+
+| Колонка   | Тип            | Описание |
+|-----------|----------------|----------|
+| `id`      | SERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `user_id` | INT NOT NULL   | Кто добавил. REFERENCES users(id) ON DELETE CASCADE. |
+| `dream_id`| INT NOT NULL   | Какую мечту. REFERENCES dreams(id) ON DELETE CASCADE. |
+| `created_at` | TIMESTAMP DEFAULT NOW() | Когда добавлено. |
+
+UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_favorites_user`, `idx_user_dream_favorites_dream`.
+
+---
+
+### 10. `user_dream_help_intent`
+
+**Назначение:** Намерение помочь — пользователь нажал «Хочу помочь» в витрине. **Две сущности:** (1) намерение — эта таблица; (2) факт исполнения — `dreams_log` (кто отметил, что мечта сбылась). Миграция mig_showcase_tables.
+
+| Колонка   | Тип            | Описание |
+|-----------|----------------|----------|
+| `id`      | SERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `user_id` | INT NOT NULL   | Кто нажал. REFERENCES users(id) ON DELETE CASCADE. |
+| `dream_id`| INT NOT NULL   | Какую мечту. REFERENCES dreams(id) ON DELETE CASCADE. |
+| `created_at` | TIMESTAMP DEFAULT NOW() | Когда нажал. |
+
+UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_help_intent_user`, `idx_user_dream_help_intent_dream`.
+
+---
+
+### 11. `steps_rules`
 
 **Назначение:** Справочник правил разбиения целей на шаги. Позволяет описывать типовые схемы (например, финансовые цели с годовой суммой, равномерно разбитой по месяцам) и применять их при создании мечты.
 
@@ -151,15 +235,15 @@
 | `category_code`| VARCHAR(50) NOT NULL | Код категории из `dreams_categories.code` (например, `finance`). |
 | `rule_code`    | VARCHAR(100) NOT NULL | Внутренний код правила (например, `yearly_amount_by_month_equal`). |
 | `rules`        | JSONB NOT NULL    | JSON с параметрами правила (описание, период, количество шагов, способ распределения и т.п.). |
-| `comment`      | TEXT              | Человекочитаемый комментарий.
+| `comment`      | TEXT              | Человекочитаемый комментарий. Может содержать ссылку на раздел в **Readme/rules.md**, где описана полная пошаговая инструкция для этого правила (передача контекста новому админу/агенту).
 
-Пример записи: правило `yearly_amount_by_month_equal` для категории `finance` задаёт схему «годовая сумма, равномерно разбитая на 12 ежемесячных шагов календарного года».
+Примеры записей: `yearly_amount_by_month_equal` (finance) — годовая сумма, равными долями по месяцам; `yearly_amount_by_month_custom` (finance) — разные суммы по месяцам (список или формула: первый месяц 0, второй A, множитель N, сумма за период = цель). Для финцели в **dreams.settings** могут храниться параметры анкеты: тип «заработать/накопить», срок, число внесения (день месяца в расписании), при «разные» — явные суммы по месяцам или параметры формулы.
 
 ---
 
 ## Актуальные таблицы (без префикса _old_)
 
-Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **buddy_requests**, **steps_rules**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
+Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_dream_views**, **user_dream_favorites**, **user_dream_help_intent**, **steps_rules**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
 
 ## Таблицы с префиксом _old_
 

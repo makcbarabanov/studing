@@ -1,15 +1,17 @@
 import os
 import time
+import calendar
+from datetime import datetime
 from pathlib import Path
 import psycopg2
 from psycopg2 import pool
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
@@ -92,6 +94,8 @@ class UserRegister(BaseModel):
     phone: str
     city: str
     password: str
+    telegram: Optional[str] = None
+    vk: Optional[str] = None
 
 class UserCreate(BaseModel):
     full_name: str
@@ -121,10 +125,21 @@ class DreamUpdate(BaseModel):
     deadline: Optional[str] = None  # YYYY-MM-DD or null to clear
     price: Optional[float] = None  # рубли
     is_public: Optional[bool] = None
+    rule_code: Optional[str] = None   # например 'books_reading'
+    settings: Optional[dict] = None  # например {"minutes_per_day": 15}
 
 class StepCreate(BaseModel):
     title: str
     deadline: Optional[str] = None  # YYYY-MM-DD
+
+class FinanceStepsCreate(BaseModel):
+    """Тело запроса для создания шагов финцели (анкета «Добавить шаги»)."""
+    target_amount: float  # целевая сумма в рублях
+    end_date: str  # YYYY-MM-DD — дата окончания периода (определяет год и последний месяц)
+    due_day: int = 31  # число каждого месяца для дедлайна шага (1–31)
+    distribution: str = "equal"  # equal | custom
+    monthly_amounts: Optional[List[float]] = None  # при custom: явный список из 12 сумм по месяцам
+    formula: Optional[dict] = None  # при custom: { "first_month_zero": true, "second_month_amount": float, "multiplier": float }
 
 class StepUpdate(BaseModel):
     title: Optional[str] = None
@@ -138,6 +153,27 @@ class BuddyRequestCreate(BaseModel):
 
 class BuddyRequestUpdate(BaseModel):
     status: str  # accepted | declined
+
+class DreamBookCreate(BaseModel):
+    title: str
+    author: Optional[str] = None
+    status: Optional[str] = "planned"  # planned | reading | listening | finished
+    started_at: Optional[str] = None   # YYYY-MM-DD
+    deadline: Optional[str] = None
+    finished_at: Optional[str] = None
+
+class DreamBookUpdate(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    status: Optional[str] = None
+    started_at: Optional[str] = None
+    deadline: Optional[str] = None
+    finished_at: Optional[str] = None
+
+class DreamBookLogCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    minutes_spent: Optional[int] = None
+    pages_read: Optional[int] = None
 
 def _load_steps(cur, dream_ids):
     """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of {id, title, completed, deadline, deleted, plan_amount, fact_amount}."""
@@ -185,6 +221,128 @@ def _load_steps(cur, dream_ids):
             pass
     return out
 
+def _load_books(cur, dream_ids):
+    """Загружает книги по списку dream_id (для мечт с rule_code=books_reading). Возвращает dict dream_id -> list of book dicts."""
+    out = {}
+    if not dream_ids:
+        return out
+    try:
+        cur.execute(
+            """SELECT id, dream_id, title, author, status, started_at, deadline, finished_at
+               FROM dream_books WHERE dream_id = ANY(%s) ORDER BY dream_id, COALESCE(started_at, deadline, '9999-12-31'), id""",
+            (dream_ids,),
+        )
+        for r in cur.fetchall():
+            did = r["dream_id"]
+            if did not in out:
+                out[did] = []
+            out[did].append({
+                "id": r["id"],
+                "title": r["title"] or "",
+                "author": r["author"],
+                "status": r["status"] or "planned",
+                "started_at": str(r["started_at"]) if r.get("started_at") else None,
+                "deadline": str(r["deadline"]) if r.get("deadline") else None,
+                "finished_at": str(r["finished_at"]) if r.get("finished_at") else None,
+            })
+    except psycopg2.ProgrammingError:
+        pass
+    return out
+
+def _schedule_items_standard(cur, user_id: int, date_from: str, date_to: str):
+    """Пункты расписания из обычных шагов (dreams_steps): дедлайн в диапазоне [date_from, date_to]."""
+    items = []
+    try:
+        cur.execute(
+            """SELECT d.id AS dream_id, s.id AS source_id, s.title, s.deadline AS date, s.completed
+               FROM dreams d
+               JOIN dreams_steps s ON s.dream_id = d.id
+               WHERE d.user_id = %s AND s.deadline IS NOT NULL
+                 AND s.deadline >= %s AND s.deadline <= %s
+                 AND COALESCE(s.deleted, false) = false
+               ORDER BY s.deadline, s.id""",
+            (user_id, date_from, date_to),
+        )
+        for r in cur.fetchall():
+            items.append({
+                "dream_id": r["dream_id"],
+                "source_type": "step",
+                "source_id": r["source_id"],
+                "title": r["title"] or "",
+                "date": str(r["date"]),
+                "completed": bool(r["completed"]),
+            })
+    except psycopg2.ProgrammingError:
+        pass
+    return items
+
+def _schedule_items_books(cur, user_id: int, date_from: str, date_to: str):
+    """Виртуальные пункты расписания из активных книг (reading/listening): по одной строке на день в [started_at, deadline]."""
+    from datetime import datetime, timedelta
+    items = []
+    try:
+        cur.execute(
+            """SELECT d.id AS dream_id, d.settings,
+               b.id AS book_id, b.title AS book_title, b.status AS book_status, b.started_at, b.deadline
+               FROM dreams d
+               JOIN dream_books b ON b.dream_id = d.id
+               WHERE d.user_id = %s AND d.rule_code = 'books_reading'
+                 AND b.status IN ('reading', 'listening')
+                 AND b.started_at IS NOT NULL AND b.deadline IS NOT NULL
+                 AND b.deadline >= %s AND b.started_at <= %s""",
+            (user_id, date_from, date_to),
+        )
+        rows = cur.fetchall()
+        if not rows:
+            return items
+        cur.execute(
+            """SELECT book_id, date FROM dream_books_log
+               WHERE book_id = ANY(%s) AND date >= %s AND date <= %s""",
+            (list({r["book_id"] for r in rows}), date_from, date_to),
+        )
+        log_done = {(r["book_id"], str(r["date"])) for r in cur.fetchall()}
+    except psycopg2.ProgrammingError:
+        return items
+    d_from = datetime.strptime(date_from, "%Y-%m-%d").date()
+    d_to = datetime.strptime(date_to, "%Y-%m-%d").date()
+    for r in rows:
+        dream_id = r["dream_id"]
+        book_id = r["book_id"]
+        book_title = r["book_title"] or "Книга"
+        status = r["book_status"] or "reading"
+        started = r["started_at"]
+        deadline = r["deadline"]
+        if isinstance(started, str):
+            started = datetime.strptime(started[:10], "%Y-%m-%d").date()
+        if isinstance(deadline, str):
+            deadline = datetime.strptime(deadline[:10], "%Y-%m-%d").date()
+        settings = r.get("settings") or {}
+        if isinstance(settings, str):
+            try:
+                import json
+                settings = json.loads(settings) if settings else {}
+            except Exception:
+                settings = {}
+        mins = settings.get("minutes_per_day", 15)
+        prefix = "Слушать" if status == "listening" else "Читать"
+        title = f"{prefix} «{book_title}» ({mins} мин)"
+        day_start = max(started, d_from)
+        day_end = min(deadline, d_to)
+        d = day_start
+        while d <= day_end:
+            date_str = d.strftime("%Y-%m-%d")
+            completed = (book_id, date_str) in log_done
+            items.append({
+                "dream_id": dream_id,
+                "source_type": "book",
+                "source_id": book_id,
+                "title": title,
+                "date": date_str,
+                "completed": completed,
+            })
+            d += timedelta(days=1)
+    return items
+
 def get_db_connection():
     """Берёт соединение из пула. Если пула нет (запуск без БД) — создаёт разовое подключение."""
     if db_pool is not None:
@@ -198,9 +356,14 @@ def get_db_connection():
     )
 
 @app.get("/", response_class=FileResponse)
+def root_page():
+    """Корень — личный кабинет"""
+    return FileResponse(Path(__file__).parent / "index.html")
+
+
 @app.get("/dreams.html", response_class=FileResponse)
-def vitrina_page():
-    """Витрина мечт — публичная страница с мечтами участников"""
+def dreams_page():
+    """Публичная витрина мечт — без авторизации. Захотел помочь — регистрация в ЛК."""
     return FileResponse(Path(__file__).parent / "dreams.html")
 
 @app.get("/admin", response_class=FileResponse)
@@ -227,7 +390,7 @@ def login_user(user_login: UserLogin):
             phone_alt = ("+7" + user_login.phone[1:]) if user_login.phone.startswith("8") and len(user_login.phone) >= 11 else user_login.phone
             try:
                 cur.execute("""
-                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id, buddy_trust
+                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id, buddy_trust, telegram, vk
                     FROM users
                     WHERE phone = %s OR phone = %s
                 """, (user_login.phone, phone_alt))
@@ -264,7 +427,7 @@ def login_user(user_login: UserLogin):
                 if buddy_row:
                     buddy_name = f"{buddy_row.get('name') or ''} {buddy_row.get('surname') or ''}".strip() or None
                     buddy_avatar_path = buddy_row.get("avatar_path")
-            return {
+            result = {
                 "id": user_data["id"],
                 "full_name": full_name,
                 "city": user_data["city"],
@@ -276,6 +439,11 @@ def login_user(user_login: UserLogin):
                 "buddy_avatar_path": buddy_avatar_path,
                 "dream": "Мечта загружается..."
             }
+            if "telegram" in user_data:
+                result["telegram"] = user_data.get("telegram")
+            if "vk" in user_data:
+                result["vk"] = user_data.get("vk")
+            return result
     except HTTPException:
         raise
     except Exception as e:
@@ -344,6 +512,51 @@ def upload_avatar(user_id: int, file: UploadFile = File(...)):
     finally:
         _return_conn(conn)
     return {"ok": True, "avatar_path": avatar_path}
+
+
+@app.get("/users/me")
+def users_me(user_id: int):
+    """Актуальные данные текущего пользователя (как при логине): id, full_name, avatar_path, buddy_id, buddy_name, buddy_avatar_path. Нужно для обновления сессии из localStorage без повторного ввода пароля."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust
+                   FROM users WHERE id = %s""",
+                (user_id,),
+            )
+            user_data = cur.fetchone()
+            if user_data is None:
+                raise HTTPException(status_code=404, detail="Пользователь не найден")
+            full_name = f"{user_data.get('name') or ''} {user_data.get('surname') or ''}".strip() or "Пользователь"
+            buddy_id = user_data.get("buddy_id")
+            buddy_name = None
+            buddy_avatar_path = None
+            if buddy_id:
+                cur.execute("SELECT name, surname, avatar_path FROM users WHERE id = %s", (buddy_id,))
+                buddy_row = cur.fetchone()
+                if buddy_row:
+                    buddy_name = f"{buddy_row.get('name') or ''} {buddy_row.get('surname') or ''}".strip() or None
+                    buddy_avatar_path = buddy_row.get("avatar_path")
+            return {
+                "id": user_data["id"],
+                "full_name": full_name,
+                "city": user_data.get("city"),
+                "phone": user_data.get("phone"),
+                "avatar_path": user_data.get("avatar_path"),
+                "buddy_id": buddy_id,
+                "buddy_trust": bool(user_data.get("buddy_trust")),
+                "buddy_name": buddy_name,
+                "buddy_avatar_path": buddy_avatar_path,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
 
 # --- Список пользователей для модалки «Добавить бадди» ---
 @app.get("/users/list")
@@ -557,11 +770,13 @@ def register_user(user: UserRegister):
             cur.execute("SELECT id FROM users WHERE phone = %s OR phone = %s", (user.phone, phone_alt))
             if cur.fetchone():
                 raise HTTPException(status_code=400, detail="Пользователь с таким телефоном уже зарегистрирован")
+            tel = (user.telegram or "").strip() or None
+            vk_val = (user.vk or "").strip() or None
             cur.execute("""
-                INSERT INTO users (name, surname, phone, city, password_hash)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO users (name, surname, phone, city, password_hash, telegram, vk)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (user.name.strip(), user.surname.strip(), user.phone, user.city.strip(), bcrypt.hash(user.password)))
+            """, (user.name.strip(), user.surname.strip(), user.phone, user.city.strip(), bcrypt.hash(user.password), tel, vk_val))
             row = cur.fetchone()
         conn.commit()
         return {"id": row["id"]}
@@ -619,7 +834,7 @@ def _resolve_editor_and_check_dream(cur, dream_id: int, user_id: int, viewer_id:
         raise HTTPException(status_code=403, detail="Нет права редактировать эту мечту")
     return owner_id
 
-def _build_dream_item(row, steps_by_dream):
+def _build_dream_item(row, steps_by_dream, books_by_dream=None):
     """Собирает один элемент для ответа GET /dreams из строки БД."""
     dream_id = row["id"]
     title = (row.get("dream") or "").strip()
@@ -627,6 +842,7 @@ def _build_dream_item(row, steps_by_dream):
     dl = row.get("deadline")
     deadline = str(dl) if dl is not None else None
     steps = steps_by_dream.get(dream_id, [])
+    books = (books_by_dream or {}).get(dream_id, [])
     price = row.get("price")
     if price is not None and hasattr(price, "__float__"):
         try:
@@ -654,12 +870,15 @@ def _build_dream_item(row, steps_by_dream):
         "is_public": row.get("is_public") if row.get("is_public") is not None else True,
         "progress": 0,
         "steps": steps,
+        "rule_code": row.get("rule_code"),
+        "settings": row.get("settings"),
+        "books": books,
     }
 
 
 @app.get("/dreams/showcase")
-def get_dreams_showcase():
-    """Витрина мечт: все публичные мечты с именем автора. Без авторизации."""
+def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional[str] = None):
+    """Витрина мечт: публичные мечты. user_id — для флагов viewed/favorite/helping. showcase_filter: new, helping, all, favorites, viewed."""
     conn = None
     try:
         conn = get_db_connection()
@@ -669,7 +888,8 @@ def get_dreams_showcase():
                     SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
                            COALESCE(s.code, 'planned') AS status_code,
                            s.label_ru AS status_label,
-                           u.name AS user_name, u.surname AS user_surname, u.city AS user_city
+                           u.name AS user_name, u.surname AS user_surname, u.city AS user_city,
+                           u.telegram AS user_telegram, u.vk AS user_vk, u.phone AS user_phone
                     FROM dreams d
                     JOIN users u ON u.id = d.user_id
                     LEFT JOIN dreams_statuses s ON d.status_id = s.id
@@ -681,7 +901,8 @@ def get_dreams_showcase():
                 conn.rollback()
                 cur.execute("""
                     SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
-                           u.name AS user_name, u.surname AS user_surname, u.city AS user_city
+                           u.name AS user_name, u.surname AS user_surname, u.city AS user_city,
+                           u.telegram AS user_telegram, u.vk AS user_vk, u.phone AS user_phone
                     FROM dreams d
                     JOIN users u ON u.id = d.user_id
                     WHERE COALESCE(d.is_public, true) = true
@@ -691,8 +912,32 @@ def get_dreams_showcase():
                 for r in rows:
                     r["status_code"] = "planned"
                     r["status_label"] = "Запланировано"
+            dream_ids = [r["id"] for r in rows]
+            viewed = set()
+            favorites = set()
+            helping = set()
+            if user_id and dream_ids:
+                try:
+                    cur.execute(
+                        "SELECT dream_id FROM user_dream_views WHERE user_id = %s AND dream_id = ANY(%s)",
+                        (user_id, dream_ids),
+                    )
+                    viewed = {r["dream_id"] for r in cur.fetchall()}
+                    cur.execute(
+                        "SELECT dream_id FROM user_dream_favorites WHERE user_id = %s AND dream_id = ANY(%s)",
+                        (user_id, dream_ids),
+                    )
+                    favorites = {r["dream_id"] for r in cur.fetchall()}
+                    cur.execute(
+                        "SELECT dream_id FROM user_dream_help_intent WHERE user_id = %s AND dream_id = ANY(%s)",
+                        (user_id, dream_ids),
+                    )
+                    helping = {r["dream_id"] for r in cur.fetchall()}
+                except psycopg2.ProgrammingError:
+                    pass
             result = []
             for r in rows:
+                did = r["id"]
                 full_name = f"{r.get('user_name') or ''} {r.get('user_surname') or ''}".strip() or "Участник"
                 price_val = r.get("price")
                 if price_val is not None:
@@ -702,8 +947,8 @@ def get_dreams_showcase():
                         price_val = None
                 else:
                     price_val = None
-                result.append({
-                    "id": r["id"],
+                item = {
+                    "id": did,
                     "dream": r.get("dream") or "",
                     "deadline": str(r["deadline"]) if r.get("deadline") else None,
                     "price": price_val,
@@ -713,9 +958,128 @@ def get_dreams_showcase():
                     "city": (r.get("user_city") or "").strip() or None,
                     "status": r.get("status_code") or "planned",
                     "status_label": r.get("status_label") or "Запланировано",
-                })
+                    "telegram": (r.get("user_telegram") or "").strip() or None,
+                    "vk": (r.get("user_vk") or "").strip() or None,
+                    "phone": r.get("user_phone"),
+                    "is_viewed": did in viewed,
+                    "is_favorite": did in favorites,
+                    "is_helping": did in helping,
+                }
+                result.append(item)
+            if showcase_filter and user_id:
+                if showcase_filter == "new":
+                    result = [x for x in result if not x["is_viewed"]]
+                elif showcase_filter == "helping":
+                    result = [x for x in result if x["is_helping"]]
+                elif showcase_filter == "favorites":
+                    result = [x for x in result if x["is_favorite"]]
+                elif showcase_filter == "viewed":
+                    result = [x for x in result if x["is_viewed"]]
+            if user_id:
+                result.sort(key=lambda x: x["date"] or "", reverse=True)
+                result.sort(key=lambda x: x["is_viewed"])
+            else:
+                result.sort(key=lambda x: x["date"] or "", reverse=True)
             return {"dreams": result}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+class ShowcaseActionBody(BaseModel):
+    user_id: int
+
+
+@app.post("/dreams/{dream_id}/view")
+def record_dream_view(dream_id: int, body: ShowcaseActionBody):
+    """Записать просмотр мечты (при появлении карточки во вьюпорте)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO user_dream_views (user_id, dream_id) VALUES (%s, %s)
+                   ON CONFLICT (user_id, dream_id) DO UPDATE SET viewed_at = NOW()""",
+                (body.user_id, dream_id),
+            )
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.IntegrityError:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=404, detail="Мечта не найдена")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/favorite")
+def add_dream_favorite(dream_id: int, body: ShowcaseActionBody):
+    """Добавить мечту в избранное."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO user_dream_favorites (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING",
+                (body.user_id, dream_id),
+            )
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.IntegrityError:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=404, detail="Мечта не найдена")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.delete("/dreams/{dream_id}/favorite")
+def remove_dream_favorite(dream_id: int, user_id: int):
+    """Убрать мечту из избранного."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM user_dream_favorites WHERE user_id = %s AND dream_id = %s", (user_id, dream_id))
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/help-intent")
+def record_dream_help_intent(dream_id: int, body: ShowcaseActionBody):
+    """Записать намерение помочь (нажал «Хочу помочь»)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO user_dream_help_intent (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING",
+                (body.user_id, dream_id),
+            )
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.IntegrityError:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=404, detail="Мечта не найдена")
+    except Exception as e:
+        if conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
@@ -738,6 +1102,7 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
             try:
                 cur.execute("""
                     SELECT d.id, d.dream, d.deadline, d.price, d.status_id, d.category_id, d.is_public,
+                           d.rule_code, d.settings,
                            s.code AS status_code, s.label_ru AS status_label, s.icon AS status_icon,
                            c.code AS category_code, c.label_ru AS category_label, c.icon AS category_icon
                     FROM dreams d
@@ -804,7 +1169,9 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
                 return {"dreams": [], "dreams_fulfilled_count": 0, "dreams_fulfilled_times": 0, "dreams_fulfilled_by_me": dreams_fulfilled_by_me}
             dream_ids = [r["id"] for r in dreams_rows]
             steps_by_dream = _load_steps(cur, dream_ids)
-            result = [_build_dream_item(row, steps_by_dream) for row in dreams_rows]
+            dream_ids_books = [r["id"] for r in dreams_rows if r.get("rule_code") == "books_reading"]
+            books_by_dream = _load_books(cur, dream_ids_books) if dream_ids_books else {}
+            result = [_build_dream_item(row, steps_by_dream, books_by_dream) for row in dreams_rows]
             dreams_fulfilled_count = 0
             dreams_fulfilled_times = 0
             dreams_fulfilled_by_me = 0
@@ -843,6 +1210,29 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
             status_code=500,
             detail=f"Ошибка: {str(e)}\n{traceback.format_exc()}"
         )
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/schedule")
+def get_schedule(user_id: int, date_from: Optional[str] = None, date_to: Optional[str] = None):
+    """Агрегатор расписания: обычные шаги + виртуальные строки от мечт типа «книги». Параметры date_from, date_to в формате YYYY-MM-DD; по умолчанию — сегодня."""
+    from datetime import date
+    today = date.today().strftime("%Y-%m-%d")
+    date_from = date_from or today
+    date_to = date_to or today
+    if date_from > date_to:
+        date_from, date_to = date_to, date_from
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            items = _schedule_items_standard(cur, user_id, date_from, date_to)
+            items.extend(_schedule_items_books(cur, user_id, date_from, date_to))
+            items.sort(key=lambda x: (x["date"], x["title"]))
+            return {"items": items, "date_from": date_from, "date_to": date_to}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
 
@@ -944,6 +1334,12 @@ def update_dream(dream_id: int, body: DreamUpdate, user_id: int):
             if "is_public" in payload:
                 updates.append("is_public = %s")
                 vals.append(payload["is_public"])
+            if "rule_code" in payload:
+                updates.append("rule_code = %s")
+                vals.append(payload["rule_code"] if payload["rule_code"] else None)
+            if "settings" in payload:
+                updates.append("settings = %s")
+                vals.append(Json(payload["settings"]) if payload["settings"] is not None else None)
             if not updates:
                 return {"ok": True}
             vals.append(dream_id)
@@ -1081,6 +1477,107 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
         _return_conn(conn)
 
 
+MONTH_NAMES_RU = ("Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь")
+
+
+def _compute_custom_plan_amounts(body: FinanceStepsCreate) -> List[float]:
+    """Считает 12 помесячных планов для distribution=custom: из monthly_amounts или по формуле (янв 0, фев A, далее A*N^k)."""
+    if body.distribution != "custom":
+        return []
+    if body.monthly_amounts and len(body.monthly_amounts) >= 12:
+        amounts = [float(x) for x in body.monthly_amounts[:12]]
+        s = sum(amounts)
+        if s > 0:
+            k = body.target_amount / s
+            return [round(a * k, 2) for a in amounts]
+        return amounts
+    if body.formula:
+        first_zero = body.formula.get("first_month_zero", True)
+        a = float(body.formula.get("second_month_amount") or 0)
+        n = float(body.formula.get("multiplier") or 1)
+        if a <= 0 or n <= 0:
+            raise HTTPException(status_code=400, detail="formula: second_month_amount и multiplier должны быть > 0")
+        # месяц 1 = 0 или A/N (если не first_zero), месяц 2 = A, месяц k = A * n^(k-2) для k=3..12
+        amounts = [0.0] * 12
+        if first_zero:
+            amounts[0] = 0.0
+            amounts[1] = a
+            for k in range(2, 12):
+                amounts[k] = a * (n ** (k - 1))
+        else:
+            amounts[0] = a / n
+            amounts[1] = a
+            for k in range(2, 12):
+                amounts[k] = a * (n ** (k - 1))
+        s = sum(amounts)
+        if s <= 0:
+            raise HTTPException(status_code=400, detail="formula: сумма получилась 0 или отрицательная")
+        k = body.target_amount / s
+        return [round(x * k, 2) for x in amounts]
+    raise HTTPException(status_code=400, detail="При distribution=custom укажите monthly_amounts или formula")
+
+
+@app.post("/dreams/{dream_id}/steps/finance")
+def create_finance_steps(dream_id: int, body: FinanceStepsCreate, user_id: int, viewer_id: Optional[int] = None):
+    """Создать шаги финцели (помесячно): равные доли или разные (список/формула). Разрешено владельцу или бадди с доверием."""
+    try:
+        end = datetime.strptime(body.end_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="end_date в формате YYYY-MM-DD")
+    year = end.year
+    due_day = max(1, min(31, body.due_day))
+    if body.distribution == "equal":
+        plan_per_month = round(body.target_amount / 12 / 1000) * 1000
+        if plan_per_month <= 0:
+            plan_per_month = round(body.target_amount / 12, 2)
+        plans = [plan_per_month] * 12
+    elif body.distribution == "custom":
+        plans = _compute_custom_plan_amounts(body)
+        if len(plans) != 12:
+            raise HTTPException(status_code=400, detail="Нужно 12 сумм по месяцам")
+    else:
+        raise HTTPException(status_code=400, detail="distribution должен быть equal или custom")
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute("SELECT COUNT(*) AS n FROM dreams_steps WHERE dream_id = %s AND deleted = false", (dream_id,))
+            if cur.fetchone()["n"] > 0:
+                raise HTTPException(status_code=400, detail="У мечты уже есть шаги. Удалите их перед созданием шагов по анкете.")
+            steps_out = []
+            for month_1based in range(1, 13):
+                _, last_day = calendar.monthrange(year, month_1based)
+                day = min(due_day, last_day)
+                deadline = f"{year}-{month_1based:02d}-{day:02d}"
+                title = MONTH_NAMES_RU[month_1based - 1]
+                plan_val = plans[month_1based - 1]
+                cur.execute(
+                    """INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deadline, plan_amount, fact_amount)
+                       VALUES (%s, %s, false, %s, %s, %s, 0)
+                       RETURNING id, title, completed, deadline, plan_amount""",
+                    (dream_id, title, month_1based - 1, deadline, plan_val),
+                )
+                row = cur.fetchone()
+                steps_out.append({
+                    "id": row["id"],
+                    "title": row["title"],
+                    "completed": False,
+                    "deadline": row["deadline"],
+                    "plan_amount": float(row["plan_amount"]) if row.get("plan_amount") is not None else None,
+                })
+            conn.commit()
+            return {"created": len(steps_out), "steps": steps_out}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
 @app.patch("/dreams/{dream_id}/steps/{step_id}")
 def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, viewer_id: Optional[int] = None):
     """Обновить шаг. Разрешено владельцу мечты или бадди с buddy_trust=true."""
@@ -1139,6 +1636,151 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+# --- Книги (модуль books_reading) ---
+@app.post("/dreams/{dream_id}/books")
+def create_dream_book(dream_id: int, body: DreamBookCreate, user_id: int, viewer_id: Optional[int] = None):
+    """Добавить книгу к мечте с rule_code=books_reading. Владелец или бадди с доверием."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute(
+                """INSERT INTO dream_books (dream_id, title, author, status, started_at, deadline, finished_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, title, author, status, started_at, deadline, finished_at""",
+                (
+                    dream_id,
+                    body.title.strip(),
+                    body.author.strip() if body.author else None,
+                    body.status or "planned",
+                    body.started_at if body.started_at else None,
+                    body.deadline if body.deadline else None,
+                    body.finished_at if body.finished_at else None,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return {
+                "id": row["id"],
+                "title": row["title"],
+                "author": row["author"],
+                "status": row["status"],
+                "started_at": str(row["started_at"]) if row.get("started_at") else None,
+                "deadline": str(row["deadline"]) if row.get("deadline") else None,
+                "finished_at": str(row["finished_at"]) if row.get("finished_at") else None,
+            }
+    except psycopg2.ProgrammingError as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    finally:
+        _return_conn(conn)
+
+
+@app.patch("/dreams/{dream_id}/books/{book_id}")
+def update_dream_book(dream_id: int, book_id: int, body: DreamBookUpdate, user_id: int, viewer_id: Optional[int] = None):
+    """Обновить книгу. Владелец мечты или бадди с доверием."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            updates, vals = [], []
+            if body.title is not None:
+                updates.append("title = %s")
+                vals.append(body.title.strip())
+            if body.author is not None:
+                updates.append("author = %s")
+                vals.append(body.author.strip() if body.author else None)
+            if body.status is not None:
+                updates.append("status = %s")
+                vals.append(body.status)
+            if body.started_at is not None:
+                updates.append("started_at = %s")
+                vals.append(body.started_at if body.started_at else None)
+            if body.deadline is not None:
+                updates.append("deadline = %s")
+                vals.append(body.deadline if body.deadline else None)
+            if body.finished_at is not None:
+                updates.append("finished_at = %s")
+                vals.append(body.finished_at if body.finished_at else None)
+            if not updates:
+                return {"ok": True}
+            vals.extend([book_id, dream_id])
+            cur.execute(
+                "UPDATE dream_books SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
+                vals,
+            )
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Книга не найдена")
+            conn.commit()
+            return {"ok": True}
+    except psycopg2.ProgrammingError as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/books/{book_id}/log")
+def upsert_dream_book_log(dream_id: int, book_id: int, body: DreamBookLogCreate, user_id: int, viewer_id: Optional[int] = None):
+    """Отметить факт чтения за дату (или обновить). Владелец мечты или бадди с доверием."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute("SELECT id FROM dream_books WHERE id = %s AND dream_id = %s", (book_id, dream_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Книга не найдена")
+            cur.execute(
+                """INSERT INTO dream_books_log (book_id, date, minutes_spent, pages_read)
+                   VALUES (%s, %s, %s, %s)
+                   ON CONFLICT (book_id, date) DO UPDATE SET minutes_spent = COALESCE(EXCLUDED.minutes_spent, dream_books_log.minutes_spent),
+                                                             pages_read = COALESCE(EXCLUDED.pages_read, dream_books_log.pages_read)""",
+                (book_id, body.date, body.minutes_spent, body.pages_read),
+            )
+            conn.commit()
+            return {"ok": True}
+    except psycopg2.ProgrammingError as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    finally:
+        _return_conn(conn)
+
+
+@app.delete("/dreams/{dream_id}/books/{book_id}/log")
+def delete_dream_book_log(dream_id: int, book_id: int, date: str, user_id: int, viewer_id: Optional[int] = None):
+    """Убрать отметку о чтении за дату."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute("SELECT 1 FROM dream_books WHERE id = %s AND dream_id = %s", (book_id, dream_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Книга не найдена")
+            cur.execute("DELETE FROM dream_books_log WHERE book_id = %s AND date = %s", (book_id, date))
+            conn.commit()
+            return {"ok": True}
+    except psycopg2.ProgrammingError as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
     finally:
         _return_conn(conn)
 
