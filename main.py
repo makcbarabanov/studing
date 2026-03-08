@@ -889,6 +889,7 @@ def get_dreams_showcase_counts(user_id: Optional[int] = None):
             count_all = cur.fetchone()["n"] or 0
             count_new = count_all
             count_helping = 0
+            count_helped = 0
             count_favorites = 0
             if user_id:
                 cur.execute(
@@ -901,10 +902,18 @@ def get_dreams_showcase_counts(user_id: Optional[int] = None):
                 cur.execute(
                     """SELECT COUNT(*) AS n FROM user_dream_help_intent h
                        JOIN dreams d ON d.id = h.dream_id AND COALESCE(d.is_public, true) = true
-                       WHERE h.user_id = %s""",
-                    (user_id,),
+                       WHERE h.user_id = %s
+                       AND NOT EXISTS (SELECT 1 FROM user_dream_helped hl WHERE hl.user_id = %s AND hl.dream_id = h.dream_id)""",
+                    (user_id, user_id),
                 )
                 count_helping = cur.fetchone()["n"] or 0
+                cur.execute(
+                    """SELECT COUNT(*) AS n FROM user_dream_helped hl
+                       JOIN dreams d ON d.id = hl.dream_id AND COALESCE(d.is_public, true) = true
+                       WHERE hl.user_id = %s""",
+                    (user_id,),
+                )
+                count_helped = cur.fetchone()["n"] or 0
                 cur.execute(
                     """SELECT COUNT(*) AS n FROM user_dream_favorites f
                        JOIN dreams d ON d.id = f.dream_id AND COALESCE(d.is_public, true) = true
@@ -912,7 +921,31 @@ def get_dreams_showcase_counts(user_id: Optional[int] = None):
                     (user_id,),
                 )
                 count_favorites = cur.fetchone()["n"] or 0
-            return {"new": count_new, "helping": count_helping, "favorites": count_favorites, "all": count_all}
+                count_in_progress = 0
+                count_pending_completion = 0
+                try:
+                    cur.execute(
+                        """SELECT COUNT(DISTINCT d.id) AS n FROM dreams d
+                           WHERE d.user_id = %s AND EXISTS (SELECT 1 FROM user_dream_help_intent h WHERE h.dream_id = d.id)""",
+                        (user_id,),
+                    )
+                    count_in_progress = cur.fetchone()["n"] or 0
+                    cur.execute(
+                        """SELECT COUNT(DISTINCT r.dream_id) AS n FROM user_dream_completion_request r
+                           JOIN dreams d ON d.id = r.dream_id WHERE d.user_id = %s""",
+                        (user_id,),
+                    )
+                    count_pending_completion = cur.fetchone()["n"] or 0
+                except psycopg2.ProgrammingError:
+                    pass
+            else:
+                count_in_progress = 0
+                count_pending_completion = 0
+            return {
+                "new": count_new, "helping": count_helping, "helped": count_helped,
+                "favorites": count_favorites, "all": count_all,
+                "in_progress": count_in_progress, "pending_completion": count_pending_completion,
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -921,11 +954,50 @@ def get_dreams_showcase_counts(user_id: Optional[int] = None):
 
 @app.get("/dreams/showcase")
 def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional[str] = None):
-    """Витрина мечт: публичные мечты. user_id — для флагов viewed/favorite/helping. showcase_filter: new, helping, all, favorites, viewed."""
+    """Витрина мечт: публичные мечты. user_id — для флагов. showcase_filter: new, helping, all, favorites, viewed, in_progress."""
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if showcase_filter == "in_progress" and user_id:
+                try:
+                    cur.execute("""
+                        SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
+                               COALESCE(s.code, 'planned') AS status_code, s.label_ru AS status_label,
+                               u.name AS user_name, u.surname AS user_surname
+                        FROM dreams d
+                        JOIN users u ON u.id = d.user_id
+                        LEFT JOIN dreams_statuses s ON d.status_id = s.id
+                        WHERE d.user_id = %s
+                          AND EXISTS (SELECT 1 FROM user_dream_help_intent h WHERE h.dream_id = d.id)
+                        ORDER BY d.id DESC
+                    """, (user_id,))
+                    rows = cur.fetchall()
+                    cur.execute(
+                        "SELECT dream_id FROM user_dream_completion_request WHERE dream_id = ANY(%s)",
+                        ([r["id"] for r in rows],),
+                    )
+                    completion_dreams = {r["dream_id"] for r in cur.fetchall()}
+                except psycopg2.ProgrammingError:
+                    conn.rollback()
+                    rows = []
+                    completion_dreams = set()
+                result = []
+                for r in rows:
+                    full_name = f"{r.get('user_name') or ''} {r.get('user_surname') or ''}".strip() or "Участник"
+                    result.append({
+                        "id": r["id"],
+                        "dream": r.get("dream") or "",
+                        "deadline": str(r["deadline"]) if r.get("deadline") else None,
+                        "price": float(r["price"]) if r.get("price") is not None else None,
+                        "date": str(r["date"]) if r.get("date") else None,
+                        "user_id": r["user_id"],
+                        "user_name": full_name,
+                        "is_owner_view": True,
+                        "has_pending_completion": r["id"] in completion_dreams,
+                    })
+                counts = {"new": 0, "helping": 0, "helped": 0, "favorites": 0, "all": 0, "in_progress": len(rows), "pending_completion": len(completion_dreams)}
+                return {"dreams": result, "counts": counts}
             try:
                 cur.execute("""
                     SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
@@ -959,6 +1031,8 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
             viewed = set()
             favorites = set()
             helping = set()
+            helped = set()
+            completion_requested = set()
             if user_id and dream_ids:
                 try:
                     cur.execute(
@@ -976,6 +1050,19 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                         (user_id, dream_ids),
                     )
                     helping = {r["dream_id"] for r in cur.fetchall()}
+                    cur.execute(
+                        "SELECT dream_id FROM user_dream_helped WHERE user_id = %s AND dream_id = ANY(%s)",
+                        (user_id, dream_ids),
+                    )
+                    helped = {r["dream_id"] for r in cur.fetchall()}
+                    try:
+                        cur.execute(
+                            "SELECT dream_id FROM user_dream_completion_request WHERE helper_user_id = %s AND dream_id = ANY(%s)",
+                            (user_id, dream_ids),
+                        )
+                        completion_requested = {r["dream_id"] for r in cur.fetchall()}
+                    except psycopg2.ProgrammingError:
+                        pass
                 except psycopg2.ProgrammingError:
                     pass
             result = []
@@ -1006,7 +1093,9 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                     "phone": r.get("user_phone"),
                     "is_viewed": did in viewed,
                     "is_favorite": did in favorites,
-                    "is_helping": did in helping,
+                    "is_helping": did in helping and did not in helped,
+                    "is_helped": did in helped,
+                    "pending_completion_request": (did in completion_requested) and (did in helping and did not in helped),
                 }
                 result.append(item)
             if showcase_filter and user_id:
@@ -1014,6 +1103,8 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                     result = [x for x in result if not x["is_viewed"]]
                 elif showcase_filter == "helping":
                     result = [x for x in result if x["is_helping"]]
+                elif showcase_filter == "helped":
+                    result = [x for x in result if x["is_helped"]]
                 elif showcase_filter == "favorites":
                     result = [x for x in result if x["is_favorite"]]
                 elif showcase_filter == "viewed":
@@ -1023,12 +1114,13 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                 result.sort(key=lambda x: x["is_viewed"])
             else:
                 result.sort(key=lambda x: x["date"] or "", reverse=True)
-            # Счётчики для фильтров: Новые (N) Помогаю (M) Избранные (I) Все (V)
+            # Счётчики: Новые, Помогаю, Помог, Избранные, Все
             count_all = len(rows)
             count_new = count_all - len(viewed) if user_id else count_all
-            count_helping = len(helping)
+            count_helping = len([d for d in helping if d not in helped])
+            count_helped = len(helped)
             count_favorites = len(favorites)
-            counts = {"new": count_new, "helping": count_helping, "favorites": count_favorites, "all": count_all}
+            counts = {"new": count_new, "helping": count_helping, "helped": count_helped, "favorites": count_favorites, "all": count_all}
             return {"dreams": result, "counts": counts}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1130,6 +1222,231 @@ def remove_dream_favorite(dream_id: int, user_id: int):
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("DELETE FROM user_dream_favorites WHERE user_id = %s AND dream_id = %s", (user_id, dream_id))
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+def _ensure_completion_request_table(cur):
+    """Создать таблицу user_dream_completion_request, если её нет."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_dream_completion_request (
+            id SERIAL PRIMARY KEY,
+            dream_id INT NOT NULL REFERENCES dreams(id) ON DELETE CASCADE,
+            helper_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(dream_id, helper_user_id)
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_completion_request_dream ON user_dream_completion_request(dream_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_completion_request_helper ON user_dream_completion_request(helper_user_id)")
+    except psycopg2.ProgrammingError:
+        pass
+
+
+@app.post("/dreams/{dream_id}/completion-request")
+def create_completion_request(dream_id: int, body: ShowcaseActionBody):
+    """Помощник нажал «Готово!» — отправить запрос владельцу. Возвращает owner_name для тоста."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_completion_request_table(cur)
+            conn.commit()
+            cur.execute("SELECT id, user_id FROM dreams WHERE id = %s", (dream_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Мечта не найдена")
+            owner_id = row["user_id"]
+            cur.execute(
+                "SELECT 1 FROM user_dream_help_intent WHERE user_id = %s AND dream_id = %s",
+                (body.user_id, dream_id),
+            )
+            if not cur.fetchone():
+                raise HTTPException(status_code=400, detail="Вы не помогаете этой мечте")
+            cur.execute(
+                """INSERT INTO user_dream_completion_request (dream_id, helper_user_id, requested_at)
+                   VALUES (%s, %s, NOW())
+                   ON CONFLICT (dream_id, helper_user_id) DO UPDATE SET requested_at = NOW()""",
+                (dream_id, body.user_id),
+            )
+            cur.execute("SELECT name, surname FROM users WHERE id = %s", (owner_id,))
+            owner = cur.fetchone()
+            owner_name = "Участник"
+            if owner:
+                owner_name = f"{owner.get('name') or ''} {owner.get('surname') or ''}".strip() or owner_name
+        conn.commit()
+        return {"ok": True, "owner_name": owner_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/dreams/notifications")
+def get_dreams_notifications(user_id: int):
+    """Уведомления владельца: мечты, по которым помощник нажал «Готово!» и ждёт ответа. Для колокольчика и контента уведомлений."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            try:
+                cur.execute("""
+                    SELECT r.dream_id, r.helper_user_id, r.requested_at,
+                           d.dream, d.deadline,
+                           u.name AS helper_name, u.surname AS helper_surname
+                    FROM user_dream_completion_request r
+                    JOIN dreams d ON d.id = r.dream_id AND d.user_id = %s
+                    JOIN users u ON u.id = r.helper_user_id
+                    ORDER BY r.requested_at DESC
+                """, (user_id,))
+                rows = cur.fetchall()
+            except psycopg2.ProgrammingError:
+                rows = []
+            out = []
+            seen_dreams = {}
+            for r in rows:
+                did = r["dream_id"]
+                helper_name = f"{r.get('helper_name') or ''} {r.get('helper_surname') or ''}".strip() or "Участник"
+                if did not in seen_dreams:
+                    seen_dreams[did] = {"dream_id": did, "dream": r.get("dream") or "", "deadline": str(r["deadline"]) if r.get("deadline") else None, "helper_names": []}
+                    out.append(seen_dreams[did])
+                seen_dreams[did]["helper_names"].append(helper_name)
+            return {"notifications": [{"dream_id": o["dream_id"], "dream": o["dream"], "deadline": o["deadline"], "helper_names": list(dict.fromkeys(o["helper_names"]))} for o in out]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/accept-completion")
+def accept_completion(dream_id: int, body: ShowcaseActionBody):
+    """Владелец нажал «Принять»: мечта выполнена, все помощники получают «Помог», запись в dreams_log."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, user_id FROM dreams WHERE id = %s", (dream_id,))
+            row = cur.fetchone()
+            if not row or row["user_id"] != body.user_id:
+                raise HTTPException(status_code=404, detail="Мечта не найдена или вы не владелец")
+            cur.execute("SELECT user_id FROM user_dream_help_intent WHERE dream_id = %s", (dream_id,))
+            helpers = [r["user_id"] for r in cur.fetchall()]
+            for h in helpers:
+                cur.execute("INSERT INTO user_dream_helped (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING", (h, dream_id))
+                cur.execute("DELETE FROM user_dream_help_intent WHERE user_id = %s AND dream_id = %s", (h, dream_id))
+            cur.execute("DELETE FROM user_dream_completion_request WHERE dream_id = %s", (dream_id,))
+            cur.execute("UPDATE dreams SET status_id = 3 WHERE id = %s", (dream_id,))
+            cur.execute("INSERT INTO dreams_log (dream_id, date, fulfilled_by_user_id) VALUES (%s, CURRENT_DATE, %s)", (dream_id, body.user_id))
+        conn.commit()
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/revision")
+def revision_completion(dream_id: int, body: ShowcaseActionBody):
+    """Владелец нажал «На доработку»: снять запрос на завершение, помощник остаётся в «Помогаю»."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM dreams WHERE id = %s", (dream_id,))
+            row = cur.fetchone()
+            if not row or row[0] != body.user_id:
+                raise HTTPException(status_code=404, detail="Мечта не найдена или вы не владелец")
+            cur.execute("DELETE FROM user_dream_completion_request WHERE dream_id = %s", (dream_id,))
+        conn.commit()
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/decline-help")
+def decline_help(dream_id: int, body: ShowcaseActionBody):
+    """Владелец нажал «Отказаться»: убрать всех помощников по этой мечте (МВП — от всех разом)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM dreams WHERE id = %s", (dream_id,))
+            row = cur.fetchone()
+            if not row or row[0] != body.user_id:
+                raise HTTPException(status_code=404, detail="Мечта не найдена или вы не владелец")
+            cur.execute("DELETE FROM user_dream_completion_request WHERE dream_id = %s", (dream_id,))
+            cur.execute("DELETE FROM user_dream_help_intent WHERE dream_id = %s", (dream_id,))
+        conn.commit()
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/dreams/{dream_id}/helped")
+def record_dream_helped(dream_id: int, body: ShowcaseActionBody):
+    """Отметить «Помог» — пользователь завершил помощь мечте. Удаляет из help_intent, добавляет в helped. (Вызывается после того, как владелец нажал «Принять».)"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO user_dream_helped (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING",
+                (body.user_id, dream_id),
+            )
+            cur.execute(
+                "DELETE FROM user_dream_help_intent WHERE user_id = %s AND dream_id = %s",
+                (body.user_id, dream_id),
+            )
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.IntegrityError:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=404, detail="Мечта не найдена")
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.delete("/dreams/{dream_id}/helped")
+def revert_dream_helped(dream_id: int, user_id: int):
+    """Вернуть — отменить помощь (удалить из helped и help_intent)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM user_dream_helped WHERE user_id = %s AND dream_id = %s", (user_id, dream_id))
+            cur.execute("DELETE FROM user_dream_help_intent WHERE user_id = %s AND dream_id = %s", (user_id, dream_id))
         conn.commit()
         return {"ok": True}
     except Exception as e:

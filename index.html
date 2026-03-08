@@ -180,7 +180,6 @@
         .app-header-avatar { position: relative; }
         .app-header-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
         .app-header-center { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; gap: 4px; }
-        .app-header-nav { font-family: 'HARP', sans-serif; font-size: 21px; letter-spacing: 0.05em; line-height: 1.4; }
         .app-header-name-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
         .app-header-name { font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; }
         .header-task-code { font-size: 0.75rem; color: #777; font-weight: normal; margin-left: 4px; }
@@ -201,8 +200,16 @@
         .showcase-card .showcase-dream { font-weight:500; color:#333; margin-bottom:8px; line-height:1.4; }
         .showcase-card .showcase-help-btn { width:100%; padding:10px; background:#4CAF50; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:600; margin-top:8px; }
         .showcase-card .showcase-help-btn:hover { opacity:0.9; }
+        .showcase-card .showcase-sent-btn { width:100%; padding:10px; background:#e0e0e0; color:#666; border:1px solid #ccc; border-radius:4px; font-weight:600; margin-top:8px; cursor:default; }
+        #toast-container { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:1000; pointer-events:none; }
+        #toast-container .toast { background:rgba(0,0,0,0.85); color:#fff; padding:12px 20px; border-radius:8px; font-size:14px; max-width:90vw; box-shadow:0 4px 12px rgba(0,0,0,0.2); animation:toast-in 0.25s ease; }
+        @keyframes toast-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         .contact-buttons a { display:inline-flex; align-items:center; padding:8px 14px; border-radius:6px; border:2px solid #4CAF50; background:#fff; color:#2e7d32; font-weight:600; text-decoration:none; transition:all 0.2s; }
         .contact-buttons a:hover { background:#4CAF50; color:#fff; }
+        .app-header-bell { position: relative; width: 40px; height: 40px; margin-left: 8px; margin-right: 4px; background: none; border: none; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .app-header-bell:hover { background: rgba(0,0,0,0.06); }
+        .app-header-bell-dot { position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; border: 2px solid #fff; }
+        .app-header-bell-dot.hidden { display: none; }
         .app-header-buddy-slot { position: relative; width: 72px; min-width: 72px; min-height: 72px; margin-left: auto; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: stretch; cursor: pointer; transition: opacity 0.2s; }
         .app-header-buddy-slot:hover { opacity: 0.9; }
         .app-header-buddy-slot img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
@@ -222,9 +229,6 @@
         .buddy-slot-request-btn.decline { background: #fff; border-color: #ccc; color: #666; }
         .buddy-slot-request-btn.decline:hover { background: #ffebee; border-color: #c62828; color: #b71c1c; }
         .app-header-buddy-slot .buddy-slot-me-label { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 600; color: #333; z-index: 1; text-shadow: 0 0 2px #fff; }
-        .header-nav-item { color: #555; }
-        .header-nav-item.active { font-weight: 600; color: #333; }
-        .header-nav-sep { color: #ccc; }
         .app-header-divider { height: 1px; background: linear-gradient(90deg, transparent, #ddd 10%, #ddd 90%, transparent); margin: 0 0 16px 0; }
         @media (min-width: 769px) {
             .app-menu-desktop-hidden { display: none !important; }
@@ -425,7 +429,7 @@
             <input type="file" id="avatar-file" accept="image/*" class="hidden" aria-hidden="true">
             <div class="app-sticky-top">
                 <div class="app-sticky-inner">
-            <!-- Хедер: аватар (3 строки по высоте) + справа: имя, сбылось|помог, Мечты|Шаги -->
+            <!-- Хедер: аватар + справа: имя, сбылось|помог -->
             <header class="app-header">
                 <div class="app-header-avatar" id="profile-avatar" title="Аватар"><span id="profile-initials">—</span></div>
                 <div class="app-header-center">
@@ -433,10 +437,8 @@
                     <div class="app-header-stats">
                         <span id="stat-ratio-wrap" class="stat-clickable" role="button" tabindex="0" title="Нажми, чтобы вернуться к своим мечтам"><span id="stat-dreams-ratio" class="stat-num">0/0</span> сбылось</span><span class="stat-sep"> | </span><span id="stat-helped-wrap" class="stat-clickable" role="button" tabindex="0" title="Нажми, чтобы открыть витрину и помочь другим"><span id="stat-helped-n" class="stat-num">0</span> помог</span>
                     </div>
-                    <div class="app-header-nav">
-                        <span id="header-nav-dreams" class="header-nav-item stat-clickable" role="button" tabindex="0">Мечты</span><span class="stat-sep header-nav-sep"> | </span><span id="header-nav-steps" class="header-nav-item stat-clickable" role="button" tabindex="0">Шаги</span>
-                    </div>
                 </div>
+                <button type="button" id="header-bell" class="app-header-bell" aria-label="Уведомления" title="Уведомления"><span class="app-header-bell-icon">🔔</span><span id="header-bell-dot" class="app-header-bell-dot hidden"></span></button>
                 <div class="app-header-buddy-slot" id="header-buddy-slot" role="button" tabindex="0" aria-label="Переключить на бадди"><span class="buddy-slot-placeholder">—</span></div>
             </header>
             <div class="app-header-divider"></div>
@@ -455,15 +457,17 @@
                 </div>
             </nav>
             <div id="app-showcase-breadcrumbs" class="app-showcase-breadcrumbs" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:12px;font-size:13px;">
-                <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">💫 Витрина мечт</a>
+                <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">💫 Витрина мечт (<span class="showcase-count" data-count="all">0</span>)</a>
                 <span class="showcase-sep">·</span>
                 <a href="#" class="showcase-filter-link active" data-filter="new">Новые (<span class="showcase-count" data-count="new">0</span>)</a>
                 <span class="showcase-sep">·</span>
                 <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю (<span class="showcase-count" data-count="helping">0</span>)</a>
                 <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
+                <a href="#" class="showcase-filter-link" data-filter="helped">Помог (<span class="showcase-count" data-count="helped">0</span>)</a>
                 <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="all">Все (<span class="showcase-count" data-count="all">0</span>)</a>
+                <a href="#" class="showcase-filter-link" data-filter="in_progress">В процессе (<span class="showcase-count" data-count="in_progress">0</span>)</a>
+                <span class="showcase-sep">·</span>
+                <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
             </div>
             </div>
                 </div>
@@ -535,6 +539,13 @@
                     <p id="showcase-empty" class="hidden" style="color:#666;">Мечт не найдено.</p>
                     <p id="showcase-error" class="error hidden"></p>
                     <p style="margin-top:12px;font-size:13px;color:#888;"><a href="#" id="showcase-back-link">← К своим мечтам</a></p>
+                </div>
+                <!-- Уведомления (колокольчик): мечты, по которым помощник нажал «Готово!» -->
+                <div id="notifications-block" class="hidden">
+                    <h3 style="margin-bottom:12px;font-weight:600;color:#333;">Уведомления</h3>
+                    <p id="notifications-empty" class="hidden" style="color:#666;">Нет новых уведомлений.</p>
+                    <div id="notifications-list"></div>
+                    <p style="margin-top:12px;font-size:13px;color:#888;"><a href="#" id="notifications-back-link">← Назад</a></p>
                 </div>
             </div>
             <!-- Модальное окно: новая мечта -->
@@ -669,6 +680,7 @@
                 </div>
             </div>
             <!-- Модалка: добавить шаги по финцели (анкета) -->
+            <div id="toast-container" class="hidden" aria-live="polite"></div>
             <div id="modal-add-step-finance" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-finance-title">
                 <div class="modal modal-add-step-finance">
                     <h3 id="modal-add-step-finance-title">Добавить шаги по финансовой цели</h3>
@@ -1194,10 +1206,6 @@
                 switchMenu('showcase');
             } else {
                 loadShowcaseCounts();
-                var nd = document.getElementById('header-nav-dreams');
-                var ns = document.getElementById('header-nav-steps');
-                if (nd) nd.classList.add('active');
-                if (ns) ns.classList.remove('active');
             }
             if (window.lastAddedDreamId) {
                 var id = window.lastAddedDreamId;
@@ -1222,8 +1230,15 @@
             document.getElementById('steps-block').classList.add('hidden');
             var sb = document.getElementById('showcase-block');
             if (sb) sb.classList.add('hidden');
+            var nb = document.getElementById('notifications-block');
+            if (nb) nb.classList.add('hidden');
             document.querySelectorAll('.app-menu a').forEach(function(a) { a.classList.remove('active'); });
-            if (section === 'showcase') {
+            if (section === 'notifications') {
+                if (nb) nb.classList.remove('hidden');
+                loadNotifications();
+                var footerAdd = document.getElementById('app-footer-add');
+                if (footerAdd) footerAdd.classList.add('hidden');
+            } else if (section === 'showcase') {
                 lastCabinetSection = 'dreams';
                 if (sb) sb.classList.remove('hidden');
                 document.querySelectorAll('.showcase-filter-link').forEach(function(l) {
@@ -1235,10 +1250,6 @@
             } else {
                 loadShowcaseCounts();
             }
-            var navDreams = document.getElementById('header-nav-dreams');
-            var navSteps = document.getElementById('header-nav-steps');
-            if (navDreams) navDreams.classList.toggle('active', section === 'dreams' || section === 'buddy');
-            if (navSteps) navSteps.classList.toggle('active', section === 'steps' || section === 'steps-buddy');
             if (section === 'dreams') {
                 lastCabinetSection = 'dreams';
                 dreamEditContext.ownerId = currentUser ? currentUser.id : 0;
@@ -1275,6 +1286,64 @@
 
         var showcaseDreamsCache = [];
         var showcaseFilter = 'new';
+        function loadNotifications() {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/notifications?user_id=' + currentUser.id, { cache: 'no-store' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var list = document.getElementById('notifications-list');
+                    var emptyEl = document.getElementById('notifications-empty');
+                    if (!list) return;
+                    list.innerHTML = '';
+                    var notifications = data.notifications || [];
+                    if (notifications.length === 0) {
+                        emptyEl.classList.remove('hidden');
+                        return;
+                    }
+                    emptyEl.classList.add('hidden');
+                    notifications.forEach(function(n) {
+                        var card = document.createElement('div');
+                        card.className = 'showcase-card';
+                        card.style.marginBottom = '12px';
+                        var who = (n.helper_names && n.helper_names.length) ? n.helper_names.join(', ') : 'Помощник';
+                        var label = document.createElement('p');
+                        label.style.fontWeight = '600';
+                        label.style.marginBottom = '6px';
+                        label.textContent = who + ' завершил(и) твою мечту';
+                        var dreamP = document.createElement('p');
+                        dreamP.className = 'showcase-dream';
+                        dreamP.style.marginBottom = '10px';
+                        dreamP.textContent = (n.dream || '').slice(0, 150) + ((n.dream || '').length > 150 ? '…' : '');
+                        var btnWrap = document.createElement('div');
+                        btnWrap.style.display = 'flex';
+                        btnWrap.style.gap = '8px';
+                        btnWrap.style.flexWrap = 'wrap';
+                        var acceptBtn = document.createElement('button');
+                        acceptBtn.type = 'button';
+                        acceptBtn.className = 'showcase-help-btn';
+                        acceptBtn.textContent = 'Принять';
+                        acceptBtn.addEventListener('click', function() { acceptCompletion(n.dream_id); });
+                        var revisionBtn = document.createElement('button');
+                        revisionBtn.type = 'button';
+                        revisionBtn.className = 'showcase-revert-btn';
+                        revisionBtn.style.background = '#f5f5f5'; revisionBtn.style.color = '#666'; revisionBtn.style.border = '1px solid #ccc';
+                        revisionBtn.textContent = 'На доработку';
+                        revisionBtn.addEventListener('click', function() { revisionCompletion(n.dream_id); });
+                        btnWrap.appendChild(acceptBtn);
+                        btnWrap.appendChild(revisionBtn);
+                        card.appendChild(label);
+                        card.appendChild(dreamP);
+                        card.appendChild(btnWrap);
+                        list.appendChild(card);
+                    });
+                })
+                .catch(function() {
+                    var list = document.getElementById('notifications-list');
+                    if (list) list.innerHTML = '';
+                    var emptyEl = document.getElementById('notifications-empty');
+                    if (emptyEl) { emptyEl.textContent = 'Не удалось загрузить уведомления.'; emptyEl.classList.remove('hidden'); }
+                });
+        }
         function loadShowcaseCounts() {
             if (!currentUser || !currentUser.id) return;
             fetch(API_BASE_URL + '/dreams/showcase/counts?user_id=' + currentUser.id, { cache: 'no-store' })
@@ -1282,8 +1351,10 @@
                 .then(function(data) {
                     document.querySelectorAll('.showcase-count').forEach(function(el) {
                         var key = el.dataset.count;
-                        el.textContent = data[key] != null ? data[key] : 0;
+                        if (data[key] != null) el.textContent = data[key];
                     });
+                    var dot = document.getElementById('header-bell-dot');
+                    if (dot) dot.classList.toggle('hidden', !(data.pending_completion > 0));
                 })
                 .catch(function() {});
         }
@@ -1323,6 +1394,39 @@
                 var card = document.createElement('div');
                 card.className = 'showcase-card';
                 card.dataset.dreamId = d.id;
+                if (d.is_owner_view) {
+                    var myLabel = document.createElement('div');
+                    myLabel.className = 'showcase-author';
+                    myLabel.textContent = 'Моя мечта';
+                    var dreamText = document.createElement('div');
+                    dreamText.className = 'showcase-dream';
+                    dreamText.textContent = (d.dream || '').slice(0, 200) + ((d.dream || '').length > 200 ? '…' : '');
+                    card.appendChild(myLabel);
+                    card.appendChild(dreamText);
+                    if (d.has_pending_completion) {
+                        var pendingP = document.createElement('p');
+                        pendingP.style.fontSize = '12px'; pendingP.style.color = '#2e7d32'; pendingP.style.marginTop = '6px';
+                        pendingP.textContent = 'Помощник(и) отметили «Готово!» — примите или отправьте на доработку.';
+                        card.appendChild(pendingP);
+                    }
+                    var btnWrap = document.createElement('div');
+                    btnWrap.className = 'showcase-btns-wrap';
+                    btnWrap.style.display = 'flex'; btnWrap.style.gap = '8px'; btnWrap.style.marginTop = '8px'; btnWrap.style.flexWrap = 'wrap';
+                    var acceptBtn = document.createElement('button');
+                    acceptBtn.type = 'button';
+                    acceptBtn.className = 'showcase-help-btn';
+                    acceptBtn.textContent = 'Принять';
+                    acceptBtn.addEventListener('click', function() { acceptCompletion(d.id); });
+                    var declineBtn = document.createElement('button');
+                    declineBtn.type = 'button';
+                    declineBtn.className = 'showcase-revert-btn';
+                    declineBtn.style.background = '#f5f5f5'; declineBtn.style.color = '#666'; declineBtn.style.border = '1px solid #ccc';
+                    declineBtn.textContent = 'Отказаться';
+                    declineBtn.addEventListener('click', function() { declineHelp(d.id); });
+                    btnWrap.appendChild(acceptBtn);
+                    btnWrap.appendChild(declineBtn);
+                    card.appendChild(btnWrap);
+                } else {
                 var favBtn = document.createElement('button');
                 favBtn.type = 'button';
                 favBtn.className = 'showcase-fav';
@@ -1335,11 +1439,6 @@
                 var dreamText = document.createElement('div');
                 dreamText.className = 'showcase-dream';
                 dreamText.textContent = (d.dream || '').slice(0, 200) + ((d.dream || '').length > 200 ? '…' : '');
-                var helpBtn = document.createElement('button');
-                helpBtn.type = 'button';
-                helpBtn.className = 'showcase-help-btn';
-                helpBtn.textContent = '🤝 Хочу помочь!';
-                helpBtn.addEventListener('click', function() { openHelpModal(d); });
                 card.appendChild(favBtn);
                 card.appendChild(author);
                 card.appendChild(dreamText);
@@ -1350,9 +1449,51 @@
                     priceEl.textContent = '💰 ' + d.price;
                     card.appendChild(priceEl);
                 }
-                card.appendChild(helpBtn);
+                var btnWrap = document.createElement('div');
+                btnWrap.className = 'showcase-btns-wrap';
+                btnWrap.style.display = 'flex';
+                btnWrap.style.gap = '8px';
+                btnWrap.style.marginTop = '8px';
+                btnWrap.style.flexWrap = 'wrap';
+                if (d.is_helping || d.is_helped) {
+                    if (d.is_helping) {
+                        if (d.pending_completion_request) {
+                            var sentBtn = document.createElement('button');
+                            sentBtn.type = 'button';
+                            sentBtn.className = 'showcase-sent-btn';
+                            sentBtn.textContent = 'Отправлено';
+                            sentBtn.disabled = true;
+                            btnWrap.appendChild(sentBtn);
+                        } else {
+                            var readyBtn = document.createElement('button');
+                            readyBtn.type = 'button';
+                            readyBtn.className = 'showcase-help-btn';
+                            readyBtn.textContent = 'Готово!';
+                            readyBtn.addEventListener('click', function() { requestCompletion(d); });
+                            btnWrap.appendChild(readyBtn);
+                        }
+                    }
+                    var revertBtn = document.createElement('button');
+                    revertBtn.type = 'button';
+                    revertBtn.className = 'showcase-revert-btn';
+                    revertBtn.textContent = '↩ Вернуть';
+                    revertBtn.style.background = '#f5f5f5';
+                    revertBtn.style.color = '#666';
+                    revertBtn.style.border = '1px solid #ccc';
+                    revertBtn.addEventListener('click', function() { revertHelp(d.id); });
+                    btnWrap.appendChild(revertBtn);
+                } else {
+                    var helpBtn = document.createElement('button');
+                    helpBtn.type = 'button';
+                    helpBtn.className = 'showcase-help-btn';
+                    helpBtn.textContent = '🤝 Хочу помочь!';
+                    helpBtn.addEventListener('click', function() { openHelpModal(d); });
+                    btnWrap.appendChild(helpBtn);
+                }
+                card.appendChild(btnWrap);
                 grid.appendChild(card);
                 recordDreamView(d.id);
+                }
             });
         }
         function recordDreamView(dreamId) {
@@ -1388,6 +1529,118 @@
                     updateShowcaseCount('favorites', 1);
                 });
             }
+        }
+        function showToast(message) {
+            var container = document.getElementById('toast-container');
+            if (!container) return;
+            var el = document.createElement('div');
+            el.className = 'toast';
+            el.textContent = message;
+            container.appendChild(el);
+            container.classList.remove('hidden');
+            setTimeout(function() {
+                el.remove();
+                if (container.children.length === 0) container.classList.add('hidden');
+            }, 3500);
+        }
+        function requestCompletion(dream) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dream.id + '/completion-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            }).then(function(r) {
+                if (!r.ok) return;
+                return r.json();
+            }).then(function(data) {
+                if (!data) return;
+                var d = showcaseDreamsCache.find(function(x) { return x.id === dream.id; });
+                if (d) {
+                    d.pending_completion_request = true;
+                    renderShowcase(showcaseDreamsCache);
+                }
+                var ownerName = (data && data.owner_name) ? data.owner_name : 'получателя';
+                showToast('Ваше сообщение отправлено, ждём ответа от «' + ownerName + '»');
+            });
+        }
+        function markAsHelped(dreamId) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/helped', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            }).then(function(r) {
+                if (!r.ok) return;
+                var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
+                if (d) {
+                    if (d.is_helping) updateShowcaseCount('helping', -1);
+                    d.is_helping = false;
+                    d.is_helped = true;
+                    updateShowcaseCount('helped', 1);
+                    renderShowcase(showcaseDreamsCache);
+                }
+            });
+        }
+        function revertHelp(dreamId) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/helped?user_id=' + encodeURIComponent(currentUser.id), {
+                method: 'DELETE'
+            }).then(function(r) {
+                if (!r.ok) return;
+                var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
+                if (d) {
+                    if (d.is_helping) updateShowcaseCount('helping', -1);
+                    if (d.is_helped) updateShowcaseCount('helped', -1);
+                    d.is_helping = false;
+                    d.is_helped = false;
+                    showcaseDreamsCache = showcaseDreamsCache.filter(function(x) { return x.id !== dreamId; });
+                    renderShowcase(showcaseDreamsCache);
+                }
+            });
+        }
+        function acceptCompletion(dreamId) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/accept-completion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            }).then(function(r) {
+                if (!r.ok) return;
+                showcaseDreamsCache = showcaseDreamsCache.filter(function(x) { return x.id !== dreamId; });
+                if (showcaseFilter === 'in_progress') renderShowcase(showcaseDreamsCache);
+                loadShowcaseCounts();
+                loadNotifications();
+                showToast('Мечта принята и отмечена как выполненная.');
+            });
+        }
+        function revisionCompletion(dreamId) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/revision', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            }).then(function(r) {
+                if (!r.ok) return;
+                loadShowcaseCounts();
+                loadNotifications();
+                if (showcaseFilter === 'in_progress') loadShowcase();
+                showToast('Отправлено на доработку.');
+            });
+        }
+        function declineHelp(dreamId) {
+            if (!currentUser || !currentUser.id) return;
+            fetch(API_BASE_URL + '/dreams/' + dreamId + '/decline-help', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id })
+            }).then(function(r) {
+                if (!r.ok) return;
+                showcaseDreamsCache = showcaseDreamsCache.filter(function(x) { return x.id !== dreamId; });
+                if (showcaseFilter === 'in_progress') renderShowcase(showcaseDreamsCache);
+                loadShowcaseCounts();
+                loadNotifications();
+                showToast('Помощь отклонена.');
+            });
         }
         var currentHelpDream = null;
         function openHelpModal(dream) {
@@ -2116,16 +2369,6 @@
             applyHeaderView();
             switchMenu('buddy');
         });
-        var headerNavDreams = document.getElementById('header-nav-dreams');
-        var headerNavSteps = document.getElementById('header-nav-steps');
-        if (headerNavDreams) {
-            headerNavDreams.addEventListener('click', function() { switchMenu(headerView === 'buddy' ? 'buddy' : 'dreams'); });
-            headerNavDreams.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchMenu(headerView === 'buddy' ? 'buddy' : 'dreams'); } });
-        }
-        if (headerNavSteps) {
-            headerNavSteps.addEventListener('click', function() { switchMenu(headerView === 'buddy' ? 'steps-buddy' : 'steps'); });
-            headerNavSteps.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchMenu(headerView === 'buddy' ? 'steps-buddy' : 'steps'); } });
-        }
         document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
         var statRatioWrap = document.getElementById('stat-ratio-wrap');
         var statHelpedWrap = document.getElementById('stat-helped-wrap');
@@ -2139,6 +2382,18 @@
         }
         var showcaseBackLink = document.getElementById('showcase-back-link');
         if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
+        var headerBell = document.getElementById('header-bell');
+        if (headerBell) headerBell.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
+            else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
+            else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
+            switchMenu('notifications');
+        });
+        var notificationsBackLink = document.getElementById('notifications-back-link');
+        if (notificationsBackLink) notificationsBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         window.addEventListener('resize', updateStickySpacer);
 
         var avatarFileEl = document.getElementById('avatar-file');

@@ -45,3 +45,17 @@ CREATE TABLE IF NOT EXISTS user_dream_help_intent (
 CREATE INDEX IF NOT EXISTS idx_user_dream_help_intent_user ON user_dream_help_intent(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_dream_help_intent_dream ON user_dream_help_intent(dream_id);
 ```
+
+## mig_completion_request (запрос «Готово!» от помощника)
+
+```sql
+CREATE TABLE IF NOT EXISTS user_dream_completion_request (
+    id SERIAL PRIMARY KEY,
+    dream_id INT NOT NULL REFERENCES dreams(id) ON DELETE CASCADE,
+    helper_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(dream_id, helper_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_completion_request_dream ON user_dream_completion_request(dream_id);
+CREATE INDEX IF NOT EXISTS idx_completion_request_helper ON user_dream_completion_request(helper_user_id);
+```

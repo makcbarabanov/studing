@@ -14,22 +14,15 @@
 *   **Frontend:** HTML/JS (No framework) on port 8080. Service: `frontend.service`.
 *   **Security:** `.env` hidden. Ports 22, 80, 443, 2053, 8000, 8080 open via iptables & provider firewall.
 
-## 📊 CURRENT STATE (Phase 2: Dreams)
+## 📊 CURRENT STATE (Phase 2+: Dreams, Showcase, Buddy)
 1.  **Auth:** Готова (Login/Register с хешированием паролей).
-2.  **DB Schema:**
-    *   `users`: id, name, surname, phone, city, password_hash.
-    *   `dreams`: id, user_id, dream (text), date.
-3.  **API:**
-    *   `/login` (POST)
-    *   `/dreams?user_id=...` (GET)
-4.  **UI:** Личный кабинет показывает имя, город и список мечт пользователя.
-5.  **Files:** `main.py`, `index.html`, `style.css`, `script.js` (разнесены).
+2.  **DB Schema:** users, dreams, dreams_log, dreams_steps, dreams_statuses, dreams_categories, buddy_requests, user_dream_views, user_dream_favorites, user_dream_help_intent, steps_rules. Подробно: [Readme/tables.md](tables.md).
+3.  **API (ключевые):** `/login`, `/register`, `/dreams`, `/dreams/showcase`, `/dreams/showcase/counts`, `/dreams/{id}/contact`, `/dreams/{id}/view`, `/dreams/{id}/favorite`, `/dreams/{id}/help-intent`, `/buddy_requests`, `/users/list`.
+4.  **UI:** Личный кабинет (мечты, шаги, бадди), витрина мечт с фильтрами и модалкой «Хочу помочь» (Telegram/WhatsApp/VK).
+5.  **Files:** `main.py`, `index.html` (SPA-like, один HTML).
 
 ## 🎯 IMMEDIATE GOAL (Next Steps)
-Реализация загрузки картинок для мечт.
-1.  Создать папку `uploads`.
-2.  Настроить `StaticFiles` в FastAPI.
-3.  Реализовать upload-эндпоинт с валидацией (mime-type) и переименованием (uuid)0
+См. [Readme/roadmap.md](roadmap.md) — хедер из БД, расписание, несколько бадди, аватарка.
 
 
 
