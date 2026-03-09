@@ -456,22 +456,28 @@ def login_user(user_login: UserLogin):
 def landing_stats():
     """Публичная статистика для лендинга: сколько мечт исполнено (из dreams_log), сколько участников (users)."""
     conn = None
+    fulfilled_dreams = 0
+    users_count = 0
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            fulfilled_dreams = 0
             try:
                 cur.execute("SELECT COUNT(DISTINCT dream_id) AS n FROM dreams_log")
                 row = cur.fetchone()
                 if row:
                     fulfilled_dreams = row.get("n") or 0
-            except psycopg2.ProgrammingError:
+            except (psycopg2.ProgrammingError, psycopg2.OperationalError):
                 pass
-            cur.execute("SELECT COUNT(*) AS n FROM users")
-            users_count = cur.fetchone().get("n") or 0
+            try:
+                cur.execute("SELECT COUNT(*) AS n FROM users")
+                row = cur.fetchone()
+                if row:
+                    users_count = row.get("n") or 0
+            except (psycopg2.ProgrammingError, psycopg2.OperationalError):
+                pass
         return {"fulfilled_dreams": fulfilled_dreams, "users_count": users_count}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"fulfilled_dreams": 0, "users_count": 0}
     finally:
         _return_conn(conn)
 
@@ -516,16 +522,24 @@ def upload_avatar(user_id: int, file: UploadFile = File(...)):
 
 @app.get("/users/me")
 def users_me(user_id: int):
-    """Актуальные данные текущего пользователя (как при логине): id, full_name, avatar_path, buddy_id, buddy_name, buddy_avatar_path. Нужно для обновления сессии из localStorage без повторного ввода пароля."""
+    """Актуальные данные текущего пользователя: id, full_name, avatar_path, buddy_id, buddy_name, buddy_avatar_path, telegram, vk. Для сессии и для формы редактирования профиля."""
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust
-                   FROM users WHERE id = %s""",
-                (user_id,),
-            )
+            try:
+                cur.execute(
+                    """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust, telegram, vk
+                       FROM users WHERE id = %s""",
+                    (user_id,),
+                )
+            except psycopg2.ProgrammingError:
+                conn.rollback()
+                cur.execute(
+                    """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust
+                       FROM users WHERE id = %s""",
+                    (user_id,),
+                )
             user_data = cur.fetchone()
             if user_data is None:
                 raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -539,7 +553,7 @@ def users_me(user_id: int):
                 if buddy_row:
                     buddy_name = f"{buddy_row.get('name') or ''} {buddy_row.get('surname') or ''}".strip() or None
                     buddy_avatar_path = buddy_row.get("avatar_path")
-            return {
+            out = {
                 "id": user_data["id"],
                 "full_name": full_name,
                 "city": user_data.get("city"),
@@ -550,9 +564,81 @@ def users_me(user_id: int):
                 "buddy_name": buddy_name,
                 "buddy_avatar_path": buddy_avatar_path,
             }
+            if "telegram" in user_data:
+                out["telegram"] = user_data.get("telegram") or ""
+            if "vk" in user_data:
+                out["vk"] = user_data.get("vk") or ""
+            return out
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+class ProfileUpdateBody(BaseModel):
+    user_id: int
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
+    telegram: Optional[str] = None
+    vk: Optional[str] = None
+    phone: Optional[str] = None
+
+
+@app.patch("/users/me")
+def update_profile(body: ProfileUpdateBody):
+    """Обновить профиль: пароль (нужен current_password), telegram, vk, phone. Только свои данные (user_id = текущий)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, password_hash FROM users WHERE id = %s",
+                (body.user_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Пользователь не найден")
+            updates = []
+            params = []
+            if body.new_password is not None and body.new_password != "":
+                if not body.current_password:
+                    raise HTTPException(status_code=400, detail="Для смены пароля укажите текущий пароль")
+                stored = (row.get("password_hash") or "") or ""
+                if stored.startswith("$2b$") or stored.startswith("$2a$"):
+                    if not bcrypt.verify(body.current_password, stored):
+                        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+                else:
+                    if stored != body.current_password:
+                        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+                if len(body.new_password) < 6:
+                    raise HTTPException(status_code=400, detail="Новый пароль не менее 6 символов")
+                updates.append("password_hash = %s")
+                params.append(bcrypt.hash(body.new_password))
+            if body.telegram is not None:
+                updates.append("telegram = %s")
+                params.append((body.telegram or "").strip() or None)
+            if body.vk is not None:
+                updates.append("vk = %s")
+                params.append((body.vk or "").strip() or None)
+            if body.phone is not None:
+                updates.append("phone = %s")
+                params.append((body.phone or "").strip() or None)
+            if not updates:
+                return {"ok": True}
+            params.append(body.user_id)
+            cur.execute(
+                "UPDATE users SET " + ", ".join(updates) + " WHERE id = %s",
+                params,
+            )
+        conn.commit()
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
@@ -960,28 +1046,44 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             if showcase_filter == "in_progress" and user_id:
+                rows = []
                 try:
                     cur.execute("""
                         SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
-                               COALESCE(s.code, 'planned') AS status_code, s.label_ru AS status_label,
                                u.name AS user_name, u.surname AS user_surname
                         FROM dreams d
                         JOIN users u ON u.id = d.user_id
-                        LEFT JOIN dreams_statuses s ON d.status_id = s.id
                         WHERE d.user_id = %s
                           AND EXISTS (SELECT 1 FROM user_dream_help_intent h WHERE h.dream_id = d.id)
                         ORDER BY d.id DESC
                     """, (user_id,))
                     rows = cur.fetchall()
-                    cur.execute(
-                        "SELECT dream_id FROM user_dream_completion_request WHERE dream_id = ANY(%s)",
-                        ([r["id"] for r in rows],),
-                    )
-                    completion_dreams = {r["dream_id"] for r in cur.fetchall()}
-                except psycopg2.ProgrammingError:
-                    conn.rollback()
-                    rows = []
-                    completion_dreams = set()
+                except Exception:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+                    try:
+                        cur.execute("""
+                            SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id
+                            FROM dreams d
+                            WHERE d.user_id = %s
+                              AND EXISTS (SELECT 1 FROM user_dream_help_intent h WHERE h.dream_id = d.id)
+                            ORDER BY d.id DESC
+                        """, (user_id,))
+                        rows = cur.fetchall()
+                    except Exception:
+                        rows = []
+                completion_dreams = set()
+                if rows:
+                    try:
+                        cur.execute(
+                            "SELECT dream_id FROM user_dream_completion_request WHERE dream_id = ANY(%s)",
+                            ([r["id"] for r in rows],),
+                        )
+                        completion_dreams = {r["dream_id"] for r in cur.fetchall()}
+                    except psycopg2.ProgrammingError:
+                        pass
                 result = []
                 for r in rows:
                     full_name = f"{r.get('user_name') or ''} {r.get('user_surname') or ''}".strip() or "Участник"
@@ -1130,6 +1232,11 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
 
 class ShowcaseActionBody(BaseModel):
     user_id: int
+
+
+class AcceptCompletionBody(BaseModel):
+    user_id: int
+    move_to_done: Optional[bool] = True  # True = в завершённые (status_id=3), False = вернуть в личные (dreams_log + помог, статус не меняем — для повторяемых мечт)
 
 
 @app.get("/dreams/{dream_id}/contact")
@@ -1330,8 +1437,8 @@ def get_dreams_notifications(user_id: int):
 
 
 @app.post("/dreams/{dream_id}/accept-completion")
-def accept_completion(dream_id: int, body: ShowcaseActionBody):
-    """Владелец нажал «Принять»: мечта выполнена, все помощники получают «Помог», запись в dreams_log."""
+def accept_completion(dream_id: int, body: AcceptCompletionBody):
+    """Владелец нажал «Принять»: все помощники получают «Помог», запись в dreams_log. move_to_done=True — мечта в завершённые (status_id=3); False — остаётся в личных (для повторяемых)."""
     conn = None
     try:
         conn = get_db_connection()
@@ -1346,7 +1453,8 @@ def accept_completion(dream_id: int, body: ShowcaseActionBody):
                 cur.execute("INSERT INTO user_dream_helped (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING", (h, dream_id))
                 cur.execute("DELETE FROM user_dream_help_intent WHERE user_id = %s AND dream_id = %s", (h, dream_id))
             cur.execute("DELETE FROM user_dream_completion_request WHERE dream_id = %s", (dream_id,))
-            cur.execute("UPDATE dreams SET status_id = 3 WHERE id = %s", (dream_id,))
+            if body.move_to_done is not False:
+                cur.execute("UPDATE dreams SET status_id = 3 WHERE id = %s", (dream_id,))
             cur.execute("INSERT INTO dreams_log (dream_id, date, fulfilled_by_user_id) VALUES (%s, CURRENT_DATE, %s)", (dream_id, body.user_id))
         conn.commit()
         return {"ok": True}

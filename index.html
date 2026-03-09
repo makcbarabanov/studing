@@ -192,6 +192,7 @@
         .showcase-filter-link { color:#888; text-decoration:none; }
         .showcase-filter-link:hover { color:#4CAF50; }
         .showcase-filter-link.active { color:#333; font-weight:600; }
+        .app-showcase-title.active { color:#333; font-weight:700; }
         .showcase-sep { margin:0 4px; color:#ccc; user-select:none; }
         .showcase-card { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,0.08); position:relative; }
         .showcase-card .showcase-fav { position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer; font-size:1.2em; }
@@ -516,6 +517,36 @@
                         </div>
                     </div>
                 </div>
+                <!-- Редактирование профиля (по клику на аватар) -->
+                <div id="profile-edit-block" class="hidden">
+                    <h3 style="margin-bottom:16px;font-weight:600;color:#333;">Настройки профиля</h3>
+                    <p style="margin-bottom:12px;font-size:13px;color:#666;">Пароль, аватар и способы связи для витрины («Хочу помочь»).</p>
+                    <div class="profile-edit-form" style="max-width:400px;">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;">Текущий пароль (если меняете пароль)</label>
+                        <input type="password" id="profile-edit-current-password" placeholder="Оставьте пустым, если не меняете" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;">Новый пароль</label>
+                        <input type="password" id="profile-edit-new-password" placeholder="Не менее 6 символов" minlength="6" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;">Аватар</label>
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                            <div id="profile-edit-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:#eee;overflow:hidden;flex-shrink:0;"></div>
+                            <div>
+                                <input type="file" id="profile-edit-avatar-file" accept="image/*" style="font-size:13px;">
+                                <p style="font-size:12px;color:#888;margin-top:4px;">jpg, png, webp, gif, до 2 МБ</p>
+                            </div>
+                        </div>
+                        <label style="display:block;margin-bottom:4px;font-weight:600;">Telegram</label>
+                        <input type="text" id="profile-edit-telegram" placeholder="@username или t.me/username" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;">VK</label>
+                        <input type="text" id="profile-edit-vk" placeholder="Ссылка на профиль" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
+                        <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:16px;box-sizing:border-box;">
+                        <p id="profile-edit-error" class="error hidden" style="margin-bottom:8px;"></p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button type="button" id="profile-edit-save" style="padding:10px 20px;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Сохранить</button>
+                            <a href="#" id="profile-edit-back" style="padding:10px 20px;color:#666;">← Назад</a>
+                        </div>
+                    </div>
+                </div>
                 <div id="steps-block" class="hidden">
                     <p class="steps-section-title" style="margin-bottom:10px;font-weight:600;color:#333;">Все шаги</p>
                     <div class="steps-filter" style="margin-bottom:12px;">
@@ -681,6 +712,18 @@
             </div>
             <!-- Модалка: добавить шаги по финцели (анкета) -->
             <div id="toast-container" class="hidden" aria-live="polite"></div>
+            <!-- Модалка: куда переместить мечту после «Принять» (завершённые или личные для повторного исполнения) -->
+            <div id="modal-accept-completion" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-accept-completion-title">
+                <div class="modal">
+                    <h3 id="modal-accept-completion-title">Мечта исполнена. Куда переместить?</h3>
+                    <p class="modal-accept-completion-hint" style="color:#666;margin-bottom:16px;">В завершённые — мечта помечается как выполненная. В личные мечты — исполнение засчитывается, мечта остаётся в списке (например, для повторяемых целей).</p>
+                    <div class="modal-actions" style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <button type="button" id="modal-accept-move-done" class="primary">Переместить в завершённые</button>
+                        <button type="button" id="modal-accept-keep-list" class="secondary">Вернуть в личные мечты</button>
+                        <button type="button" id="modal-accept-cancel" class="secondary">Отмена</button>
+                    </div>
+                </div>
+            </div>
             <div id="modal-add-step-finance" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-finance-title">
                 <div class="modal modal-add-step-finance">
                     <h3 id="modal-add-step-finance-title">Добавить шаги по финансовой цели</h3>
@@ -897,14 +940,13 @@
             if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '');
             if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '');
             if (headerView === 'me') {
-                // Левый слот: я. Правый: бадди или «—». Загрузка аватарки временно отключена (см. roadmap).
                 var fullName = (currentUser && (currentUser.full_name || '').trim()) || 'Гость';
                 nameEl.textContent = fullName;
                 ratioEl.textContent = myHeaderStats.ratio;
                 helpedEl.textContent = myHeaderStats.helped;
                 avatarEl.innerHTML = '';
-                avatarEl.title = fullName;
-                avatarEl.style.cursor = 'default';
+                avatarEl.title = currentUser ? 'Настройки профиля' : fullName;
+                avatarEl.style.cursor = currentUser ? 'pointer' : 'default';
                 if (currentUser && currentUser.avatar_url) {
                     var img = document.createElement('img');
                     img.src = currentUser.avatar_url;
@@ -1232,8 +1274,15 @@
             if (sb) sb.classList.add('hidden');
             var nb = document.getElementById('notifications-block');
             if (nb) nb.classList.add('hidden');
+            var peb = document.getElementById('profile-edit-block');
+            if (peb) peb.classList.add('hidden');
             document.querySelectorAll('.app-menu a').forEach(function(a) { a.classList.remove('active'); });
-            if (section === 'notifications') {
+            if (section === 'profile-edit') {
+                if (peb) peb.classList.remove('hidden');
+                var footerAdd = document.getElementById('app-footer-add');
+                if (footerAdd) footerAdd.classList.add('hidden');
+                loadProfileEditForm();
+            } else if (section === 'notifications') {
                 if (nb) nb.classList.remove('hidden');
                 loadNotifications();
                 var footerAdd = document.getElementById('app-footer-add');
@@ -1241,9 +1290,12 @@
             } else if (section === 'showcase') {
                 lastCabinetSection = 'dreams';
                 if (sb) sb.classList.remove('hidden');
+                var curFilter = showcaseFilter || 'new';
                 document.querySelectorAll('.showcase-filter-link').forEach(function(l) {
-                    l.classList.toggle('active', (l.dataset.filter || '') === (showcaseFilter || 'new'));
+                    l.classList.toggle('active', (l.dataset.filter || '') === curFilter);
                 });
+                var titleEl = document.getElementById('app-showcase-title');
+                if (titleEl) titleEl.classList.toggle('active', curFilter === 'all');
                 var footerAdd = document.getElementById('app-footer-add');
                 if (footerAdd) footerAdd.classList.add('hidden');
                 loadShowcase();
@@ -1284,6 +1336,54 @@
             }
         }
 
+        function loadProfileEditForm() {
+            if (!currentUser || !currentUser.id) return;
+            var telegramEl = document.getElementById('profile-edit-telegram');
+            var vkEl = document.getElementById('profile-edit-vk');
+            var phoneEl = document.getElementById('profile-edit-phone');
+            var previewEl = document.getElementById('profile-edit-avatar-preview');
+            var errEl = document.getElementById('profile-edit-error');
+            var curPw = document.getElementById('profile-edit-current-password');
+            var newPw = document.getElementById('profile-edit-new-password');
+            var fileInput = document.getElementById('profile-edit-avatar-file');
+            if (curPw) curPw.value = '';
+            if (newPw) newPw.value = '';
+            if (fileInput) fileInput.value = '';
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+            if (telegramEl) telegramEl.value = (currentUser.telegram || '').trim();
+            if (vkEl) vkEl.value = (currentUser.vk || '').trim();
+            if (phoneEl) phoneEl.value = (currentUser.phone || '').trim();
+            if (previewEl) {
+                previewEl.innerHTML = '';
+                if (currentUser.avatar_path) {
+                    var url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+                    var img = document.createElement('img');
+                    img.src = url;
+                    img.alt = 'Аватар';
+                    img.style.width = img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    previewEl.appendChild(img);
+                }
+            }
+            fetch(API_BASE_URL + '/users/me?user_id=' + currentUser.id, { cache: 'no-store' })
+                .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('Не удалось загрузить профиль')); })
+                .then(function(data) {
+                    if (telegramEl) telegramEl.value = (data.telegram || '').trim();
+                    if (vkEl) vkEl.value = (data.vk || '').trim();
+                    if (phoneEl) phoneEl.value = (data.phone || '').trim();
+                    if (data.avatar_path && previewEl) {
+                        previewEl.innerHTML = '';
+                        var img = document.createElement('img');
+                        img.src = API_BASE_URL + '/media/' + String(data.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+                        img.alt = 'Аватар';
+                        img.style.width = img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        previewEl.appendChild(img);
+                    }
+                })
+                .catch(function() { if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = 'Не удалось загрузить данные профиля.'; } });
+        }
+
         var showcaseDreamsCache = [];
         var showcaseFilter = 'new';
         function loadNotifications() {
@@ -1322,7 +1422,7 @@
                         acceptBtn.type = 'button';
                         acceptBtn.className = 'showcase-help-btn';
                         acceptBtn.textContent = 'Принять';
-                        acceptBtn.addEventListener('click', function() { acceptCompletion(n.dream_id); });
+                        acceptBtn.addEventListener('click', function() { openAcceptCompletionModal(n.dream_id); });
                         var revisionBtn = document.createElement('button');
                         revisionBtn.type = 'button';
                         revisionBtn.className = 'showcase-revert-btn';
@@ -1353,6 +1453,10 @@
                         var key = el.dataset.count;
                         if (data[key] != null) el.textContent = data[key];
                     });
+                    if (data.helped != null) {
+                        myHeaderStats.helped = data.helped;
+                        updateHelpedStat(data.helped);
+                    }
                     var dot = document.getElementById('header-bell-dot');
                     if (dot) dot.classList.toggle('hidden', !(data.pending_completion > 0));
                 })
@@ -1370,12 +1474,28 @@
             var url = API_BASE_URL + '/dreams/showcase?showcase_filter=' + (showcaseFilter || 'new');
             if (userId) url += '&user_id=' + userId;
             fetch(url, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
-                showcaseDreamsCache = data.dreams || [];
                 var counts = data.counts || {};
                 document.querySelectorAll('.showcase-count').forEach(function(el) {
                     var key = el.dataset.count;
                     el.textContent = counts[key] != null ? counts[key] : 0;
                 });
+                if (counts.helped != null) {
+                    myHeaderStats.helped = counts.helped;
+                    updateHelpedStat(counts.helped);
+                }
+                showcaseDreamsCache = data.dreams || [];
+                var curFilter = showcaseFilter || 'new';
+                if (showcaseDreamsCache.length === 0 && (counts.all > 0 || counts.helped > 0 || counts.helping > 0 || counts.favorites > 0)) {
+                    var nextFilter = counts.helped > 0 ? 'helped' : (counts.helping > 0 ? 'helping' : (counts.favorites > 0 ? 'favorites' : 'all'));
+                    if (nextFilter !== curFilter) {
+                        showcaseFilter = nextFilter;
+                        document.querySelectorAll('.showcase-filter-link').forEach(function(l) {
+                            l.classList.toggle('active', (l.dataset.filter || '') === showcaseFilter);
+                        });
+                        loadShowcase();
+                        return;
+                    }
+                }
                 renderShowcase(showcaseDreamsCache);
                 if (showcaseDreamsCache.length === 0) emptyEl.classList.remove('hidden');
             }).catch(function(e) {
@@ -1416,7 +1536,7 @@
                     acceptBtn.type = 'button';
                     acceptBtn.className = 'showcase-help-btn';
                     acceptBtn.textContent = 'Принять';
-                    acceptBtn.addEventListener('click', function() { acceptCompletion(d.id); });
+                    acceptBtn.addEventListener('click', function() { openAcceptCompletionModal(d.id); });
                     var declineBtn = document.createElement('button');
                     declineBtn.type = 'button';
                     declineBtn.className = 'showcase-revert-btn';
@@ -1426,6 +1546,7 @@
                     btnWrap.appendChild(acceptBtn);
                     btnWrap.appendChild(declineBtn);
                     card.appendChild(btnWrap);
+                    grid.appendChild(card);
                 } else {
                 var favBtn = document.createElement('button');
                 favBtn.type = 'button';
@@ -1598,21 +1719,44 @@
                 }
             });
         }
-        function acceptCompletion(dreamId) {
+        var pendingAcceptDreamId = null;
+        function openAcceptCompletionModal(dreamId) {
+            pendingAcceptDreamId = dreamId;
+            var modal = document.getElementById('modal-accept-completion');
+            if (modal) modal.classList.remove('hidden');
+        }
+        function closeAcceptCompletionModal() {
+            pendingAcceptDreamId = null;
+            var modal = document.getElementById('modal-accept-completion');
+            if (modal) modal.classList.add('hidden');
+        }
+        function doAcceptCompletion(dreamId, moveToDone) {
             if (!currentUser || !currentUser.id) return;
+            closeAcceptCompletionModal();
             fetch(API_BASE_URL + '/dreams/' + dreamId + '/accept-completion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: currentUser.id })
+                body: JSON.stringify({ user_id: currentUser.id, move_to_done: moveToDone })
             }).then(function(r) {
                 if (!r.ok) return;
                 showcaseDreamsCache = showcaseDreamsCache.filter(function(x) { return x.id !== dreamId; });
                 if (showcaseFilter === 'in_progress') renderShowcase(showcaseDreamsCache);
                 loadShowcaseCounts();
                 loadNotifications();
-                showToast('Мечта принята и отмечена как выполненная.');
+                showToast(moveToDone ? 'Мечта перемещена в завершённые.' : 'Исполнение засчитано, мечта остаётся в личных.');
             });
         }
+        function acceptCompletion(dreamId) {
+            openAcceptCompletionModal(dreamId);
+        }
+        (function initAcceptCompletionModal() {
+            var btnDone = document.getElementById('modal-accept-move-done');
+            var btnList = document.getElementById('modal-accept-keep-list');
+            var btnCancel = document.getElementById('modal-accept-cancel');
+            if (btnDone) btnDone.addEventListener('click', function() { if (pendingAcceptDreamId != null) doAcceptCompletion(pendingAcceptDreamId, true); });
+            if (btnList) btnList.addEventListener('click', function() { if (pendingAcceptDreamId != null) doAcceptCompletion(pendingAcceptDreamId, false); });
+            if (btnCancel) btnCancel.addEventListener('click', closeAcceptCompletionModal);
+        })();
         function revisionCompletion(dreamId) {
             if (!currentUser || !currentUser.id) return;
             fetch(API_BASE_URL + '/dreams/' + dreamId + '/revision', {
@@ -1722,12 +1866,24 @@
         (function initShowcase() {
             var showcaseTitle = document.getElementById('app-showcase-title');
             if (showcaseTitle) {
-                showcaseTitle.addEventListener('click', function(e) { e.preventDefault(); if (currentUser) switchMenu('showcase'); });
+                showcaseTitle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (!currentUser) return;
+                    showcaseFilter = 'all';
+                    document.querySelectorAll('.showcase-filter-link').forEach(function(l) { l.classList.remove('active'); });
+                    showcaseTitle.classList.add('active');
+                    if (document.getElementById('showcase-block').classList.contains('hidden')) {
+                        switchMenu('showcase');
+                    } else {
+                        loadShowcase();
+                    }
+                });
             }
             document.querySelectorAll('.showcase-filter-link').forEach(function(link) {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     document.querySelectorAll('.showcase-filter-link').forEach(function(l) { l.classList.remove('active'); });
+                    if (showcaseTitle) showcaseTitle.classList.remove('active');
                     this.classList.add('active');
                     showcaseFilter = this.dataset.filter || 'new';
                     if (document.getElementById('showcase-block').classList.contains('hidden')) {
@@ -2392,8 +2548,73 @@
             else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
             switchMenu('notifications');
         });
+        var profileAvatarEl = document.getElementById('profile-avatar');
+        if (profileAvatarEl) profileAvatarEl.addEventListener('click', function(e) {
+            if (!currentUser || headerView !== 'me') return;
+            if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
+            else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
+            else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
+            switchMenu('profile-edit');
+        });
         var notificationsBackLink = document.getElementById('notifications-back-link');
         if (notificationsBackLink) notificationsBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
+        var profileEditBack = document.getElementById('profile-edit-back');
+        if (profileEditBack) profileEditBack.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
+        var profileEditSave = document.getElementById('profile-edit-save');
+        if (profileEditSave) profileEditSave.addEventListener('click', function() {
+            if (!currentUser || !currentUser.id) return;
+            var curPw = document.getElementById('profile-edit-current-password');
+            var newPw = document.getElementById('profile-edit-new-password');
+            var telegramEl = document.getElementById('profile-edit-telegram');
+            var vkEl = document.getElementById('profile-edit-vk');
+            var phoneEl = document.getElementById('profile-edit-phone');
+            var fileInput = document.getElementById('profile-edit-avatar-file');
+            var errEl = document.getElementById('profile-edit-error');
+            var currentPassword = (curPw && curPw.value) ? curPw.value : null;
+            var newPassword = (newPw && newPw.value) ? newPw.value : null;
+            var telegram = telegramEl ? (telegramEl.value || '').trim() : '';
+            var vk = vkEl ? (vkEl.value || '').trim() : '';
+            var phone = phoneEl ? (phoneEl.value || '').trim() : '';
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+            function doPatch() {
+                var body = { user_id: currentUser.id, telegram: telegram || null, vk: vk || null, phone: phone || null };
+                if (newPassword) { body.current_password = currentPassword; body.new_password = newPassword; }
+                return fetch(API_BASE_URL + '/users/me', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                }).then(function(r) {
+                    if (!r.ok) return r.json().then(function(d) { throw new Error(d.detail || r.statusText); });
+                    return r.json();
+                });
+            }
+            function onSuccess() {
+                currentUser.telegram = telegram || null;
+                currentUser.vk = vk || null;
+                currentUser.phone = phone || null;
+                applyHeaderView();
+                showToast('Настройки сохранены.');
+                switchMenu(lastCabinetSection);
+            }
+            function onErr(msg) { if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = msg || 'Ошибка сохранения.'; } }
+            var file = fileInput && fileInput.files && fileInput.files[0];
+            if (file) {
+                var fd = new FormData();
+                fd.append('file', file);
+                fetch(API_BASE_URL + '/avatar?user_id=' + currentUser.id, { method: 'POST', body: fd })
+                    .then(function(r) { return r.ok ? r.json() : r.json().then(function(d) { throw new Error(d.detail || r.statusText); }); })
+                    .then(function(data) {
+                        currentUser.avatar_path = data.avatar_path;
+                        currentUser.avatar_url = API_BASE_URL + '/media/' + (data.avatar_path || '').replace(/^\//, '') + '?t=' + Date.now();
+                        return doPatch();
+                    })
+                    .then(onSuccess)
+                    .catch(function(e) { onErr(e.message); });
+            } else {
+                doPatch().then(onSuccess).catch(function(e) { onErr(e.message); });
+            }
+        });
         window.addEventListener('resize', updateStickySpacer);
 
         var avatarFileEl = document.getElementById('avatar-file');
