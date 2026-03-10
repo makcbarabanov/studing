@@ -376,6 +376,18 @@ def index_page():
     """Личный кабинет (вход и регистрация)"""
     return FileResponse(Path(__file__).parent / "index.html")
 
+
+@app.get("/temp.html", response_class=FileResponse)
+def temp_page():
+    """Временная сводка поведенческих сценариев (тестировщик). Удалить после переноса в structure.md."""
+    return FileResponse(Path(__file__).parent / "temp.html")
+
+
+@app.get("/index2.html", response_class=FileResponse)
+def index2_page():
+    """Вариант интерфейса: заголовок «мечты | шаги», под ним контекстный заголовок (Мои мечты / Витрина / Уведомления)."""
+    return FileResponse(Path(__file__).parent / "index2.html")
+
 # --- Эндпоинт 1: АВТОРИЗАЦИЯ ---
 @app.post("/login")
 def login_user(user_login: UserLogin):
@@ -1167,6 +1179,17 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                         pass
                 except psycopg2.ProgrammingError:
                     pass
+            favorites_count_by_dream = {}
+            if dream_ids:
+                try:
+                    cur.execute(
+                        "SELECT dream_id, COUNT(*) AS c FROM user_dream_favorites WHERE dream_id = ANY(%s) GROUP BY dream_id",
+                        (dream_ids,),
+                    )
+                    for row in cur.fetchall():
+                        favorites_count_by_dream[row["dream_id"]] = row["c"] or 0
+                except psycopg2.ProgrammingError:
+                    pass
             result = []
             for r in rows:
                 did = r["id"]
@@ -1198,6 +1221,7 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                     "is_helping": did in helping and did not in helped,
                     "is_helped": did in helped,
                     "pending_completion_request": (did in completion_requested) and (did in helping and did not in helped),
+                    "favorites_count": favorites_count_by_dream.get(did, 0),
                 }
                 result.append(item)
             if showcase_filter and user_id:
@@ -1298,16 +1322,33 @@ def record_dream_view(dream_id: int, body: ShowcaseActionBody):
 
 @app.post("/dreams/{dream_id}/favorite")
 def add_dream_favorite(dream_id: int, body: ShowcaseActionBody):
-    """Добавить мечту в избранное."""
+    """Добавить мечту в избранное. Владельцу создаётся запись в dream_favorite_notifications (для колокольчика)."""
     conn = None
     try:
         conn = get_db_connection()
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "INSERT INTO user_dream_favorites (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING",
+                "INSERT INTO user_dream_favorites (user_id, dream_id) VALUES (%s, %s) ON CONFLICT (user_id, dream_id) DO NOTHING RETURNING id",
                 (body.user_id, dream_id),
             )
+            inserted = cur.fetchone()
         conn.commit()
+        if inserted:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur2:
+                    cur2.execute("SELECT user_id FROM dreams WHERE id = %s", (dream_id,))
+                    row = cur2.fetchone()
+                    if row:
+                        owner_id = row["user_id"]
+                        if owner_id != body.user_id:
+                            cur2.execute(
+                                "INSERT INTO dream_favorite_notifications (owner_id, dream_id) VALUES (%s, %s)",
+                                (owner_id, dream_id),
+                            )
+                conn.commit()
+            except (psycopg2.ProgrammingError, psycopg2.OperationalError):
+                if conn:
+                    conn.rollback()
         return {"ok": True}
     except psycopg2.IntegrityError:
         if conn:
@@ -1402,11 +1443,12 @@ def create_completion_request(dream_id: int, body: ShowcaseActionBody):
 
 @app.get("/dreams/notifications")
 def get_dreams_notifications(user_id: int):
-    """Уведомления владельца: мечты, по которым помощник нажал «Готово!» и ждёт ответа. Для колокольчика и контента уведомлений."""
+    """Уведомления владельца: (1) мечты, по которым помощник нажал «Готово!»; (2) мечты, которые добавили в избранное. Для колокольчика."""
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            completion_list = []
             try:
                 cur.execute("""
                     SELECT r.dream_id, r.helper_user_id, r.requested_at,
@@ -1420,16 +1462,59 @@ def get_dreams_notifications(user_id: int):
                 rows = cur.fetchall()
             except psycopg2.ProgrammingError:
                 rows = []
-            out = []
             seen_dreams = {}
             for r in rows:
                 did = r["dream_id"]
                 helper_name = f"{r.get('helper_name') or ''} {r.get('helper_surname') or ''}".strip() or "Участник"
                 if did not in seen_dreams:
-                    seen_dreams[did] = {"dream_id": did, "dream": r.get("dream") or "", "deadline": str(r["deadline"]) if r.get("deadline") else None, "helper_names": []}
-                    out.append(seen_dreams[did])
+                    seen_dreams[did] = {"dream_id": did, "dream": r.get("dream") or "", "deadline": str(r["deadline"]) if r.get("deadline") else None, "helper_names": [], "at": r.get("requested_at")}
+                    completion_list.append(seen_dreams[did])
                 seen_dreams[did]["helper_names"].append(helper_name)
-            return {"notifications": [{"dream_id": o["dream_id"], "dream": o["dream"], "deadline": o["deadline"], "helper_names": list(dict.fromkeys(o["helper_names"]))} for o in out]}
+            favorite_list = []
+            try:
+                cur.execute("""
+                    SELECT n.dream_id, n.created_at, d.dream, d.deadline
+                    FROM dream_favorite_notifications n
+                    JOIN dreams d ON d.id = n.dream_id AND d.user_id = %s
+                    ORDER BY n.created_at DESC
+                """, (user_id,))
+                fav_rows = cur.fetchall()
+            except psycopg2.ProgrammingError:
+                fav_rows = []
+            for r in fav_rows:
+                favorite_list.append({
+                    "type": "favorite",
+                    "dream_id": r["dream_id"],
+                    "dream": r.get("dream") or "",
+                    "deadline": str(r["deadline"]) if r.get("deadline") else None,
+                    "at": r.get("created_at"),
+                })
+            out = []
+            for o in completion_list:
+                at_val = o.get("at")
+                at_str = at_val.isoformat() if at_val and hasattr(at_val, "isoformat") else str(at_val or "")
+                out.append({
+                    "type": "completion",
+                    "dream_id": o["dream_id"],
+                    "dream": o["dream"],
+                    "deadline": o["deadline"],
+                    "helper_names": list(dict.fromkeys(o["helper_names"])),
+                    "_at": at_str,
+                })
+            for o in favorite_list:
+                at_val = o.get("at")
+                at_str = at_val.isoformat() if at_val and hasattr(at_val, "isoformat") else str(at_val or "")
+                out.append({
+                    "type": "favorite",
+                    "dream_id": o["dream_id"],
+                    "dream": o["dream"],
+                    "deadline": o["deadline"],
+                    "_at": at_str,
+                })
+            out.sort(key=lambda x: x.get("_at") or "", reverse=True)
+            for o in out:
+                o.pop("_at", None)
+            return {"notifications": out}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

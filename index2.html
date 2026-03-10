@@ -437,7 +437,8 @@
                 <div class="app-header-center">
                     <div class="app-header-name" id="profile-full_name">—</div>
                     <div class="app-header-stats">
-                        <span id="stat-ratio-wrap" class="stat-clickable" role="button" tabindex="0" title="Нажми, чтобы вернуться к своим мечтам"><span id="stat-dreams-ratio" class="stat-num">0/0</span> сбылось</span><span class="stat-sep"> | </span><span id="stat-helped-wrap" class="stat-clickable" role="button" tabindex="0" title="Нажми, чтобы открыть витрину и помочь другим"><span id="stat-helped-n" class="stat-num">0</span> помог</span>
+                        <span id="header-link-dreams" class="stat-clickable" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable" role="button" tabindex="0" title="Витрина мечт">витрина</span>
+                        <span id="stat-dreams-ratio" class="stat-num hidden" aria-hidden="true"></span><span id="stat-helped-n" class="stat-num hidden" aria-hidden="true"></span>
                     </div>
                 </div>
                 <button type="button" id="header-bell" class="app-header-bell" aria-label="Уведомления" title="Уведомления"><span class="app-header-bell-icon">🔔</span><span id="header-bell-dot" class="app-header-bell-dot hidden"></span></button>
@@ -446,6 +447,7 @@
             <div class="app-header-divider"></div>
             <!-- Меню: на десктопе скрыто; breadcrumbs счётчиков витрины — всегда видны -->
             <div id="app-menu-area" class="app-menu-area">
+            <div id="app-section-title" style="margin-bottom:12px;font-size:15px;font-weight:600;color:#333;">Мои мечты</div>
             <nav class="app-menu app-menu-desktop-hidden" id="app-menu-nav">
                 <div class="app-menu-group">
                     <span class="app-menu-group-label">Мечты</span>
@@ -458,18 +460,16 @@
                     <a href="#" id="menu-steps-buddy">Бадди</a>
                 </div>
             </nav>
-            <div id="app-showcase-breadcrumbs" class="app-showcase-breadcrumbs" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:12px;font-size:13px;">
-                <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">💫 Витрина мечт (<span class="showcase-count" data-count="all">0</span>)</a>
+            <div id="app-showcase-breadcrumbs" class="app-showcase-breadcrumbs hidden" style="display:none;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:12px;font-size:13px;">
+                <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">Все (<span class="showcase-count" data-count="all">0</span>)</a>
                 <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link active" data-filter="new">Новые (<span class="showcase-count" data-count="new">0</span>)</a>
-                <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю (<span class="showcase-count" data-count="helping">0</span>)</a>
+                <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
                 <span class="showcase-sep">·</span>
                 <a href="#" class="showcase-filter-link" data-filter="helped">Помог (<span class="showcase-count" data-count="helped">0</span>)</a>
                 <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="in_progress">В процессе (<span class="showcase-count" data-count="in_progress">0</span>)</a>
+                <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю (<span class="showcase-count" data-count="helping">0</span>)</a>
                 <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
+                <a href="#" class="showcase-filter-link" data-filter="in_progress">Помогают (<span class="showcase-count" data-count="in_progress">0</span>)</a>
             </div>
             </div>
                 </div>
@@ -1278,6 +1278,18 @@
             var peb = document.getElementById('profile-edit-block');
             if (peb) peb.classList.add('hidden');
             document.querySelectorAll('.app-menu a').forEach(function(a) { a.classList.remove('active'); });
+            var sectionTitleEl = document.getElementById('app-section-title');
+            var breadcrumbsEl = document.getElementById('app-showcase-breadcrumbs');
+            if (section === 'showcase') {
+                if (sectionTitleEl) sectionTitleEl.classList.add('hidden');
+                if (breadcrumbsEl) { breadcrumbsEl.classList.remove('hidden'); breadcrumbsEl.style.display = 'flex'; }
+            } else {
+                if (sectionTitleEl) {
+                    sectionTitleEl.classList.remove('hidden');
+                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'profile-edit' ? 'Настройки профиля' : 'Мои мечты'))));
+                }
+                if (breadcrumbsEl) { breadcrumbsEl.classList.add('hidden'); breadcrumbsEl.style.display = 'none'; }
+            }
             if (section === 'profile-edit') {
                 if (peb) peb.classList.remove('hidden');
                 var footerAdd = document.getElementById('app-footer-add');
@@ -1291,7 +1303,8 @@
             } else if (section === 'showcase') {
                 lastCabinetSection = 'dreams';
                 if (sb) sb.classList.remove('hidden');
-                var curFilter = showcaseFilter || 'new';
+                if (!showcaseFilter || showcaseFilter === 'new') showcaseFilter = 'all';
+                var curFilter = showcaseFilter || 'all';
                 document.querySelectorAll('.showcase-filter-link').forEach(function(l) {
                     l.classList.toggle('active', (l.dataset.filter || '') === curFilter);
                 });
@@ -1386,7 +1399,7 @@
         }
 
         var showcaseDreamsCache = [];
-        var showcaseFilter = 'new';
+        var showcaseFilter = 'all';
         function loadNotifications() {
             if (!currentUser || !currentUser.id) return;
             fetch(API_BASE_URL + '/dreams/notifications?user_id=' + currentUser.id, { cache: 'no-store' })
@@ -1473,7 +1486,7 @@
             emptyEl.classList.add('hidden');
             errEl.classList.add('hidden');
             var userId = currentUser ? currentUser.id : null;
-            var url = API_BASE_URL + '/dreams/showcase?showcase_filter=' + (showcaseFilter || 'new');
+            var url = API_BASE_URL + '/dreams/showcase?showcase_filter=' + (showcaseFilter || 'all');
             if (userId) url += '&user_id=' + userId;
             fetch(url, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
                 var counts = data.counts || {};
@@ -1486,7 +1499,7 @@
                     updateHelpedStat(counts.helped);
                 }
                 showcaseDreamsCache = data.dreams || [];
-                var curFilter = showcaseFilter || 'new';
+                var curFilter = showcaseFilter || 'all';
                 if (showcaseDreamsCache.length === 0 && (counts.all > 0 || counts.helped > 0 || counts.helping > 0 || counts.favorites > 0)) {
                     var nextFilter = counts.helped > 0 ? 'helped' : (counts.helping > 0 ? 'helping' : (counts.favorites > 0 ? 'favorites' : 'all'));
                     if (nextFilter !== curFilter) {
@@ -1656,20 +1669,16 @@
                 if (countEl) countEl.textContent = (fc >= 2) ? String(fc) : '';
             }
             function onUnliked() {
-                btnEl.textContent = '♥';
-                btnEl.title = 'В избранное';
-                btnEl.classList.remove('showcase-fav-liked');
                 var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
-                if (d) { d.is_favorite = false; updateCountLabel(d, -1); }
+                if (d) { d.is_favorite = false; if (d.favorites_count != null && d.favorites_count > 0) d.favorites_count--; }
                 updateShowcaseCount('favorites', -1);
+                renderShowcase(showcaseDreamsCache);
             }
             function onLiked() {
-                btnEl.textContent = '♥';
-                btnEl.title = 'Убрать из избранного';
-                btnEl.classList.add('showcase-fav-liked');
                 var d = showcaseDreamsCache.find(function(x) { return x.id === dreamId; });
-                if (d) { d.is_favorite = true; updateCountLabel(d, 1); }
+                if (d) { d.is_favorite = true; d.favorites_count = (d.favorites_count || 0) + 1; }
                 updateShowcaseCount('favorites', 1);
+                renderShowcase(showcaseDreamsCache);
             }
             if (isFav) {
                 fetch(url + '?user_id=' + currentUser.id, { method: 'DELETE' })
@@ -1915,7 +1924,7 @@
                     document.querySelectorAll('.showcase-filter-link').forEach(function(l) { l.classList.remove('active'); });
                     if (showcaseTitle) showcaseTitle.classList.remove('active');
                     this.classList.add('active');
-                    showcaseFilter = this.dataset.filter || 'new';
+                    showcaseFilter = this.dataset.filter || 'all';
                     if (document.getElementById('showcase-block').classList.contains('hidden')) {
                         switchMenu('showcase');
                     } else {
@@ -2556,15 +2565,20 @@
             switchMenu('buddy');
         });
         document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
-        var statRatioWrap = document.getElementById('stat-ratio-wrap');
-        var statHelpedWrap = document.getElementById('stat-helped-wrap');
-        if (statRatioWrap) {
-            statRatioWrap.addEventListener('click', function() { if (document.getElementById('showcase-block').classList.contains('hidden')) return; switchMenu(lastCabinetSection); });
-            statRatioWrap.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!document.getElementById('showcase-block').classList.contains('hidden')) switchMenu(lastCabinetSection); } });
+        var headerLinkDreams = document.getElementById('header-link-dreams');
+        var headerLinkSteps = document.getElementById('header-link-steps');
+        var headerLinkShowcase = document.getElementById('header-link-showcase');
+        if (headerLinkDreams) {
+            headerLinkDreams.addEventListener('click', function() { if (!currentUser) return; if (headerView === 'buddy') { switchMenu('buddy'); } else { switchMenu('dreams'); } });
+            headerLinkDreams.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); if (headerView === 'buddy') switchMenu('buddy'); else switchMenu('dreams'); } });
         }
-        if (statHelpedWrap) {
-            statHelpedWrap.addEventListener('click', function() { if (!currentUser) return; switchMenu('showcase'); });
-            statHelpedWrap.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('showcase'); } });
+        if (headerLinkSteps) {
+            headerLinkSteps.addEventListener('click', function() { if (headerView === 'buddy') switchMenu('steps-buddy'); else switchMenu('steps'); });
+            headerLinkSteps.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (headerView === 'buddy') switchMenu('steps-buddy'); else switchMenu('steps'); } });
+        }
+        if (headerLinkShowcase) {
+            headerLinkShowcase.addEventListener('click', function() { if (!currentUser) return; switchMenu('showcase'); });
+            headerLinkShowcase.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('showcase'); } });
         }
         var showcaseBackLink = document.getElementById('showcase-back-link');
         if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });

@@ -59,3 +59,16 @@ CREATE TABLE IF NOT EXISTS user_dream_completion_request (
 CREATE INDEX IF NOT EXISTS idx_completion_request_dream ON user_dream_completion_request(dream_id);
 CREATE INDEX IF NOT EXISTS idx_completion_request_helper ON user_dream_completion_request(helper_user_id);
 ```
+
+## mig_favorite_notifications (уведомления «добавили в избранное»)
+
+```sql
+CREATE TABLE IF NOT EXISTS dream_favorite_notifications (
+    id SERIAL PRIMARY KEY,
+    owner_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    dream_id INT NOT NULL REFERENCES dreams(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_dream_favorite_notif_owner ON dream_favorite_notifications(owner_id);
+CREATE INDEX IF NOT EXISTS idx_dream_favorite_notif_dream ON dream_favorite_notifications(dream_id);
+```

@@ -210,6 +210,21 @@ UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_favorites_user`, `idx
 
 ---
 
+### 9.1. `dream_favorite_notifications`
+
+**Назначение:** Уведомления владельцу мечты о том, что мечту добавили в избранное. Одна запись — один факт «кто-то лайкнул»; в колокольчике показывается текст «Вашу мечту добавили в избранное» (имя того, кто добавил, не показываем). При снятии лайка запись не создаётся.
+
+| Колонка     | Тип            | Описание |
+|-------------|----------------|----------|
+| `id`        | SERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `owner_id`  | INT NOT NULL   | Владелец мечты (кому уведомление). REFERENCES users(id) ON DELETE CASCADE. |
+| `dream_id`  | INT NOT NULL   | Мечта. REFERENCES dreams(id) ON DELETE CASCADE. |
+| `created_at`| TIMESTAMP WITH TIME ZONE DEFAULT NOW() | Когда добавлено в избранное. |
+
+Индексы: по `owner_id` (для выборки уведомлений владельца), по `dream_id`. Миграция: `mig_favorite_notifications`.
+
+---
+
 ### 10. `user_dream_help_intent`
 
 **Назначение:** Намерение помочь — пользователь нажал «Хочу помочь» в витрине. **Две сущности:** (1) намерение — эта таблица; (2) факт исполнения — `dreams_log` (кто отметил, что мечта сбылась). Миграция mig_showcase_tables.
@@ -243,7 +258,7 @@ UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_help_intent_user`, `i
 
 ## Актуальные таблицы (без префикса _old_)
 
-Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_dream_views**, **user_dream_favorites**, **user_dream_help_intent**, **steps_rules**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
+Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_dream_views**, **user_dream_favorites**, **dream_favorite_notifications**, **user_dream_help_intent**, **steps_rules**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
 
 ## Таблицы с префиксом _old_
 
