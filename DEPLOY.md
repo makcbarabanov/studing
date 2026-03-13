@@ -1,0 +1,36 @@
+# Деплой на продакшен
+
+Что копировать: main.py, index.html, requirements.txt, каталоги media/ и examples/. На сервере создать .env (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, SECRET_KEY, при облачной БД — DB_SSLMODE=require).
+
+Сервер: Python 3.10+, venv, pip install -r requirements.txt. Запуск: uvicorn main:app --host 127.0.0.1 --port 8000. Nginx на порту 80: proxy_pass http://127.0.0.1:8000; location /media/ — alias на каталог media/.
+
+Главная страница — index.html (дизайн бывшего index2). Особые правила шагов (книги, финансы) отключены: в index.html переменная ENABLE_SPECIAL_STEPS_BOOKS_FINANCE = false; чтобы включить — поставить true.
+
+## Nginx: загрузка аватара и раздача media
+
+Чтобы загрузка аватара (до 2 МБ) не давала 413, в блок server добавь client_max_body_size. Чтобы аватары отдавались без 403, nginx должен иметь право читать каталог media (часто nginx работает от www-data).
+
+Пример блока server (в /etc/nginx/sites-available/island):
+
+    server {
+        listen 80;
+        server_name 188.225.44.48;
+        client_max_body_size 5M;
+        location / {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        location /media/ {
+            alias /home/makc/app/media/;
+        }
+    }
+
+После правки: sudo nginx -t && sudo systemctl reload nginx.
+
+Права на сервере, чтобы nginx (www-data) мог читать аватары:
+
+    chmod 755 /home/makc /home/makc/app /home/makc/app/media /home/makc/app/media/avatars
+    chmod 644 /home/makc/app/media/avatars/* 2>/dev/null || true

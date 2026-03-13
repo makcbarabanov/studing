@@ -15,6 +15,15 @@ from typing import Optional, List
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
+# bcrypt принимает пароль не длиннее 72 байт; длинные обрезаем, чтобы не было 500 при входе/регистрации
+def _bcrypt_password(password: str) -> str:
+    if not password:
+        return password
+    b = password.encode("utf-8")
+    if len(b) <= 72:
+        return password
+    return b[:72].decode("utf-8", errors="replace")
+
 # 1. Загружаем секреты из файла .env
 load_dotenv()
 
@@ -49,14 +58,22 @@ def startup_event():
     if not os.getenv("DB_HOST"):
         return  # Локальный запуск без БД (например, только статика)
     try:
-        db_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=20,
+        conn_kw = dict(
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASS"),
             dbname=os.getenv("DB_NAME"),
             cursor_factory=RealDictCursor,
+        )
+        if os.getenv("DB_PORT"):
+            conn_kw["port"] = int(os.getenv("DB_PORT"))
+        sslmode = (os.getenv("DB_SSLMODE") or "").strip()
+        if sslmode:
+            conn_kw["sslmode"] = sslmode
+        db_pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=20,
+            **conn_kw,
         )
     except Exception as e:
         print("⚠ Пул БД не создан:", e)
@@ -347,13 +364,19 @@ def get_db_connection():
     """Берёт соединение из пула. Если пула нет (запуск без БД) — создаёт разовое подключение."""
     if db_pool is not None:
         return db_pool.getconn()
-    return psycopg2.connect(
+    conn_kw = dict(
         host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASS"),
         dbname=os.getenv("DB_NAME"),
         cursor_factory=RealDictCursor,
     )
+    if os.getenv("DB_PORT"):
+        conn_kw["port"] = int(os.getenv("DB_PORT"))
+    sslmode = (os.getenv("DB_SSLMODE") or "").strip()
+    if sslmode:
+        conn_kw["sslmode"] = sslmode
+    return psycopg2.connect(**conn_kw)
 
 @app.get("/", response_class=FileResponse)
 def root_page():
@@ -421,7 +444,7 @@ def login_user(user_login: UserLogin):
             stored = user_data["password_hash"] or ""
             # Поддержка и bcrypt-хеша, и старого пароля в открытом виде (для уже существующих пользователей)
             if stored.startswith("$2b$") or stored.startswith("$2a$"):
-                if not bcrypt.verify(user_login.password, stored):
+                if not bcrypt.verify(_bcrypt_password(user_login.password), stored):
                     raise HTTPException(status_code=400, detail="Неверный пароль")
             else:
                 if stored != user_login.password:
@@ -499,16 +522,30 @@ AVATAR_EXTENSIONS = frozenset((".jpg", ".jpeg", ".png", ".webp", ".gif"))
 AVATAR_MAX_BYTES = 2 * 1024 * 1024  # 2 МБ
 
 @app.post("/avatar")
-def upload_avatar(user_id: int, file: UploadFile = File(...)):
-    """Загрузить аватар пользователя. Файл сохраняется в media/avatars/{user_id}.{ext}, в БД — avatar_path."""
-    if not file.filename:
+def upload_avatar(
+    user_id: int,
+    file: Optional[UploadFile] = File(None, alias="file"),
+    avatar: Optional[UploadFile] = File(None, alias="avatar"),
+):
+    """Загрузить аватар пользователя. Файл: form field «file» или «avatar». Сохраняется в media/avatars/{user_id}.{ext}."""
+    upload = file or avatar
+    if not upload:
+        raise HTTPException(status_code=400, detail="Не отправлен файл. Используйте поле «file» или «avatar» в multipart/form-data.")
+    if not upload.filename or not upload.filename.strip():
         raise HTTPException(status_code=400, detail="Файл не выбран")
-    ext = Path(file.filename).suffix.lower()
+    ext = Path(upload.filename).suffix.lower()
     if ext not in AVATAR_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Разрешены только jpg, png, webp, gif (в т.ч. анимированный)")
-    content = file.file.read()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Разрешены только jpg, png, webp, gif. Получено расширение: {ext!r}.",
+        )
+    content = upload.file.read()
     if len(content) > AVATAR_MAX_BYTES:
-        raise HTTPException(status_code=400, detail="Файл не более 2 МБ")
+        size_mb = round(len(content) / (1024 * 1024), 2)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Файл не более 2 МБ. Получено: {size_mb} МБ.",
+        )
     # Сохраняем как avatars/{user_id}.{ext}
     safe_ext = ".jpg" if ext == ".jpeg" else ext
     filename = f"{user_id}{safe_ext}"
@@ -619,7 +656,7 @@ def update_profile(body: ProfileUpdateBody):
                     raise HTTPException(status_code=400, detail="Для смены пароля укажите текущий пароль")
                 stored = (row.get("password_hash") or "") or ""
                 if stored.startswith("$2b$") or stored.startswith("$2a$"):
-                    if not bcrypt.verify(body.current_password, stored):
+                    if not bcrypt.verify(_bcrypt_password(body.current_password), stored):
                         raise HTTPException(status_code=400, detail="Неверный текущий пароль")
                 else:
                     if stored != body.current_password:
@@ -627,7 +664,7 @@ def update_profile(body: ProfileUpdateBody):
                 if len(body.new_password) < 6:
                     raise HTTPException(status_code=400, detail="Новый пароль не менее 6 символов")
                 updates.append("password_hash = %s")
-                params.append(bcrypt.hash(body.new_password))
+                params.append(bcrypt.hash(_bcrypt_password(body.new_password)))
             if body.telegram is not None:
                 updates.append("telegram = %s")
                 params.append((body.telegram or "").strip() or None)
@@ -874,7 +911,7 @@ def register_user(user: UserRegister):
                 INSERT INTO users (name, surname, phone, city, password_hash, telegram, vk)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (user.name.strip(), user.surname.strip(), user.phone, user.city.strip(), bcrypt.hash(user.password), tel, vk_val))
+            """, (user.name.strip(), user.surname.strip(), user.phone, user.city.strip(), bcrypt.hash(_bcrypt_password(user.password)), tel, vk_val))
             row = cur.fetchone()
         conn.commit()
         return {"id": row["id"]}
@@ -1111,6 +1148,128 @@ def get_dreams_showcase(user_id: Optional[int] = None, showcase_filter: Optional
                         "has_pending_completion": r["id"] in completion_dreams,
                     })
                 counts = {"new": 0, "helping": 0, "helped": 0, "favorites": 0, "all": 0, "in_progress": len(rows), "pending_completion": len(completion_dreams)}
+                return {"dreams": result, "counts": counts}
+            if showcase_filter == "favorites" and user_id:
+                try:
+                    cur.execute(
+                        "SELECT dream_id FROM user_dream_favorites WHERE user_id = %s",
+                        (user_id,),
+                    )
+                    fav_ids = [r["dream_id"] for r in cur.fetchall()]
+                except Exception:
+                    fav_ids = []
+                if not fav_ids:
+                    try:
+                        cur.execute("SELECT COUNT(*) AS n FROM dreams WHERE COALESCE(is_public, true) = true")
+                        count_all = cur.fetchone()["n"] or 0
+                        cur.execute("SELECT COUNT(*) AS n FROM user_dream_favorites WHERE user_id = %s", (user_id,))
+                        count_favorites = cur.fetchone()["n"] or 0
+                        cur.execute("""SELECT COUNT(*) AS n FROM user_dream_help_intent h JOIN dreams d ON d.id = h.dream_id
+                            WHERE h.user_id = %s AND COALESCE(d.is_public, true) = true
+                            AND NOT EXISTS (SELECT 1 FROM user_dream_helped hl WHERE hl.user_id = %s AND hl.dream_id = h.dream_id)""", (user_id, user_id))
+                        count_helping = cur.fetchone()["n"] or 0
+                        cur.execute("""SELECT COUNT(*) AS n FROM user_dream_helped hl JOIN dreams d ON d.id = hl.dream_id
+                            WHERE hl.user_id = %s AND COALESCE(d.is_public, true) = true""", (user_id,))
+                        count_helped = cur.fetchone()["n"] or 0
+                    except Exception:
+                        count_all = count_favorites = count_helping = count_helped = 0
+                    counts = {"new": 0, "helping": count_helping, "helped": count_helped, "favorites": count_favorites, "all": count_all}
+                    return {"dreams": [], "counts": counts}
+                try:
+                    cur.execute("""
+                        SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
+                               COALESCE(s.code, 'planned') AS status_code, s.label_ru AS status_label,
+                               u.name AS user_name, u.surname AS user_surname, u.city AS user_city,
+                               u.telegram AS user_telegram, u.vk AS user_vk, u.phone AS user_phone
+                        FROM dreams d
+                        JOIN users u ON u.id = d.user_id
+                        LEFT JOIN dreams_statuses s ON d.status_id = s.id
+                        WHERE d.id = ANY(%s) AND COALESCE(d.is_public, true) = true
+                        ORDER BY d.date DESC NULLS LAST, d.id DESC
+                    """, (fav_ids,))
+                    rows = cur.fetchall()
+                except psycopg2.ProgrammingError:
+                    conn.rollback()
+                    cur.execute("""
+                        SELECT d.id, d.dream, d.deadline, d.price, d.date, d.user_id,
+                               u.name AS user_name, u.surname AS user_surname, u.city AS user_city,
+                               u.telegram AS user_telegram, u.vk AS user_vk, u.phone AS user_phone
+                        FROM dreams d JOIN users u ON u.id = d.user_id
+                        WHERE d.id = ANY(%s) AND COALESCE(d.is_public, true) = true
+                        ORDER BY d.date DESC NULLS LAST, d.id DESC
+                    """, (fav_ids,))
+                    rows = cur.fetchall()
+                    for r in rows:
+                        r["status_code"] = "planned"
+                        r["status_label"] = "Запланировано"
+                dream_ids = [r["id"] for r in rows]
+                viewed = set()
+                helping = set()
+                helped = set()
+                completion_requested = set()
+                try:
+                    cur.execute("SELECT dream_id FROM user_dream_views WHERE user_id = %s AND dream_id = ANY(%s)", (user_id, dream_ids))
+                    viewed = {r["dream_id"] for r in cur.fetchall()}
+                    cur.execute("SELECT dream_id FROM user_dream_help_intent WHERE user_id = %s AND dream_id = ANY(%s)", (user_id, dream_ids))
+                    helping = {r["dream_id"] for r in cur.fetchall()}
+                    cur.execute("SELECT dream_id FROM user_dream_helped WHERE user_id = %s AND dream_id = ANY(%s)", (user_id, dream_ids))
+                    helped = {r["dream_id"] for r in cur.fetchall()}
+                    try:
+                        cur.execute("SELECT dream_id FROM user_dream_completion_request WHERE helper_user_id = %s AND dream_id = ANY(%s)", (user_id, dream_ids))
+                        completion_requested = {r["dream_id"] for r in cur.fetchall()}
+                    except psycopg2.ProgrammingError:
+                        pass
+                except psycopg2.ProgrammingError:
+                    pass
+                favorites_count_by_dream = {}
+                try:
+                    cur.execute("SELECT dream_id, COUNT(*) AS c FROM user_dream_favorites WHERE dream_id = ANY(%s) GROUP BY dream_id", (dream_ids,))
+                    for row in cur.fetchall():
+                        favorites_count_by_dream[row["dream_id"]] = row["c"] or 0
+                except psycopg2.ProgrammingError:
+                    pass
+                result = []
+                for r in rows:
+                    did = r["id"]
+                    full_name = f"{r.get('user_name') or ''} {r.get('user_surname') or ''}".strip() or "Участник"
+                    price_val = float(r["price"]) if r.get("price") is not None else None
+                    item = {
+                        "id": did,
+                        "dream": r.get("dream") or "",
+                        "deadline": str(r["deadline"]) if r.get("deadline") else None,
+                        "price": price_val,
+                        "date": str(r["date"]) if r.get("date") else None,
+                        "user_id": r["user_id"],
+                        "user_name": full_name,
+                        "city": (r.get("user_city") or "").strip() or None,
+                        "status": r.get("status_code") or "planned",
+                        "status_label": r.get("status_label") or "Запланировано",
+                        "telegram": (r.get("user_telegram") or "").strip() or None,
+                        "vk": (r.get("user_vk") or "").strip() or None,
+                        "phone": r.get("user_phone"),
+                        "is_viewed": did in viewed,
+                        "is_favorite": True,
+                        "is_helping": did in helping and did not in helped,
+                        "is_helped": did in helped,
+                        "pending_completion_request": (did in completion_requested) and (did in helping and did not in helped),
+                        "favorites_count": favorites_count_by_dream.get(did, 0),
+                    }
+                    result.append(item)
+                try:
+                    cur.execute("SELECT COUNT(*) AS n FROM dreams WHERE COALESCE(is_public, true) = true")
+                    count_all = cur.fetchone()["n"] or 0
+                    cur.execute("SELECT COUNT(*) AS n FROM user_dream_favorites WHERE user_id = %s", (user_id,))
+                    count_favorites = cur.fetchone()["n"] or 0
+                    cur.execute("""SELECT COUNT(*) AS n FROM user_dream_help_intent h JOIN dreams d ON d.id = h.dream_id
+                        WHERE h.user_id = %s AND COALESCE(d.is_public, true) = true
+                        AND NOT EXISTS (SELECT 1 FROM user_dream_helped hl WHERE hl.user_id = %s AND hl.dream_id = h.dream_id)""", (user_id, user_id))
+                    count_helping = cur.fetchone()["n"] or 0
+                    cur.execute("""SELECT COUNT(*) AS n FROM user_dream_helped hl JOIN dreams d ON d.id = hl.dream_id
+                        WHERE hl.user_id = %s AND COALESCE(d.is_public, true) = true""", (user_id,))
+                    count_helped = cur.fetchone()["n"] or 0
+                except Exception:
+                    count_all = count_favorites = count_helping = count_helped = 0
+                counts = {"new": 0, "helping": count_helping, "helped": count_helped, "favorites": count_favorites, "all": count_all}
                 return {"dreams": result, "counts": counts}
             try:
                 cur.execute("""
@@ -2425,7 +2584,7 @@ def admin_create_user(user: UserCreate):
                 INSERT INTO users (name, surname, phone, city, password_hash)
                 VALUES (%s, %s, %s, %s, %s)
                 RETURNING id, name, surname, phone, city
-            """, (name, surname, user.phone, user.city, bcrypt.hash(user.password)))
+            """, (name, surname, user.phone, user.city, bcrypt.hash(_bcrypt_password(user.password))))
             row = cur.fetchone()
             conn.commit()
             return {"id": row["id"], "full_name": _full_name(row), "phone": row["phone"], "city": row["city"]}
@@ -2449,7 +2608,7 @@ def admin_update_user(user_id: int, user: UserUpdate):
             name, surname = _split_full_name(user.full_name) if user.full_name is not None else (row["name"], row["surname"])
             phone = user.phone if user.phone is not None else row["phone"]
             city = user.city if user.city is not None else row["city"]
-            password_hash = bcrypt.hash(user.password) if user.password else row["password_hash"]
+            password_hash = bcrypt.hash(_bcrypt_password(user.password)) if user.password else row["password_hash"]
             cur.execute("""
                 UPDATE users SET name = %s, surname = %s, phone = %s, city = %s, password_hash = %s
                 WHERE id = %s RETURNING id, name, surname, phone, city
