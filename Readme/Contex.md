@@ -1,28 +1,15 @@
-# 🌍 PROJECT OSTROV: SYSTEM CONTEXT (SAVE FILE)
+# Контекст проекта
 
-## 🎭 ROLES (The AI Family)
-1.  **MAX (User):** Creator & Product Owner. Пишет код с телефона/ноутбука. Главный.
-2.  **ATLAS (You):** Chief Architect & DevOps. Синий цвет. Отвечает за сервер, БД, безопасность, архитектуру. Стиль: строгий, поддерживающий, "Мощное открытие".
-3.  **FORGE:** Lead Developer (Cursor AI). Пишет код (Python/JS). Перфекционист.
-4.  **BLOOM:** Soul & Awareness. AI-личность. Отвечает за смыслы, анкеты, поддержку.
+## Песок vs Прод
 
-## 🏗 INFRASTRUCTURE
-*   **Server:** Ubuntu 22.04 LTS (IP: `23.172.217.180`).
-*   **Database:** PostgreSQL 14+ on separate server (`83.217.220.97`).
-*   **VPN:** Xray/VLESS (Reality + Vision) on port 443.
-*   **Backend:** FastAPI (Python 3.12) on port 8000. Service: `fastapi.service`.
-*   **Frontend:** HTML/JS (No framework) on port 8080. Service: `frontend.service`.
-*   **Security:** `.env` hidden. Ports 22, 80, 443, 2053, 8000, 8080 open via iptables & provider firewall.
+**Важно не путать:** где что делаем и что где живёт.
 
-## 📊 CURRENT STATE (Phase 2+: Dreams, Showcase, Buddy)
-1.  **Auth:** Готова (Login/Register с хешированием паролей).
-2.  **DB Schema:** users, dreams, dreams_log, dreams_steps, dreams_statuses, dreams_categories, buddy_requests, user_dream_views, user_dream_favorites, user_dream_help_intent, steps_rules. Подробно: [Readme/tables.md](tables.md).
-3.  **API (ключевые):** `/login`, `/register`, `/dreams`, `/dreams/showcase`, `/dreams/showcase/counts`, `/dreams/{id}/contact`, `/dreams/{id}/view`, `/dreams/{id}/favorite`, `/dreams/{id}/help-intent`, `/buddy_requests`, `/users/list`.
-4.  **UI:** Личный кабинет (мечты, шаги, бадди), витрина мечт с фильтрами и модалкой «Хочу помочь» (Telegram/WhatsApp/VK).
-5.  **Files:** `main.py`, `index.html` (SPA-like, один HTML).
+| Где | Что это | Что там есть | Что делаем |
+|-----|---------|--------------|------------|
+| **Песок** | Локальная машина (Makc), каталог проекта, Cursor | Код: main.py, index.html, и т.д. Запуск: `uvicorn` вручную. Свой .env или без БД. | Правки кода, тесты, коммиты, `git push`. |
+| **Прод** | Сервер island (188.225.44.48, islanddream.ru) по SSH | Тот же код (через git pull). **Плюс:** nginx, certbot/HTTPS, systemd (island.service), продовый .env, права на media. | Деплой: `git pull`, `sudo systemctl restart island`. Настройка nginx, SSL, фаервола — только здесь. |
 
-## 🎯 IMMEDIATE GOAL (Next Steps)
-См. [Readme/roadmap.md](roadmap.md) — хедер из БД, расписание, несколько бадди, аватарка.
+- **Код** правим в песке → пушим в GitHub → на проде делаем `git pull` и перезапуск.
+- **Nginx, SSL, сервисы, .env на проде** — не в репо, настраиваются только на сервере. В песке nginx нет.
 
-
-
+Подсказка: в терминале на проде промпт `[SERVER island]` — так видно, что ты на сервере, а не в песке.

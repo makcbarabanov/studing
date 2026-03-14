@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
     <title>Личный кабинет ОСТРОВ</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
     <link href="https://fonts.cdnfonts.com/css/harp" rel="stylesheet">
@@ -65,6 +67,10 @@
         .dreams-table .dream-deadline { font-size: calc(1em - 2px); white-space: nowrap; }
         .dreams-table .dream-price { font-size: calc(1em - 2px); white-space: nowrap; }
         .modal-deadline-hints { margin-top: 4px; font-size: 11px; font-style: italic; color: #888; }
+        .modal-field-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+        .modal-field-row label { flex:0 0 auto; }
+        .modal-field-row input,
+        .modal-field-row select { flex:1 1 auto; min-width:0; }
         .modal-deadline-hints a { color: #888; cursor: pointer; text-decoration: none; }
         .modal-deadline-hints a:hover { color: #555; text-decoration: underline; }
         .modal input, .modal select, .modal textarea { width: 100%; padding: 8px; box-sizing: border-box; }
@@ -121,7 +127,12 @@
         .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
         .modal-add-step .modal-add-step-title-input { width: 100%; max-width: 100%; padding: 8px; box-sizing: border-box; }
         .modal-add-step .modal-add-step-date { width: 10.5em; padding: 8px; box-sizing: border-box; }
-        .modal-add-step .modal-add-step-days-label { margin-top: 12px; }
+        .modal-add-step .modal-add-step-dates-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0; }
+        .modal-add-step .modal-add-step-date-group { display: flex; flex-direction: column; gap: 4px; }
+        .modal-add-step .modal-add-step-date-group label { margin: 0; font-weight: 500; }
+        .modal-add-step .modal-add-step-days-wrap { margin-top: 12px; }
+        .modal-add-step .modal-add-step-days-wrap.disabled { opacity: 0.5; pointer-events: none; }
+        .modal-add-step .modal-add-step-days-label { margin-bottom: 6px; }
         .modal-add-step .modal-add-step-days { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
         .modal-add-step .modal-add-step-days label { display: inline-flex; align-items: center; margin: 0; cursor: pointer; }
         .modal-add-step .modal-add-step-days input { width: auto; margin-right: 4px; }
@@ -181,6 +192,7 @@
         .app-header-avatar { width: 72px; min-width: 72px; min-height: 72px; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: stretch; }
         .app-header-avatar { position: relative; }
         .app-header-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .app-header-avatar .avatar-placeholder-camera { font-size: 26px; color: #999; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
         .app-header-center { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; gap: 4px; }
         .app-header-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .app-header-name { font-family: 'kudryashevheadline', 'Kudryashev Headline', serif; font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; }
@@ -192,9 +204,21 @@
         .app-header-stats .stat-clickable:hover { color: #4CAF50; }
         .app-header-stats .stat-clickable .stat-num { font-weight: 600; }
         .app-header-stats .stat-sep { color: #ccc; user-select: none; pointer-events: none; }
+        /* В хедере всегда навигация «мечты | шаги | витрина»; старые счётчики (0/2 сбылось | 0 помог) не показываем ни на десктопе, ни на мобиле */
+        #stat-dreams-ratio, #stat-helped-n { display: none !important; }
         .showcase-filter-link { color:#888; text-decoration:none; }
         .showcase-filter-link:hover { color:#4CAF50; }
         .showcase-filter-link.active { color:#333; font-weight:600; }
+        .showcase-breadcrumbs-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .showcase-breadcrumbs-row-p .showcase-p { color: #4CAF50; font-weight: 600; }
+        @media (min-width: 769px) {
+            #app-showcase-breadcrumbs { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; }
+            .showcase-sep-rows { display: inline !important; }
+        }
+        @media (max-width: 768px) {
+            #app-showcase-breadcrumbs { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .showcase-sep-rows { display: none !important; }
+        }
         .app-showcase-title.active { color:#333; font-weight:700; }
         .showcase-sep { margin:0 4px; color:#ccc; user-select:none; }
         .showcase-card { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,0.08); position:relative; }
@@ -269,6 +293,7 @@
         .landing-hero .landing-title { font-size: 1.75em; color: #1b5e20; margin: 0; font-weight: 600; }
         .landing-hero .landing-mission { font-size: 1.2em; color: #b8860b; margin: 2em 0 0; line-height: 1.4; font-weight: 500; }
         .landing-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px 32px; margin-bottom: 24px; padding: 20px 16px; background: rgba(248, 247, 245, 0.7); border-radius: 8px; }
+        .landing-card.register-visible .landing-stats { display: none; }
         .landing-stats-item { text-align: center; min-width: 120px; }
         .landing-stats-item .landing-num { font-size: 1.5em; font-weight: 700; color: #2e7d32; }
         .landing-stats-item .landing-label { font-size: 0.9em; color: #666; margin-top: 4px; }
@@ -281,6 +306,51 @@
         .landing-auth .auth-form-wrap input { padding: 8px 10px; margin: 6px 0; }
         .landing-auth .auth-form-wrap button { margin-top: 8px; width: 100%; }
         .landing-auth .auth-form-wrap .auth-switch { margin-top: 10px; font-size: 0.9em; }
+        /* Стиль регистрации в духе Telegram: белый фон, подчёркивания, синяя кнопка */
+        .tg-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 20px; margin: 0 -4px; }
+        .tg-back { background: none; border: none; cursor: pointer; padding: 8px; margin: -8px; color: #000; font-size: 24px; line-height: 1; }
+        .tg-back:hover { opacity: 0.7; }
+        .tg-header-right { font-size: 15px; font-weight: 500; }
+        .tg-header-right a { color: #52a6e0; text-decoration: none; }
+        .tg-header-right a:hover { text-decoration: underline; }
+        .tg-title { font-size: 22px; font-weight: 600; color: #222; margin: 0 0 8px; text-align: center; }
+        .tg-subtitle { font-size: 14px; color: #707579; margin: 0 0 24px; text-align: center; line-height: 1.4; }
+        .tg-field-wrap { border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
+        .tg-field-wrap:focus-within { border-bottom-color: #52a6e0; }
+        .tg-input { width: 100%; border: none; padding: 10px 0; font-size: 16px; background: transparent; box-sizing: border-box; outline: none; }
+        .tg-input::placeholder { color: #b0b0b0; }
+        .tg-phone-row { display: flex; gap: 12px; align-items: stretch; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
+        .tg-phone-row:focus-within { border-bottom-color: #52a6e0; }
+        .tg-country-trigger { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding: 10px 0; min-width: 0; max-width: 100%; cursor: pointer; font-size: 16px; color: #222; border: none; background: none; outline: none; white-space: nowrap; }
+        .tg-country-trigger .tg-chevron { font-size: 12px; color: #707579; flex-shrink: 0; }
+        .tg-country-trigger #reg-country-code { color: #707579; }
+        .tg-phone-input { flex: 1; min-width: 0; border: none; padding: 10px 0; font-size: 16px; outline: none; background: transparent; }
+        .tg-phone-input::placeholder { color: #b0b0b0; }
+        .tg-btn-primary { width: 100%; padding: 12px 24px; font-size: 16px; font-weight: 600; color: #fff; background: #52a6e0; border: none; border-radius: 8px; cursor: pointer; margin-top: 8px; }
+        .tg-btn-primary:hover { background: #4a9ad4; }
+        .tg-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+        .tg-link-row { margin-top: 16px; text-align: center; font-size: 14px; }
+        .tg-link-row a { color: #52a6e0; text-decoration: none; }
+        .tg-link-row a:hover { text-decoration: underline; }
+        .tg-step { display: none; }
+        .tg-step.active { display: block; }
+        .tg-error-inline { font-size: 13px; color: #d32f2f; margin-top: 8px; display: none; }
+        .tg-error-inline.visible { display: block; }
+        /* Модальное окно выбора страны (Telegram-style) */
+        #modal-country-select { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        #modal-country-select.hidden { display: none; }
+        .modal-country-box { background: #fff; border-radius: 12px; width: 100%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .modal-country-box h3 { margin: 0; padding: 16px 16px 8px; font-size: 18px; font-weight: 600; color: #222; }
+        .modal-country-search-wrap { padding: 8px 16px; }
+        .modal-country-search-wrap input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; background: #f5f5f5 url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%23707579\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.35-4.35\"/></svg>') no-repeat 12px center; }
+        .modal-country-search-wrap input::placeholder { color: #707579; }
+        .modal-country-list { flex: 1; overflow-y: auto; padding: 0 16px 8px; max-height: 50vh; }
+        .modal-country-list li { list-style: none; margin: 0; padding: 12px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 15px; color: #222; }
+        .modal-country-list li:hover { background: #f5f5f5; margin: 0 -16px; padding: 12px 16px; }
+        .modal-country-list li .code { color: #707579; margin-left: 6px; }
+        .modal-country-close { padding: 12px 16px; text-align: right; }
+        .modal-country-close a { color: #52a6e0; text-decoration: none; font-size: 15px; }
+        .modal-country-close a:hover { text-decoration: underline; }
         #port-hint-banner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #d32f2f; color: #fff; padding: 10px 16px; text-align: center; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         #port-hint-banner a { color: #fff; font-weight: bold; text-decoration: underline; }
         #port-hint-banner.show { display: block; }
@@ -297,6 +367,7 @@
             .app-header-name { font-size: 0.95em; line-height: 1.25; }
             .app-header-bell-next-to-name { width: 32px; height: 32px; font-size: 1em; }
             .app-header-stats { font-size: 11px; }
+            #stat-dreams-ratio, #stat-helped-n { display: none !important; }
             .app-header-buddy-slot { width: 48px; min-width: 48px; min-height: 48px; font-size: 14px; }
             .app-header-buddy-slot.buddy-slot-has-request { min-width: 120px; max-width: 160px; padding: 0; }
             .buddy-slot-request-wrap { padding: 8px 10px; }
@@ -404,27 +475,49 @@
                     <div id="login-error" class="error hidden"></div>
                 </div>
                 <div id="register-form" class="auth-form-wrap hidden">
-                    <h2>Регистрация</h2>
-                    <input type="text" id="reg-name" placeholder="Имя" required>
-                    <input type="text" id="reg-surname" placeholder="Фамилия" required>
-                    <input type="text" id="reg-city" placeholder="Город">
-                    <label class="reg-phone-label" style="display:block;margin-top:10px;margin-bottom:4px;color:#555;">Телефон</label>
-                    <div class="reg-phone-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                        <select id="reg-country" style="flex:0 0 auto; padding:10px; border:1px solid #ccc; border-radius:4px; min-width:140px;">
-                            <option value="+7">+7 Россия 🇷🇺</option>
-                            <option value="+375">+375 Беларусь 🇧🇾</option>
-                            <option value="+49">+49 Германия 🇩🇪</option>
+                    <div id="tg-step-1" class="tg-step active">
+                        <div class="tg-header">
+                            <button type="button" class="tg-back" onclick="showLoginForm(); return false;" aria-label="Назад">←</button>
+                            <span class="tg-header-right"><a href="#" onclick="showLoginForm(); return false;">Вход</a></span>
+                        </div>
+                        <h2 class="tg-title">Ваш номер телефона</h2>
+                        <p class="tg-subtitle">Проверьте код страны и введите свой номер телефона.</p>
+                        <select id="reg-country" class="hidden" aria-hidden="true">
+                            <option value="+7">+7</option><option value="+375">+375</option><option value="+49">+49</option><option value="+1">+1</option><option value="+44">+44</option><option value="+33">+33</option><option value="+39">+39</option><option value="+34">+34</option><option value="+43">+43</option><option value="+41">+41</option><option value="+48">+48</option><option value="+420">+420</option><option value="+421">+421</option><option value="+371">+371</option><option value="+370">+370</option><option value="+372">+372</option><option value="+7-7">+7</option><option value="+380">+380</option><option value="+995">+995</option><option value="+998">+998</option><option value="+86">+86</option><option value="+81">+81</option><option value="+82">+82</option><option value="+91">+91</option><option value="+61">+61</option><option value="+64">+64</option><option value="+55">+55</option><option value="+52">+52</option><option value="+90">+90</option><option value="+971">+971</option>
                         </select>
-                        <input type="tel" id="reg-phone" placeholder="900 123 45 67" style="flex:1;min-width:120px;" required>
+                        <div class="tg-phone-row">
+                            <button type="button" class="tg-country-trigger" id="reg-country-trigger" aria-label="Выберите страну"><span id="reg-country-label">Россия</span> <span id="reg-country-code">+7</span><span class="tg-chevron">⌄</span></button>
+                            <input type="tel" id="reg-phone" class="tg-phone-input" placeholder="Номер телефона" required>
+                        </div>
+                        <p class="tg-error-inline" id="reg-step1-error"></p>
+                        <button type="button" class="tg-btn-primary" id="reg-continue-btn" onclick="regStep1Continue()">Продолжить</button>
+                        <p class="tg-link-row"><a href="#" onclick="showLoginForm(); return false;">Уже есть аккаунт? Войти</a></p>
                     </div>
-                    <p class="reg-phone-hint" style="font-size:12px;color:#888;margin-top:4px;">Для +7: можно набирать с 8 (8 автоматически уберётся)</p>
-                    <input type="text" id="reg-telegram" placeholder="Telegram (@username или t.me/...)">
-                    <input type="text" id="reg-vk" placeholder="VK (ссылка на профиль)">
-                    <input type="password" id="reg-password" placeholder="Пароль (не менее 6 символов)" required minlength="6">
-                    <input type="password" id="reg-password-repeat" placeholder="Повторите пароль" required>
-                    <button type="button" id="register-btn" onclick="register()">Зарегистрироваться</button>
-                    <p class="auth-switch"><a href="#" onclick="showLoginForm(); return false;">← Назад к входу</a></p>
+                    <div id="tg-step-2" class="tg-step">
+                        <div class="tg-header">
+                            <button type="button" class="tg-back" onclick="regShowStep1(); return false;" aria-label="Назад">←</button>
+                            <span class="tg-header-right"></span>
+                        </div>
+                        <h2 class="tg-title">Имя и пароль</h2>
+                        <p class="tg-subtitle">Осталось указать имя и придумать пароль.</p>
+                        <div class="tg-field-wrap"><input type="text" id="reg-name" class="tg-input" placeholder="Имя" required></div>
+                        <div class="tg-field-wrap"><input type="text" id="reg-surname" class="tg-input" placeholder="Фамилия" required></div>
+                        <div class="tg-field-wrap"><input type="password" id="reg-password" class="tg-input" placeholder="Пароль (не менее 6 символов)" required minlength="6"></div>
+                        <div class="tg-field-wrap"><input type="password" id="reg-password-repeat" class="tg-input" placeholder="Повторите пароль" required></div>
+                        <p class="tg-error-inline" id="register-error-tg"></p>
+                        <button type="button" class="tg-btn-primary" id="register-btn" onclick="register()">Зарегистрироваться</button>
+                        <p class="tg-link-row"><a href="#" onclick="regShowStep1(); return false;">← Назад</a></p>
+                    </div>
                     <div id="register-error" class="error hidden"></div>
+                </div>
+                <!-- Модальное окно: выбор страны (Telegram-style) -->
+                <div id="modal-country-select" class="hidden" role="dialog" aria-labelledby="modal-country-title">
+                    <div class="modal-country-box" onclick="event.stopPropagation()">
+                        <h3 id="modal-country-title">Выберите страну</h3>
+                        <div class="modal-country-search-wrap"><input type="text" id="modal-country-search" placeholder="Поиск" aria-label="Поиск страны"></div>
+                        <ul class="modal-country-list" id="modal-country-list"></ul>
+                        <div class="modal-country-close"><a href="#" id="modal-country-close-link">Закрыть</a></div>
+                    </div>
                 </div>
             </div>
             </div>
@@ -437,7 +530,7 @@
                 <div class="app-sticky-inner">
             <!-- Хедер: аватар + справа: имя, сбылось|помог -->
             <header class="app-header">
-                <div class="app-header-avatar" id="profile-avatar" title="Аватар"><span id="profile-initials">—</span></div>
+                <div class="app-header-avatar" id="profile-avatar" title="Аватар"><span class="avatar-placeholder-camera">📷</span></div>
                 <div class="app-header-center">
                     <div class="app-header-name-row">
                         <div class="app-header-name" id="profile-full_name">—</div>
@@ -466,16 +559,20 @@
                     <a href="#" id="menu-steps-buddy">Бадди</a>
                 </div>
             </nav>
-            <div id="app-showcase-breadcrumbs" class="app-showcase-breadcrumbs hidden" style="display:none;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:12px;font-size:13px;">
-                <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">Все (<span class="showcase-count" data-count="all">0</span>)</a>
-                <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
-                <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="helped">Помог (<span class="showcase-count" data-count="helped">0</span>)</a>
-                <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="helping">Помогаю (<span class="showcase-count" data-count="helping">0</span>)</a>
-                <span class="showcase-sep">·</span>
-                <a href="#" class="showcase-filter-link" data-filter="in_progress">Помогают (<span class="showcase-count" data-count="in_progress">0</span>)</a>
+            <div id="app-showcase-breadcrumbs" class="app-showcase-breadcrumbs hidden" style="display:none;flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:12px;font-size:13px;">
+                <div class="showcase-breadcrumbs-row">
+                    <a href="#" id="app-showcase-title" class="app-showcase-title" style="font-weight:600;color:#000;text-decoration:none;">Все (<span class="showcase-count" data-count="all">0</span>)</a>
+                    <span class="showcase-sep">·</span>
+                    <a href="#" class="showcase-filter-link" data-filter="favorites">Избранные (<span class="showcase-count" data-count="favorites">0</span>)</a>
+                </div>
+                <span class="showcase-sep showcase-sep-rows" style="display:none;">·</span>
+                <div class="showcase-breadcrumbs-row showcase-breadcrumbs-row-p">
+                    <a href="#" class="showcase-filter-link" data-filter="helped"><span class="showcase-p">П</span>омог (<span class="showcase-count" data-count="helped">0</span>)</a>
+                    <span class="showcase-sep">·</span>
+                    <a href="#" class="showcase-filter-link" data-filter="helping"><span class="showcase-p">П</span>омогаю (<span class="showcase-count" data-count="helping">0</span>)</a>
+                    <span class="showcase-sep">·</span>
+                    <a href="#" class="showcase-filter-link" data-filter="in_progress"><span class="showcase-p">П</span>омогают (<span class="showcase-count" data-count="in_progress">0</span>)</a>
+                </div>
             </div>
             </div>
                 </div>
@@ -592,17 +689,29 @@
                     <h3>Добавить мечту</h3>
                     <label>Мечта</label>
                     <textarea id="new-dream-text" class="dream-text" placeholder="Опишите мечту" rows="4"></textarea>
-                    <label>Дедлайн</label>
-                    <input type="date" id="new-dream-deadline">
+                    <div class="modal-field-row">
+                        <label for="new-dream-deadline">Дедлайн</label>
+                        <input type="date" id="new-dream-deadline">
+                    </div>
                     <p class="modal-deadline-hints">Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">конец года (31.12.<span id="new-eoy-year"></span>)</a>, <a href="#" data-deadline="none">без даты</a></p>
-                    <label>Цена (руб.)</label>
-                    <input type="number" id="new-dream-price" placeholder="не указана" min="0" step="1" style="width:120px;">
-                    <label>Статус</label>
-                    <select id="new-dream-status"></select>
-                    <label>Категория</label>
-                    <select id="new-dream-category"></select>
-                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="new-dream-private" title="Не показывать в витрине мечт"> Приватная (анонимно, не в витрине)</label>
-                    <p class="modal-hint" style="margin-top:12px;font-size:12px;color:#666;">Нажмите «Добавить» один раз и дождитесь обновления списка.</p>
+                    <div class="modal-field-row">
+                        <label for="new-dream-price">Цена руб</label>
+                        <input type="number" id="new-dream-price" placeholder="не указана" min="0" step="1">
+                    </div>
+                    <div class="modal-field-row">
+                        <label for="new-dream-status">Статус</label>
+                        <select id="new-dream-status"></select>
+                    </div>
+                    <div class="modal-field-row">
+                        <label for="new-dream-category">Категория</label>
+                        <select id="new-dream-category"></select>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                        <input type="checkbox" id="new-dream-private" title="Не показывать в витрине мечт" style="margin:0;">
+                        <span style="flex:1;">Приватная (анонимно, не в витрине)</span>
+                    </label>
+                    <p class="modal-hint" style="margin-top:4px;font-size:11px;color:#666;">🙈 — закрытая мечта (видна только тебе и бадди), 👁️ — открытая мечта (попадает в витрину).</p>
+                    <p class="modal-hint" style="margin-top:8px;font-size:12px;color:#666;">Нажмите «Добавить» один раз и дождитесь обновления списка.</p>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeNewDreamModal()">Отмена</button>
                         <button type="button" id="btn-submit-new-dream" onclick="submitNewDream()">Добавить</button>
@@ -616,16 +725,24 @@
                     <input type="hidden" id="edit-dream-id" value="">
                     <label>Мечта</label>
                     <textarea id="edit-dream-text" class="dream-text" placeholder="Опишите мечту" rows="4"></textarea>
-                    <label>Дедлайн</label>
-                    <input type="date" id="edit-dream-deadline">
+                    <div class="modal-field-row">
+                        <label for="edit-dream-deadline">Дедлайн</label>
+                        <input type="date" id="edit-dream-deadline">
+                    </div>
                     <p class="modal-deadline-hints">Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">31 дек.</a>, <a href="#" data-deadline="none">без даты</a></p>
-                    <label>Цена (руб.)</label>
-                    <input type="number" id="edit-dream-price" placeholder="не указана" min="0" step="1" style="width:120px;">
-                    <label>Статус</label>
-                    <select id="edit-dream-status"></select>
-                    <label>Категория</label>
-                    <select id="edit-dream-category"></select>
-                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="edit-dream-private" title="Не показывать в витрине мечт"> Приватная (анонимно, не в витрине)</label>
+                    <div class="modal-field-row">
+                        <label for="edit-dream-price">Цена руб</label>
+                        <input type="number" id="edit-dream-price" placeholder="не указана" min="0" step="1">
+                    </div>
+                    <div class="modal-field-row">
+                        <label for="edit-dream-status">Статус</label>
+                        <select id="edit-dream-status"></select>
+                    </div>
+                    <div class="modal-field-row">
+                        <label for="edit-dream-category">Категория</label>
+                        <select id="edit-dream-category"></select>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="edit-dream-private" title="Не показывать в витрине мечт"> <span style="flex:1;">Приватная (анонимно, не в витрине)</span></label>
                     <div id="edit-dream-error" class="error hidden" style="margin-top:10px;"></div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeEditDreamModal()">Отмена</button>
@@ -696,12 +813,19 @@
                     <h3 id="modal-add-step-title">Добавить шаг</h3>
                     <label>Название шага</label>
                     <input type="text" id="modal-add-step-title-input" placeholder="Напр. Урок английского 15 мин" class="modal-add-step-title-input">
-                    <label>Дата начала</label>
-                    <input type="date" id="modal-add-step-date-from" class="modal-add-step-date">
-                    <label>Дата окончания</label>
-                    <input type="date" id="modal-add-step-date-to" class="modal-add-step-date">
-                    <label class="modal-add-step-days-label">Дни недели (все активны — нажмите, чтобы исключить день)</label>
-                    <div class="modal-add-step-days" id="modal-add-step-days">
+                    <div class="modal-add-step-dates-row">
+                        <div class="modal-add-step-date-group">
+                            <label for="modal-add-step-date-from">Дата начала</label>
+                            <input type="date" id="modal-add-step-date-from" class="modal-add-step-date">
+                        </div>
+                        <div class="modal-add-step-date-group">
+                            <label for="modal-add-step-date-to">Дата окончания</label>
+                            <input type="date" id="modal-add-step-date-to" class="modal-add-step-date">
+                        </div>
+                    </div>
+                    <div class="modal-add-step-days-wrap" id="modal-add-step-days-wrap">
+                        <label class="modal-add-step-days-label" id="modal-add-step-days-label">Укажите дату окончания, чтобы выбрать дни недели</label>
+                        <div class="modal-add-step-days" id="modal-add-step-days">
                         <label><input type="checkbox" class="modal-add-step-day" data-day="1" checked> ПН</label>
                         <label><input type="checkbox" class="modal-add-step-day" data-day="2" checked> ВТ</label>
                         <label><input type="checkbox" class="modal-add-step-day" data-day="3" checked> СР</label>
@@ -709,6 +833,7 @@
                         <label><input type="checkbox" class="modal-add-step-day" data-day="5" checked> ПТ</label>
                         <label><input type="checkbox" class="modal-add-step-day" data-day="6" checked> СБ</label>
                         <label><input type="checkbox" class="modal-add-step-day" data-day="0" checked> ВС</label>
+                        </div>
                     </div>
                     <p class="modal-add-step-count" id="modal-add-step-count"></p>
                     <div class="modal-actions">
@@ -1213,6 +1338,7 @@
                 } else {
                 const data = await dreamsRes.json();
                 const dreams = data.dreams || [];
+                currentUserDreamsCache = dreams.slice();
                 // Статистика в хедере: 0/16 мечт сбылось (или два поля мечт/сбылось), бадди, исполнил
                 var ratioEl2 = document.getElementById('stat-dreams-ratio');
                 var totalEl2 = document.getElementById('stat-dreams-total');
@@ -1485,18 +1611,36 @@
                 })
                 .catch(function() {});
         }
+        function getCachedDreamsForFilter(filter) {
+            if (!showcaseDreamsCache || showcaseDreamsCache.length === 0) return [];
+            var f = (filter || 'all').toLowerCase();
+            if (f === 'favorites') return showcaseDreamsCache.filter(function(d) { return d.is_favorite; });
+            if (f === 'helped') return showcaseDreamsCache.filter(function(d) { return d.is_helped; });
+            if (f === 'helping') return showcaseDreamsCache.filter(function(d) { return d.is_helping; });
+            if (f === 'in_progress') return showcaseDreamsCache.filter(function(d) { return d.is_owner_view && (d.has_pending_completion || d.pending_completion_request); });
+            return showcaseDreamsCache;
+        }
         function loadShowcase() {
             var grid = document.getElementById('showcase-grid');
             var emptyEl = document.getElementById('showcase-empty');
             var errEl = document.getElementById('showcase-error');
             if (!grid) return;
-            grid.innerHTML = '<p style="color:#666;">Загрузка...</p>';
             emptyEl.classList.add('hidden');
             errEl.classList.add('hidden');
+            var cached = getCachedDreamsForFilter(showcaseFilter);
+            if (cached.length > 0 || (currentUser && showcaseDreamsCache && showcaseDreamsCache.length > 0)) {
+                renderShowcase(cached);
+                if (cached.length === 0) emptyEl.classList.remove('hidden');
+            } else {
+                grid.innerHTML = '<p style="color:#666;">Загрузка...</p>';
+            }
             var userId = currentUser ? currentUser.id : null;
             var url = API_BASE_URL + '/dreams/showcase?showcase_filter=' + (showcaseFilter || 'all');
             if (userId) url += '&user_id=' + userId;
-            fetch(url, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
+            var fetchAbort = new AbortController();
+            var timeoutId = setTimeout(function() { fetchAbort.abort(); }, 15000);
+            fetch(url, { cache: 'no-store', signal: fetchAbort.signal }).then(function(r) { return r.json(); }).then(function(data) {
+                clearTimeout(timeoutId);
                 var counts = data.counts || {};
                 document.querySelectorAll('.showcase-count').forEach(function(el) {
                     var key = el.dataset.count;
@@ -1522,8 +1666,9 @@
                 renderShowcase(showcaseDreamsCache);
                 if (showcaseDreamsCache.length === 0) emptyEl.classList.remove('hidden');
             }).catch(function(e) {
-                grid.innerHTML = '';
-                errEl.textContent = 'Не удалось загрузить витрину.';
+                clearTimeout(timeoutId);
+                if (cached.length === 0) grid.innerHTML = '';
+                errEl.textContent = (e && e.name === 'AbortError') ? 'Превышено время ожидания. Проверьте интернет.' : 'Не удалось загрузить витрину.';
                 errEl.classList.remove('hidden');
             });
         }
@@ -3277,6 +3422,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (fromIn) fromIn.value = '';
             if (toIn) toIn.value = '';
             overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) { cb.checked = true; });
+            syncAddStepModalDaysState();
             updateAddStepModalCount();
             overlay.classList.remove('hidden');
             if (titleIn) titleIn.focus();
@@ -3317,12 +3463,29 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var overlay = document.getElementById('modal-add-step');
             if (overlay) overlay.classList.add('hidden');
         }
+        function syncAddStepModalDaysState() {
+            var overlay = document.getElementById('modal-add-step');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            var wrap = document.getElementById('modal-add-step-days-wrap');
+            var labelEl = document.getElementById('modal-add-step-days-label');
+            if (!overlay || !toIn || !wrap || !labelEl) return;
+            var hasEndDate = (toIn.value || '').trim() !== '';
+            wrap.classList.toggle('disabled', !hasEndDate);
+            overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) {
+                cb.disabled = !hasEndDate;
+                if (hasEndDate && !cb.checked) cb.checked = true;
+            });
+            labelEl.textContent = hasEndDate
+                ? 'Дни недели (все активны — нажмите, чтобы исключить день)'
+                : 'Укажите дату окончания, чтобы выбрать дни недели';
+        }
         function updateAddStepModalCount() {
             var overlay = document.getElementById('modal-add-step');
             var fromIn = document.getElementById('modal-add-step-date-from');
             var toIn = document.getElementById('modal-add-step-date-to');
             var countEl = document.getElementById('modal-add-step-count');
             if (!overlay || !fromIn || !toIn || !countEl) return;
+            syncAddStepModalDaysState();
             var fromStr = fromIn.value;
             var toStr = toIn.value;
             var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day:checked'), function(c) { return parseInt(c.dataset.day, 10); });
@@ -3634,7 +3797,71 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             loadLandingStats();
         }
 
+        var COUNTRY_LIST = [
+            { name: 'Россия', code: '+7' }, { name: 'Беларусь', code: '+375' }, { name: 'Германия', code: '+49' }, { name: 'США', code: '+1' }, { name: 'Великобритания', code: '+44' }, { name: 'Франция', code: '+33' }, { name: 'Италия', code: '+39' }, { name: 'Испания', code: '+34' }, { name: 'Австрия', code: '+43' }, { name: 'Швейцария', code: '+41' }, { name: 'Польша', code: '+48' }, { name: 'Чехия', code: '+420' }, { name: 'Словакия', code: '+421' }, { name: 'Латвия', code: '+371' }, { name: 'Литва', code: '+370' }, { name: 'Эстония', code: '+372' }, { name: 'Казахстан', code: '+7-7' }, { name: 'Украина', code: '+380' }, { name: 'Грузия', code: '+995' }, { name: 'Узбекистан', code: '+998' }, { name: 'Китай', code: '+86' }, { name: 'Япония', code: '+81' }, { name: 'Корея', code: '+82' }, { name: 'Индия', code: '+91' }, { name: 'Австралия', code: '+61' }, { name: 'Новая Зеландия', code: '+64' }, { name: 'Бразилия', code: '+55' }, { name: 'Мексика', code: '+52' }, { name: 'Турция', code: '+90' }, { name: 'ОАЭ', code: '+971' }
+        ];
+        function getCountryNameByCode(code) {
+            var c = COUNTRY_LIST.find(function(x) { return x.code === code; });
+            return c ? c.name : code;
+        }
+        function openCountryModal() {
+            var modal = document.getElementById('modal-country-select');
+            var list = document.getElementById('modal-country-list');
+            var search = document.getElementById('modal-country-search');
+            if (!modal || !list) return;
+            search.value = '';
+            renderCountryList('');
+            modal.classList.remove('hidden');
+            search.focus();
+        }
+        function closeCountryModal() { document.getElementById('modal-country-select').classList.add('hidden'); }
+        function renderCountryList(filter) {
+            var list = document.getElementById('modal-country-list');
+            if (!list) return;
+            var q = (filter || '').toLowerCase().trim();
+            var items = COUNTRY_LIST.filter(function(c) { return !q || c.name.toLowerCase().indexOf(q) !== -1 || c.code.indexOf(q) !== -1; });
+            list.innerHTML = items.map(function(c) { return '<li data-code="' + c.code.replace(/"/g, '&quot;') + '">' + c.name + ' <span class="code">' + c.code + '</span></li>'; }).join('');
+            list.querySelectorAll('li').forEach(function(li) {
+                li.addEventListener('click', function() {
+                    var code = this.getAttribute('data-code');
+                    var sel = document.getElementById('reg-country');
+                    var label = document.getElementById('reg-country-label');
+                    var codeEl = document.getElementById('reg-country-code');
+                    if (sel) sel.value = code;
+                    var country = COUNTRY_LIST.find(function(x) { return x.code === code; });
+                    if (label && country) label.textContent = country.name;
+                    if (codeEl) codeEl.textContent = code;
+                    closeCountryModal();
+                });
+            });
+        }
+        function regShowStep1() {
+            document.getElementById('tg-step-2').classList.remove('active');
+            document.getElementById('tg-step-1').classList.add('active');
+        }
+        function regStep1Continue() {
+            var countryEl = document.getElementById('reg-country');
+            var countryCode = (countryEl && countryEl.value) || '+7';
+            var rawPhone = document.getElementById('reg-phone').value.trim();
+            var digits = rawPhone.replace(/\D/g, '');
+            if (countryCode === '+7' && digits.length >= 11 && digits.charAt(0) === '8') digits = digits.slice(1);
+            var err = document.getElementById('reg-step1-error');
+            err.classList.remove('visible');
+            err.textContent = '';
+            if (!validatePhoneLength(countryCode, digits)) {
+                if (countryCode === '+7') err.textContent = 'Введите 10 цифр номера (например 900 123 45 67).';
+                else if (countryCode === '+375') err.textContent = 'Введите 9 цифр номера.';
+                else if (countryCode === '+49') err.textContent = 'Введите 10–11 цифр номера.';
+                else err.textContent = 'Некорректная длина номера.';
+                err.classList.add('visible');
+                return;
+            }
+            document.getElementById('tg-step-1').classList.remove('active');
+            document.getElementById('tg-step-2').classList.add('active');
+        }
         function showRegisterForm() {
+            var card = document.querySelector('.landing-card');
+            if (card) card.classList.add('register-visible');
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
             document.getElementById('register-form').classList.remove('hidden');
@@ -3643,17 +3870,23 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             document.getElementById('reg-surname').value = '';
             document.getElementById('reg-phone').value = '';
             document.getElementById('reg-country').value = '+7';
-            document.getElementById('reg-city').value = '';
-            var rt = document.getElementById('reg-telegram'); if (rt) rt.value = '';
-            var rv = document.getElementById('reg-vk'); if (rv) rv.value = '';
+            var label = document.getElementById('reg-country-label');
+            var codeEl = document.getElementById('reg-country-code');
+            if (label) label.textContent = 'Россия';
+            if (codeEl) codeEl.textContent = '+7';
             document.getElementById('reg-password').value = '';
             var rep = document.getElementById('reg-password-repeat');
             if (rep) rep.value = '';
             var regBtn = document.getElementById('register-btn');
             if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Зарегистрироваться'; }
+            document.getElementById('register-error-tg').classList.remove('visible');
+            document.getElementById('reg-step1-error').classList.remove('visible');
+            regShowStep1();
         }
 
         function showLoginForm() {
+            var card = document.querySelector('.landing-card');
+            if (card) card.classList.remove('register-visible');
             document.getElementById('register-form').classList.add('hidden');
             document.getElementById('register-error').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
@@ -3666,11 +3899,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
 
         function normalizePhoneForSubmit(countryCode, raw) {
             var digits = raw.replace(/\D/g, '');
-            if (countryCode === '+7' && digits.length >= 11 && digits.charAt(0) === '8') digits = digits.slice(1);
+            if ((countryCode === '+7' || countryCode === '+7-7') && digits.length >= 11 && digits.charAt(0) === '8') digits = digits.slice(1);
             return countryCode + digits;
         }
         function validatePhoneLength(countryCode, digits) {
-            if (countryCode === '+7') return digits.length === 10;
+            if (countryCode === '+7' || countryCode === '+7-7') return digits.length === 10;
             if (countryCode === '+375') return digits.length === 9;
             if (countryCode === '+49') return digits.length >= 10 && digits.length <= 11;
             return digits.length >= 6;
@@ -3687,24 +3920,26 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var password = document.getElementById('reg-password').value;
             var passwordRepeat = document.getElementById('reg-password-repeat').value;
             var errorDiv = document.getElementById('register-error');
-            errorDiv.classList.add('hidden');
+            var errorTg = document.getElementById('register-error-tg');
+            if (errorDiv) errorDiv.classList.add('hidden');
+            if (errorTg) { errorTg.classList.remove('visible'); errorTg.textContent = ''; }
 
             if (password.length < 6) {
-                errorDiv.innerText = 'Пароль должен быть не менее 6 символов.';
-                errorDiv.classList.remove('hidden');
+                var msg = 'Пароль должен быть не менее 6 символов.';
+                if (errorDiv) { errorDiv.innerText = msg; errorDiv.classList.remove('hidden'); }
+                if (errorTg) { errorTg.textContent = msg; errorTg.classList.add('visible'); }
                 return;
             }
             if (password !== passwordRepeat) {
-                errorDiv.innerText = 'Пароли не совпадают.';
-                errorDiv.classList.remove('hidden');
+                var msg2 = 'Пароли не совпадают.';
+                if (errorDiv) { errorDiv.innerText = msg2; errorDiv.classList.remove('hidden'); }
+                if (errorTg) { errorTg.textContent = msg2; errorTg.classList.add('visible'); }
                 return;
             }
             if (!validatePhoneLength(countryCode, digits)) {
-                if (countryCode === '+7') errorDiv.innerText = 'Введите 10 цифр номера (например 900 123 45 67).';
-                else if (countryCode === '+375') errorDiv.innerText = 'Введите 9 цифр номера.';
-                else if (countryCode === '+49') errorDiv.innerText = 'Введите 10–11 цифр номера.';
-                else errorDiv.innerText = 'Некорректная длина номера.';
-                errorDiv.classList.remove('hidden');
+                var msg3 = countryCode === '+7' ? 'Введите 10 цифр номера (например 900 123 45 67).' : (countryCode === '+375' ? 'Введите 9 цифр номера.' : (countryCode === '+49' ? 'Введите 10–11 цифр номера.' : 'Некорректная длина номера.'));
+                if (errorDiv) { errorDiv.innerText = msg3; errorDiv.classList.remove('hidden'); }
+                if (errorTg) { errorTg.textContent = msg3; errorTg.classList.add('visible'); }
                 return;
             }
 
@@ -3712,10 +3947,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 name: document.getElementById('reg-name').value.trim(),
                 surname: document.getElementById('reg-surname').value.trim(),
                 phone: fullPhone,
-                city: document.getElementById('reg-city').value.trim(),
+                city: "",
                 password: password,
-                telegram: (document.getElementById('reg-telegram') && document.getElementById('reg-telegram').value.trim()) || null,
-                vk: (document.getElementById('reg-vk') && document.getElementById('reg-vk').value.trim()) || null
+                telegram: null,
+                vk: null
             };
             if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Регистрация…'; }
 
@@ -3728,8 +3963,9 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
 
                 if (!res.ok) {
                     var err = await res.json();
-                    errorDiv.innerText = err.detail || 'Ошибка регистрации';
-                    errorDiv.classList.remove('hidden');
+                    var msgErr = err.detail || 'Ошибка регистрации';
+                    if (errorDiv) { errorDiv.innerText = msgErr; errorDiv.classList.remove('hidden'); }
+                    if (errorTg) { errorTg.textContent = msgErr; errorTg.classList.add('visible'); }
                     if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Зарегистрироваться'; }
                     return;
                 }
@@ -3739,8 +3975,9 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 showLoginForm();
                 await login();
             } catch (e) {
-                errorDiv.innerText = 'Не удалось подключиться к серверу.';
-                errorDiv.classList.remove('hidden');
+                var msgNet = 'Не удалось подключиться к серверу.';
+                if (errorDiv) { errorDiv.innerText = msgNet; errorDiv.classList.remove('hidden'); }
+                if (errorTg) { errorTg.textContent = msgNet; errorTg.classList.add('visible'); }
                 if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Зарегистрироваться'; }
             }
         }
@@ -3750,10 +3987,20 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var phoneEl = document.getElementById('reg-phone');
             if (!countryEl || !phoneEl) return;
             phoneEl.addEventListener('input', function() {
-                if (countryEl.value !== '+7') return;
+                if (countryEl.value !== '+7' && countryEl.value !== '+7-7') return;
                 var v = this.value;
                 if (v.length >= 1 && v.charAt(0) === '8') this.value = v.slice(1);
             });
+        })();
+        (function initCountryModal() {
+            var trigger = document.getElementById('reg-country-trigger');
+            var modal = document.getElementById('modal-country-select');
+            var search = document.getElementById('modal-country-search');
+            var closeLink = document.getElementById('modal-country-close-link');
+            if (trigger) trigger.addEventListener('click', function(e) { e.preventDefault(); openCountryModal(); });
+            if (search) search.addEventListener('input', function() { renderCountryList(this.value); });
+            if (closeLink) closeLink.addEventListener('click', function(e) { e.preventDefault(); closeCountryModal(); });
+            if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) closeCountryModal(); });
         })();
         // Если открыли с порта 8080 — API там нет, показываем подсказку (единый порт 8000)
         (function () {
