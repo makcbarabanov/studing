@@ -72,3 +72,19 @@ CREATE TABLE IF NOT EXISTS dream_favorite_notifications (
 CREATE INDEX IF NOT EXISTS idx_dream_favorite_notif_owner ON dream_favorite_notifications(owner_id);
 CREATE INDEX IF NOT EXISTS idx_dream_favorite_notif_dream ON dream_favorite_notifications(dream_id);
 ```
+
+## mig_users_gender (пол для фильтра поиска бадди)
+
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(1) NULL;
+-- Допустимые значения: 'm' (мальчик), 'f' (девочка). NULL — не указан.
+```
+
+## mig_dreams_user_cascade (удаление пользователя удаляет его мечты)
+
+```sql
+ALTER TABLE dreams
+  DROP CONSTRAINT IF EXISTS dreams_user_id_fkey,
+  ADD CONSTRAINT dreams_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+```

@@ -702,15 +702,22 @@ def users_list(exclude_user_id: Optional[int] = None):
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Только пользователи, у которых ещё нет бадди (buddy_id IS NULL)
+            sql_base = "SELECT id, name, surname FROM users WHERE buddy_id IS NULL"
             if exclude_user_id is not None:
-                cur.execute(
-                    "SELECT id, name, surname FROM users WHERE id != %s AND buddy_id IS NULL ORDER BY surname, name",
-                    (exclude_user_id,),
-                )
+                cur.execute(sql_base + " AND id != %s ORDER BY surname, name", (exclude_user_id,))
             else:
-                cur.execute("SELECT id, name, surname FROM users WHERE buddy_id IS NULL ORDER BY surname, name")
+                cur.execute(sql_base + " ORDER BY surname, name")
             rows = cur.fetchall()
-            out = [{"id": r["id"], "name": (r.get("name") or "").strip(), "surname": (r.get("surname") or "").strip(), "avatar_path": None} for r in rows]
+            out = [{"id": r["id"], "name": (r.get("name") or "").strip(), "surname": (r.get("surname") or "").strip(), "avatar_path": None, "gender": r.get("gender")} for r in rows]
+            try:
+                if exclude_user_id is not None:
+                    cur.execute("SELECT id, name, surname, gender FROM users WHERE id != %s AND buddy_id IS NULL ORDER BY surname, name", (exclude_user_id,))
+                else:
+                    cur.execute("SELECT id, name, surname, gender FROM users WHERE buddy_id IS NULL ORDER BY surname, name")
+                rows = cur.fetchall()
+                out = [{"id": r["id"], "name": (r.get("name") or "").strip(), "surname": (r.get("surname") or "").strip(), "avatar_path": None, "gender": r.get("gender")} for r in rows]
+            except psycopg2.ProgrammingError:
+                pass
             try:
                 cur.execute("SELECT id, avatar_path FROM users WHERE avatar_path IS NOT NULL")
                 for row in cur.fetchall():

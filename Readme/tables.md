@@ -23,6 +23,7 @@
 | `buddy_trust`   | BOOLEAN DEFAULT false | Уровень доверия к бадди: true — бадди может редактировать мечты этого пользователя (статус, шаги, удаление и т.д.); false — только просмотр. Миграция mig_014. |
 | `telegram`      | VARCHAR(100) NULL | Логин в Telegram для модалки «Хочу помочь»: @username или t.me/username. Если заполнено — в модалке «Связаться с автором» появится кнопка Telegram. Миграция mig_showcase_tables. |
 | `vk`            | VARCHAR(255) NULL | VK (ссылка на профиль) для модалки «Хочу помочь». Миграция mig_showcase_tables. |
+| `gender`        | VARCHAR(1) NULL   | Пол: `'m'` — мальчик, `'f'` — девочка. Для фильтра в модалке «Добавить бадди». Миграция mig_users_gender. |
 
 ---
 

@@ -125,6 +125,19 @@
         .modal-actions button.secondary { background: #888; }
         .modal-actions button:disabled { opacity: 0.8; cursor: not-allowed; }
         .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
+        .add-buddy-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        .add-buddy-filter-btns { display: flex; gap: 4px; }
+        .add-buddy-filter-btns button { padding: 6px 12px; font-size: 13px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; color: #555; }
+        .add-buddy-filter-btns button:hover { background: #f5f5f5; }
+        .add-buddy-filter-btns button.active { font-weight: 600; }
+        .add-buddy-filter-btns button#add-buddy-filter-all.active { border-color: #4CAF50; background: rgba(76, 175, 80, 0.1); color: #2e7d32; }
+        .add-buddy-filter-btns button#add-buddy-filter-m.active { border-color: #2196F3; background: rgba(33, 150, 243, 0.12); color: #1976D2; }
+        .add-buddy-filter-btns button#add-buddy-filter-f.active { border-color: #E91E8C; background: rgba(233, 30, 140, 0.12); color: #C2185B; }
+        .add-buddy-search-row { display: flex; align-items: center; gap: 8px; }
+        .add-buddy-search-icon { display: flex; align-items: center; justify-content: center; padding: 0 10px; color: #888; flex-shrink: 0; }
+        .add-buddy-search-icon svg { width: 18px; height: 18px; }
+        .add-buddy-search { flex: 1; min-width: 0; padding: 8px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .add-buddy-search:focus { outline: none; border-color: #4CAF50; }
         .modal-add-step .modal-add-step-title-input { width: 100%; max-width: 100%; padding: 8px; box-sizing: border-box; }
         .modal-add-step .modal-add-step-date { width: 10.5em; padding: 8px; box-sizing: border-box; }
         .modal-add-step .modal-add-step-dates-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0; }
@@ -756,6 +769,17 @@
                 <div class="modal modal-add-buddy">
                     <h3 id="modal-add-buddy-title">Добавить бадди</h3>
                     <p class="modal-add-buddy-hint">Выберите участника и нажмите «Пригласить». Он увидит запрос при следующем заходе в кабинет.</p>
+                    <div class="add-buddy-filters">
+                        <div class="add-buddy-filter-btns" role="group" aria-label="Пол">
+                            <button type="button" id="add-buddy-filter-all" data-gender="all">Все</button>
+                            <button type="button" id="add-buddy-filter-m" data-gender="m">М</button>
+                            <button type="button" id="add-buddy-filter-f" data-gender="f">Ж</button>
+                        </div>
+                        <div class="add-buddy-search-row">
+                            <span class="add-buddy-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+                            <input type="text" id="add-buddy-search" class="add-buddy-search" placeholder="Поиск по имени или фамилии" aria-label="Поиск по имени или фамилии">
+                        </div>
+                    </div>
                     <div id="add-buddy-list" class="add-buddy-list"></div>
                     <p id="add-buddy-error" class="error hidden" style="margin-top:10px;"></p>
                     <div class="modal-actions">
@@ -940,18 +964,98 @@
         function updateHelpedStat(n) {
             document.getElementById('stat-helped-n').textContent = n;
         }
+        var addBuddyState = { users: [], outgoing: [], filter: 'all', search: '' };
+
         function closeAddBuddyModal() {
             var el = document.getElementById('modal-add-buddy');
             if (el) el.classList.add('hidden');
         }
+
+        function renderAddBuddyList() {
+            var listEl = document.getElementById('add-buddy-list');
+            var filterElAll = document.getElementById('add-buddy-filter-all');
+            var filterElM = document.getElementById('add-buddy-filter-m');
+            var filterElF = document.getElementById('add-buddy-filter-f');
+            if (!listEl) return;
+            var users = addBuddyState.users;
+            var outgoing = addBuddyState.outgoing;
+            var g = addBuddyState.filter;
+            var q = (addBuddyState.search || '').trim().toLowerCase();
+            var filtered = users.filter(function(u) {
+                if (g !== 'all' && (u.gender || '').toLowerCase() !== g) return false;
+                if (q) {
+                    var name = ((u.name || '') + ' ' + (u.surname || '')).trim().toLowerCase();
+                    if (name.indexOf(q) === -1) return false;
+                }
+                return true;
+            });
+            if (filterElAll) filterElAll.classList.toggle('active', g === 'all');
+            if (filterElM) filterElM.classList.toggle('active', g === 'm');
+            if (filterElF) filterElF.classList.toggle('active', g === 'f');
+            listEl.innerHTML = '';
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<p style="color:#666;">' + (users.length === 0 ? 'Кроме вас в системе пока никого нет.' : 'Никого не найдено. Измените фильтр или поиск.') + '</p>';
+                return;
+            }
+            var mediaBase = API_BASE_URL + '/media/';
+            filtered.forEach(function(u) {
+                var outReq = outgoing.find(function(o) { return o.to_user_id === u.id; });
+                var fullName = ((u.name || '') + ' ' + (u.surname || '')).trim() || 'Участник';
+                var initials = fullName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
+                var row = document.createElement('div');
+                row.className = 'add-buddy-item';
+                row.dataset.userId = u.id;
+                var avatarWrap = document.createElement('div');
+                avatarWrap.className = 'add-buddy-avatar';
+                if (u.avatar_path) {
+                    var img = document.createElement('img');
+                    img.src = mediaBase + (u.avatar_path || '').replace(/^\//, '');
+                    img.alt = fullName;
+                    img.onerror = function() { img.remove(); var s = document.createElement('span'); s.textContent = initials; avatarWrap.appendChild(s); };
+                    avatarWrap.appendChild(img);
+                } else {
+                    var span = document.createElement('span');
+                    span.textContent = initials;
+                    avatarWrap.appendChild(span);
+                }
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'add-buddy-name';
+                nameSpan.textContent = fullName;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'add-buddy-invite';
+                btn.dataset.userId = u.id;
+                if (outReq) {
+                    btn.textContent = 'Ждём ответа';
+                    btn.classList.add('waiting');
+                    btn.dataset.requestId = outReq.id;
+                } else {
+                    btn.textContent = 'Пригласить';
+                }
+                btn.addEventListener('click', function() {
+                    var uid = parseInt(this.dataset.userId, 10);
+                    var rid = this.dataset.requestId ? parseInt(this.dataset.requestId, 10) : null;
+                    sendBuddyInvite(uid, this, rid);
+                });
+                row.appendChild(avatarWrap);
+                row.appendChild(nameSpan);
+                row.appendChild(btn);
+                listEl.appendChild(row);
+            });
+        }
+
         async function openAddBuddyModal() {
             var modal = document.getElementById('modal-add-buddy');
             var listEl = document.getElementById('add-buddy-list');
             var errEl = document.getElementById('add-buddy-error');
+            var searchInput = document.getElementById('add-buddy-search');
             if (!modal || !listEl) return;
             modal.classList.remove('hidden');
             errEl.classList.add('hidden');
             errEl.textContent = '';
+            addBuddyState.filter = 'all';
+            addBuddyState.search = '';
+            if (searchInput) searchInput.value = '';
             listEl.innerHTML = '<p style="color:#666;">Загрузка...</p>';
             if (!currentUser || !currentUser.id) {
                 listEl.innerHTML = '';
@@ -974,62 +1078,27 @@
                 var outRes = await fetch(API_BASE_URL + '/buddy_requests?user_id=' + currentUser.id, { cache: 'no-store' });
                 var outgoing = [];
                 if (outRes.ok) { var outData = await outRes.json(); outgoing = outData.outgoing || []; }
-                listEl.innerHTML = '';
-                if (users.length === 0) {
-                    listEl.innerHTML = '<p style="color:#666;">Кроме вас в системе пока никого нет.</p>';
-                    return;
-                }
-                var mediaBase = API_BASE_URL + '/media/';
-                users.forEach(function(u) {
-                    var outReq = outgoing.find(function(o) { return o.to_user_id === u.id; });
-                    var fullName = ((u.name || '') + ' ' + (u.surname || '')).trim() || 'Участник';
-                    var initials = fullName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
-                    var row = document.createElement('div');
-                    row.className = 'add-buddy-item';
-                    row.dataset.userId = u.id;
-                    var avatarWrap = document.createElement('div');
-                    avatarWrap.className = 'add-buddy-avatar';
-                    if (u.avatar_path) {
-                        var img = document.createElement('img');
-                        img.src = mediaBase + (u.avatar_path || '').replace(/^\//, '');
-                        img.alt = fullName;
-                        img.onerror = function() { img.remove(); var s = document.createElement('span'); s.textContent = initials; avatarWrap.appendChild(s); };
-                        avatarWrap.appendChild(img);
-                    } else {
-                        var span = document.createElement('span');
-                        span.textContent = initials;
-                        avatarWrap.appendChild(span);
-                    }
-                    var nameSpan = document.createElement('span');
-                    nameSpan.className = 'add-buddy-name';
-                    nameSpan.textContent = fullName;
-                    var btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'add-buddy-invite';
-                    btn.dataset.userId = u.id;
-                    if (outReq) {
-                        btn.textContent = 'Ждём ответа';
-                        btn.classList.add('waiting');
-                        btn.dataset.requestId = outReq.id;
-                    } else {
-                        btn.textContent = 'Пригласить';
-                    }
-                    btn.addEventListener('click', function() {
-                        var uid = parseInt(this.dataset.userId, 10);
-                        var rid = this.dataset.requestId ? parseInt(this.dataset.requestId, 10) : null;
-                        sendBuddyInvite(uid, this, rid);
-                    });
-                    row.appendChild(avatarWrap);
-                    row.appendChild(nameSpan);
-                    row.appendChild(btn);
-                    listEl.appendChild(row);
-                });
+                addBuddyState.users = users;
+                addBuddyState.outgoing = outgoing;
+                renderAddBuddyList();
             } catch (e) {
                 listEl.innerHTML = '';
                 errEl.textContent = 'Не удалось загрузить список. ' + (e.message || 'Проверьте соединение с сервером и перезапустите бэкенд (GET /users/list).');
                 errEl.classList.remove('hidden');
             }
         }
+
+        (function initAddBuddyFilters() {
+            var all = document.getElementById('add-buddy-filter-all');
+            var m = document.getElementById('add-buddy-filter-m');
+            var f = document.getElementById('add-buddy-filter-f');
+            var searchInput = document.getElementById('add-buddy-search');
+            function setFilter(g) { addBuddyState.filter = g; renderAddBuddyList(); }
+            if (all) all.addEventListener('click', function() { setFilter('all'); });
+            if (m) m.addEventListener('click', function() { setFilter('m'); });
+            if (f) f.addEventListener('click', function() { setFilter('f'); });
+            if (searchInput) searchInput.addEventListener('input', function() { addBuddyState.search = this.value; renderAddBuddyList(); });
+        })();
         async function sendBuddyInvite(toUserId, btnEl, requestId) {
             if (!btnEl || !currentUser || !currentUser.id) return;
             if (btnEl.disabled) return;
