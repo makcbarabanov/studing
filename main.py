@@ -693,6 +693,40 @@ def update_profile(body: ProfileUpdateBody):
         _return_conn(conn)
 
 
+# --- Коды стран, которые уже есть в БД (для выпадающего списка: показать вверху и жирным) ---
+PHONE_PREFIXES_ORDER = [
+    "+7-7", "+971", "+998", "+995", "+86", "+81", "+82", "+91", "+61", "+64",
+    "+55", "+52", "+90", "+380", "+375", "+49", "+44", "+43", "+41", "+48",
+    "+420", "+421", "+371", "+370", "+372", "+33", "+39", "+34", "+1", "+7",
+]
+
+
+@app.get("/users/phone-prefixes")
+def users_phone_prefixes():
+    """Список кодов стран (префиксов телефонов), которые встречаются в users.phone. Для сортировки выпадающего списка стран."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT DISTINCT phone FROM users WHERE phone IS NOT NULL AND phone != ''")
+            rows = cur.fetchall()
+        phones = [r[0] for r in rows]
+        seen = set()
+        for p in phones:
+            if not p or not isinstance(p, str):
+                continue
+            p = p.strip()
+            for code in PHONE_PREFIXES_ORDER:
+                if p.startswith(code):
+                    seen.add(code)
+                    break
+        return {"prefixes": list(seen)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
 # --- Список пользователей для модалки «Добавить бадди» ---
 @app.get("/users/list")
 def users_list(exclude_user_id: Optional[int] = None):

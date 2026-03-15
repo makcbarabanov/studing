@@ -112,6 +112,29 @@
 
 ---
 
+## Что сделано (23.02.2025)
+
+**Для Атласа (и для онбординга):** **Техстек:** backend — Python 3.12+, FastAPI, psycopg2-binary, dotenv; frontend — статический HTML/JS/CSS, Fetch API; БД — PostgreSQL 14+; прод — Ubuntu, systemd unit `island` (uvicorn), Nginx, SSL (Let's Encrypt). Детали окружения и security — [Readme/atlas-status-report.md](atlas-status-report.md) (islanddream.ru, 188.225.44.48).
+
+**Изменения за день:**
+
+1. **Поиск и фильтр в модалке «Добавить бадди»**
+   * **БД:** колонка `users.gender` (значения `'m'` / `'f'` или NULL). Миграция: `_sql/mig_users_gender.sql` (применить: `python3 run_migrate.py _sql/mig_users_gender.sql`).
+   * **API:** `GET /users/list` возвращает поле `gender`. Если колонки ещё нет — ответ без падения, у всех `gender: null`.
+   * **Фронт:** в модалке две строки: первая — кнопки фильтра **Все | М | Ж**, вторая — иконка лупы + поле «Поиск по имени или фамилии». Фильтрация и поиск по уже загруженному списку (без доп. запросов). Активная кнопка: «Все» — зелёный, «М» — синий, «Ж» — розовый. Рамка только у поля поиска (без двойной обводки блока).
+   * Документация: [Readme/tables.md](tables.md) (колонка `gender`), [Readme/migrations_applied.md](migrations_applied.md).
+
+2. **Удаление пользователя из БД**
+   * Раньше при удалении пользователя в DBeaver возникала ошибка FK: мечты (`dreams.user_id`) ссылаются на `users.id`.
+   * **Миграция:** `_sql/mig_dreams_user_cascade.sql` — внешний ключ `dreams.user_id` переведён на `ON DELETE CASCADE`: при удалении пользователя его мечты удаляются автоматически. Применить: `python3 run_migrate.py _sql/mig_dreams_user_cascade.sql`.
+
+3. **Деплой (проверенный процесс)**
+   * **Песок (локально):** `git add . && git commit -m "..." && git push origin main`
+   * **Прод:** `git pull origin main && sudo systemctl restart island`
+   * На проде перед `pull` желательно проверить `git status` (нет ли локальных правок). Если есть миграции — выполнить их после `pull`, затем рестарт. Служба на проде: **island** (не fastapi).
+
+---
+
 ## 📔 Журнал проекта
 *   Файл `journal.txt` — хронология действий участников (дата, время, автор, действие). Внутренний лог без возможности отката, но с учётом истории.
 
@@ -227,5 +250,7 @@ pkill -f http.server
 | Файл | Описание |
 |------|----------|
 | [Readme/tables.md](tables.md) | Схема БД, таблицы, поля. Обновляется при любых изменениях в БД. |
+| [Readme/atlas-status-report.md](atlas-status-report.md) | **Для Атласа:** прод (islanddream.ru), systemd `island`, Nginx, SSL, binding 127.0.0.1, команды hardening. |
+| [Readme/migrations_applied.md](migrations_applied.md) | Справочник применённых миграций (копии SQL из `_sql/` после выполнения). |
 | `journal.txt` | Журнал проекта: дата, автор, действие. |
 | `.cursor/rules/` | Правила для Cursor (склонения, статистика dreams_log и т.д.). |
