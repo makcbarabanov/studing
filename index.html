@@ -79,12 +79,13 @@
         .modal-dream-table input[type="date"],
         .modal-dream-table input[type="number"],
         .modal-dream-table select { width: 100%; max-width: 220px; padding: 8px; box-sizing: border-box; }
-        .modal-dream-private-row { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
-        .modal-dream-private-row input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin: 0; cursor: pointer; }
-        .modal-dream-private-row .private-label { flex: 0 1 auto; font-size: 14px; color: #333; line-height: 1.3; }
-        .modal-dream-visibility-hint { margin-top: 6px; font-size: 13px; color: #666; line-height: 1.5; }
-        .modal-dream-visibility-hint .hint-line { display: block; margin-bottom: 2px; }
-        .modal-dream-visibility-hint .hint-icon { font-size: 1.15em; vertical-align: middle; }
+        .modal-dream-visibility-toggle { display: flex; gap: 12px; margin-top: 12px; }
+        .modal-dream-visibility-option { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s; }
+        .modal-dream-visibility-option:hover { background: #f8f8f8; border-color: #ccc; }
+        .modal-dream-visibility-option.active { background: #e8f5e9; border-color: #4CAF50; box-shadow: 0 0 0 2px rgba(76,175,80,0.2); }
+        .modal-dream-visibility-option .opt-icon { font-size: 1.4em; display: block; margin-bottom: 4px; }
+        .modal-dream-visibility-option .opt-title { font-weight: 600; font-size: 14px; color: #333; }
+        .modal-dream-visibility-option .opt-desc { font-size: 12px; color: #666; margin-top: 2px; }
         .modal-deadline-hints a { color: #888; cursor: pointer; text-decoration: none; }
         .modal-deadline-hints a:hover { color: #555; text-decoration: underline; }
         .modal input, .modal select, .modal textarea { width: 100%; padding: 8px; box-sizing: border-box; }
@@ -213,6 +214,7 @@
         .app-footer-add:hover { opacity: 0.9; }
         .app-footer-logout { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
         .app-footer-logout:hover { color: #666; }
+        .app-version { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
         .desktop-logout-btn { display: inline-block; }
         /* Хедер: аватар (высота = 3 строки) + справа: имя, сбылось|помог, Мечты|Шаги */
         .app-header { display: flex; align-items: stretch; gap: 12px; padding-bottom: 16px; min-height: 72px; }
@@ -749,14 +751,10 @@
                             <td><select id="new-dream-category"></select></td>
                         </tr>
                     </table>
-                    <div class="modal-dream-private-row">
-                        <input type="checkbox" id="new-dream-private" title="Не показывать в витрине мечт">
-                        <span class="private-label">Приватная (анонимно, не в витрине)</span>
+                    <div class="modal-dream-visibility-toggle" id="new-dream-visibility-toggle">
+                        <div class="modal-dream-visibility-option active" data-private="1" role="button" tabindex="0" aria-pressed="true"><span class="opt-icon">🙈</span><span class="opt-title">Закрытая мечта</span><span class="opt-desc">Видна только тебе и бадди</span></div>
+                        <div class="modal-dream-visibility-option" data-private="0" role="button" tabindex="0" aria-pressed="false"><span class="opt-icon">👁️</span><span class="opt-title">Открытая мечта</span><span class="opt-desc">Попадает в витрину</span></div>
                     </div>
-                    <p class="modal-dream-visibility-hint">
-                        <span class="hint-line"><span class="hint-icon">🙈</span> — закрытая мечта (видна только тебе и бадди).</span>
-                        <span class="hint-line"><span class="hint-icon">👁️</span> — открытая мечта (попадает в витрину).</span>
-                    </p>
                     <p class="modal-hint" style="margin-top:10px;font-size:12px;color:#666;">Нажмите «Добавить» один раз и дождитесь обновления списка.</p>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeNewDreamModal()">Отмена</button>
@@ -793,14 +791,10 @@
                             <td><select id="edit-dream-category"></select></td>
                         </tr>
                     </table>
-                    <div class="modal-dream-private-row">
-                        <input type="checkbox" id="edit-dream-private" title="Не показывать в витрине мечт">
-                        <span class="private-label">Приватная (анонимно, не в витрине)</span>
+                    <div class="modal-dream-visibility-toggle" id="edit-dream-visibility-toggle">
+                        <div class="modal-dream-visibility-option" data-private="1" role="button" tabindex="0" aria-pressed="false"><span class="opt-icon">🙈</span><span class="opt-title">Закрытая мечта</span><span class="opt-desc">Видна только тебе и бадди</span></div>
+                        <div class="modal-dream-visibility-option" data-private="0" role="button" tabindex="0" aria-pressed="false"><span class="opt-icon">👁️</span><span class="opt-title">Открытая мечта</span><span class="opt-desc">Попадает в витрину</span></div>
                     </div>
-                    <p class="modal-dream-visibility-hint">
-                        <span class="hint-line"><span class="hint-icon">🙈</span> — закрытая мечта (видна только тебе и бадди).</span>
-                        <span class="hint-line"><span class="hint-icon">👁️</span> — открытая мечта (попадает в витрину).</span>
-                    </p>
                     <div id="edit-dream-error" class="error hidden" style="margin-top:10px;"></div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" onclick="closeEditDreamModal()">Отмена</button>
@@ -973,6 +967,7 @@
             </footer>
             <button onclick="logout()" class="desktop-logout-btn" style="margin-top: 20px;">Выйти</button>
         </div>
+        <div class="app-version" aria-hidden="true">1</div>
     </div>
 
     <script>
@@ -2678,7 +2673,7 @@
                 tbodyEl.appendChild(tr);
                 tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = tr.querySelector('.dream-eye');
-                eyeBtn.addEventListener('click', function(ev) { ev.stopPropagation(); var nowPublic = this.getAttribute('data-public') === '1'; var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, !nowPublic, oid ? parseInt(oid, 10) : undefined); });
+                eyeBtn.addEventListener('click', function(ev) { ev.preventDefault(); ev.stopPropagation(); var nowPublic = this.getAttribute('data-public') === '1'; var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, !nowPublic, oid ? parseInt(oid, 10) : undefined); });
                 var picker = tr.querySelector('.status-picker');
                 if (picker) {
                     var currentSpan = picker.querySelector('.status-picker-current');
@@ -2760,7 +2755,7 @@
                     var cardOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
                     card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div><div class="steps-list">' + stepsEditableHtml + '</div><div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div></div>';
                     card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
-                    card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.stopPropagation(); var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1', oid ? parseInt(oid, 10) : undefined); });
+                    card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.preventDefault(); ev.stopPropagation(); var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1', oid ? parseInt(oid, 10) : undefined); });
                     var picker = card.querySelector('.status-picker');
                     if (picker) {
                         var currentSpan = picker.querySelector('.status-picker-current');
@@ -3044,6 +3039,7 @@
                 tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = tr.querySelector('.dream-eye');
                 eyeBtn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
                     ev.stopPropagation();
                     var nowPublic = this.getAttribute('data-public') === '1';
                     var oid = this.getAttribute('data-owner-id');
@@ -3232,6 +3228,7 @@
                 card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = card.querySelector('.dream-eye');
                 eyeBtn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
                     ev.stopPropagation();
                     var nowPublic = this.getAttribute('data-public') === '1';
                     var oid = this.getAttribute('data-owner-id');
@@ -3311,13 +3308,38 @@
             else if (hint === 'eoy') { d.setMonth(11); d.setDate(31); }
             el.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
+        function setVisibilityToggleState(toggleId, isPrivate) {
+            var wrap = document.getElementById(toggleId);
+            if (!wrap) return;
+            wrap.querySelectorAll('.modal-dream-visibility-option').forEach(function(opt) {
+                var optPrivate = opt.getAttribute('data-private') === '1';
+                opt.classList.toggle('active', optPrivate === isPrivate);
+                opt.setAttribute('aria-pressed', optPrivate === isPrivate ? 'true' : 'false');
+            });
+        }
+        function getVisibilityTogglePrivate(toggleId) {
+            var wrap = document.getElementById(toggleId);
+            if (!wrap) return true;
+            var active = wrap.querySelector('.modal-dream-visibility-option.active');
+            return active ? active.getAttribute('data-private') === '1' : true;
+        }
+        function initVisibilityToggle(toggleId) {
+            var wrap = document.getElementById(toggleId);
+            if (!wrap) return;
+            wrap.querySelectorAll('.modal-dream-visibility-option').forEach(function(opt) {
+                opt.onclick = function() {
+                    var isPrivate = opt.getAttribute('data-private') === '1';
+                    setVisibilityToggleState(toggleId, isPrivate);
+                };
+            });
+        }
         function openNewDreamModal() {
             document.getElementById('new-dream-text').value = '';
             document.getElementById('new-dream-deadline').value = '';
             var priceEl = document.getElementById('new-dream-price');
             if (priceEl) priceEl.value = '';
-            var privateEl = document.getElementById('new-dream-private');
-            if (privateEl) privateEl.checked = true;
+            setVisibilityToggleState('new-dream-visibility-toggle', true);
+            initVisibilityToggle('new-dream-visibility-toggle');
             document.querySelectorAll('#modal-new-dream .modal-deadline-hints a').forEach(function(a) {
                 a.onclick = function(ev) { ev.preventDefault(); setDeadlineFromHint('new-dream-deadline', a.dataset.deadline); };
             });
@@ -3357,6 +3379,9 @@
             document.querySelectorAll('#modal-edit-dream .modal-deadline-hints a').forEach(function(a) {
                 a.onclick = function(ev) { ev.preventDefault(); setDeadlineFromHint('edit-dream-deadline', a.dataset.deadline); };
             });
+            var isPrivate = d.is_public === false;
+            setVisibilityToggleState('edit-dream-visibility-toggle', isPrivate);
+            initVisibilityToggle('edit-dream-visibility-toggle');
             document.getElementById('edit-dream-error').classList.add('hidden');
             document.getElementById('btn-submit-edit-dream').disabled = false;
             document.getElementById('modal-edit-dream').classList.remove('hidden');
@@ -3405,8 +3430,8 @@
             errDiv.classList.add('hidden');
             if (btn) btn.disabled = true;
             try {
-                var privateEl = document.getElementById('edit-dream-private');
-                var isPublic = !(privateEl && privateEl.checked);
+                var isPrivate = getVisibilityTogglePrivate('edit-dream-visibility-toggle');
+                var isPublic = !isPrivate;
                 var body = { dream: text, status_id: statusId, deadline: deadline || null, category_id: categoryId || null, price: priceVal, is_public: isPublic };
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?user_id=' + currentUser.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 if (!res.ok) {
@@ -3452,8 +3477,8 @@
                 var priceElNew = document.getElementById('new-dream-price');
                 var priceVal = (priceElNew && priceElNew.value.trim() !== '') ? parseInt(priceElNew.value, 10) : null;
                 if (priceVal != null && !isNaN(priceVal)) priceVal = Math.max(0, priceVal); else priceVal = null;
-                var privateEl = document.getElementById('new-dream-private');
-                var isPublic = !(privateEl && privateEl.checked);
+                var isPrivate = getVisibilityTogglePrivate('new-dream-visibility-toggle');
+                var isPublic = !isPrivate;
                 var body = { user_id: currentUser.id, dream: text, status_id: statusId, is_public: isPublic };
                 if (categoryId) body.category_id = categoryId;
                 if (deadline) body.deadline = deadline;
