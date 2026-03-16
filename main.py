@@ -411,6 +411,11 @@ def index2_page():
     """Вариант интерфейса: заголовок «мечты | шаги», под ним контекстный заголовок (Мои мечты / Витрина / Уведомления)."""
     return FileResponse(Path(__file__).parent / "index2.html")
 
+@app.get("/roadmap.html", response_class=FileResponse)
+def roadmap_page():
+    """Roadmap и обратная связь от тестировщиков."""
+    return FileResponse(Path(__file__).parent / "roadmap.html")
+
 # --- Эндпоинт 1: АВТОРИЗАЦИЯ ---
 @app.post("/login")
 def login_user(user_login: UserLogin):

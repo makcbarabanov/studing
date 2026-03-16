@@ -84,8 +84,8 @@
         .modal-dream-visibility-option:hover { background: #f8f8f8; border-color: #ccc; }
         .modal-dream-visibility-option.active { background: #e8f5e9; border-color: #4CAF50; box-shadow: 0 0 0 2px rgba(76,175,80,0.2); }
         .modal-dream-visibility-option .opt-icon { font-size: 1.4em; display: block; margin-bottom: 4px; }
-        .modal-dream-visibility-option .opt-title { font-weight: 600; font-size: 14px; color: #333; }
-        .modal-dream-visibility-option .opt-desc { font-size: 12px; color: #666; margin-top: 2px; }
+        .modal-dream-visibility-option .opt-title { display: block; font-weight: 600; font-size: 14px; color: #333; }
+        .modal-dream-visibility-option .opt-desc { display: block; font-size: 12px; color: #666; margin-top: 4px; }
         .modal-deadline-hints a { color: #888; cursor: pointer; text-decoration: none; }
         .modal-deadline-hints a:hover { color: #555; text-decoration: underline; }
         .modal input, .modal select, .modal textarea { width: 100%; padding: 8px; box-sizing: border-box; }
@@ -160,6 +160,8 @@
         .modal-add-step .modal-add-step-date-group label { margin: 0; font-weight: 500; }
         .modal-add-step .modal-add-step-days-wrap { margin-top: 12px; }
         .modal-add-step .modal-add-step-days-wrap.disabled { opacity: 0.5; pointer-events: none; }
+        .modal-add-step-repeat-block { margin-top: 12px; padding: 12px; background: #f0f0f0; border-radius: 6px; transition: opacity 0.2s, background 0.2s; }
+        .modal-add-step-repeat-block.disabled { opacity: 0.5; pointer-events: none; background: #e8e8e8; }
         .modal-add-step .modal-add-step-days-label { margin-bottom: 6px; }
         .modal-add-step .modal-add-step-days { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
         .modal-add-step .modal-add-step-days label { display: inline-flex; align-items: center; margin: 0; cursor: pointer; }
@@ -350,7 +352,7 @@
         .tg-input::placeholder { color: #b0b0b0; }
         .tg-phone-row { display: flex; flex-direction: row; gap: 8px; align-items: stretch; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; min-height: 44px; box-sizing: border-box; }
         .tg-phone-row:focus-within { border-bottom-color: #52a6e0; }
-        .tg-country-trigger { flex: 0 0 5em; width: 5em; max-width: 5em; display: flex; align-items: center; justify-content: flex-end; gap: 2px; padding: 10px 6px; cursor: pointer; font-size: 16px; color: #222; border: 1px solid #52a6e0; border-radius: 4px; background: transparent; outline: none; white-space: nowrap; box-sizing: border-box; }
+        .tg-country-trigger { flex: 0 0 55px; width: 55px; max-width: 55px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; padding: 10px 4px; cursor: pointer; font-size: 16px; color: #222; border: 1px solid #52a6e0; border-radius: 4px; background: transparent; outline: none; white-space: nowrap; box-sizing: border-box; }
         .tg-country-trigger #reg-country-label { display: none; }
         .tg-country-trigger #login-country-label { display: none; }
         .tg-country-trigger .tg-chevron { font-size: 12px; color: #707579; flex-shrink: 0; }
@@ -518,7 +520,7 @@
                     <div id="tg-step-1" class="tg-step active">
                         <div class="tg-header">
                             <button type="button" class="tg-back" onclick="showLoginForm(); return false;" aria-label="Назад">←</button>
-                            <span class="tg-header-right"><a href="#" onclick="showLoginForm(); return false;">Вход</a></span>
+                            <span class="tg-header-right"></span>
                         </div>
                         <h2 class="tg-title">Ваш номер телефона</h2>
                         <p class="tg-subtitle">Проверьте код страны и введите свой номер телефона.</p>
@@ -531,7 +533,6 @@
                         </div>
                         <p class="tg-error-inline" id="reg-step1-error"></p>
                         <button type="button" class="tg-btn-primary" id="reg-continue-btn" onclick="regStep1Continue()">Продолжить</button>
-                        <p class="tg-link-row"><a href="#" onclick="showLoginForm(); return false;">Уже есть аккаунт? Войти</a></p>
                     </div>
                     <div id="tg-step-2" class="tg-step">
                         <div class="tg-header">
@@ -874,28 +875,38 @@
             <div id="modal-add-step" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-title">
                 <div class="modal modal-add-step">
                     <h3 id="modal-add-step-title">Добавить шаг</h3>
-                    <label>Название шага</label>
+                    <label for="modal-add-step-title-input">Название шага</label>
                     <input type="text" id="modal-add-step-title-input" placeholder="Напр. Урок английского 15 мин" class="modal-add-step-title-input">
-                    <div class="modal-add-step-dates-row">
-                        <div class="modal-add-step-date-group">
-                            <label for="modal-add-step-date-from">Дата начала</label>
-                            <input type="date" id="modal-add-step-date-from" class="modal-add-step-date">
-                        </div>
-                        <div class="modal-add-step-date-group">
-                            <label for="modal-add-step-date-to">Дата окончания</label>
-                            <input type="date" id="modal-add-step-date-to" class="modal-add-step-date">
-                        </div>
+                    <div class="modal-add-step-date-group" style="margin-top:8px;">
+                        <label for="modal-add-step-date-single">Дата шага</label>
+                        <input type="date" id="modal-add-step-date-single" class="modal-add-step-date">
                     </div>
-                    <div class="modal-add-step-days-wrap" id="modal-add-step-days-wrap">
-                        <label class="modal-add-step-days-label" id="modal-add-step-days-label">Укажите дату окончания, чтобы выбрать дни недели</label>
-                        <div class="modal-add-step-days" id="modal-add-step-days">
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="1" checked> ПН</label>
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="2" checked> ВТ</label>
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="3" checked> СР</label>
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="4" checked> ЧТ</label>
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="5" checked> ПТ</label>
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="6" checked> СБ</label>
-                        <label><input type="checkbox" class="modal-add-step-day" data-day="0" checked> ВС</label>
+                    <label class="modal-add-step-repeat-check" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;">
+                        <input type="checkbox" id="modal-add-step-repeat" class="modal-add-step-repeat-cb">
+                        <span>Повторять шаг</span>
+                    </label>
+                    <div class="modal-add-step-repeat-block" id="modal-add-step-repeat-block">
+                        <div class="modal-add-step-dates-row">
+                            <div class="modal-add-step-date-group">
+                                <label for="modal-add-step-date-from">Дата начала</label>
+                                <input type="date" id="modal-add-step-date-from" class="modal-add-step-date">
+                            </div>
+                            <div class="modal-add-step-date-group">
+                                <label for="modal-add-step-date-to">Дата окончания</label>
+                                <input type="date" id="modal-add-step-date-to" class="modal-add-step-date">
+                            </div>
+                        </div>
+                        <div class="modal-add-step-days-wrap" id="modal-add-step-days-wrap">
+                            <label class="modal-add-step-days-label" id="modal-add-step-days-label">Дни недели</label>
+                            <div class="modal-add-step-days" id="modal-add-step-days">
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="1" checked> ПН</label>
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="2" checked> ВТ</label>
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="3" checked> СР</label>
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="4" checked> ЧТ</label>
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="5" checked> ПТ</label>
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="6" checked> СБ</label>
+                            <label><input type="checkbox" class="modal-add-step-day" data-day="0" checked> ВС</label>
+                            </div>
                         </div>
                     </div>
                     <p class="modal-add-step-count" id="modal-add-step-count"></p>
@@ -3560,13 +3571,19 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (!overlay) return;
             overlay.dataset.dreamId = String(dreamId);
             var titleIn = document.getElementById('modal-add-step-title-input');
+            var dateSingleIn = document.getElementById('modal-add-step-date-single');
+            var repeatCb = document.getElementById('modal-add-step-repeat');
             var fromIn = document.getElementById('modal-add-step-date-from');
             var toIn = document.getElementById('modal-add-step-date-to');
             if (titleIn) titleIn.value = '';
-            if (fromIn) fromIn.value = '';
+            if (repeatCb) repeatCb.checked = false;
+            var today = new Date();
+            var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            if (dateSingleIn) dateSingleIn.value = todayStr;
+            if (fromIn) fromIn.value = todayStr;
             if (toIn) toIn.value = '';
             overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) { cb.checked = true; });
-            syncAddStepModalDaysState();
+            syncAddStepModalRepeatState();
             updateAddStepModalCount();
             overlay.classList.remove('hidden');
             if (titleIn) titleIn.focus();
@@ -3607,31 +3624,50 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var overlay = document.getElementById('modal-add-step');
             if (overlay) overlay.classList.add('hidden');
         }
+        function syncAddStepModalRepeatState() {
+            var repeatCb = document.getElementById('modal-add-step-repeat');
+            var block = document.getElementById('modal-add-step-repeat-block');
+            var dateSingleIn = document.getElementById('modal-add-step-date-single');
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            if (!repeatCb || !block) return;
+            var isRepeat = repeatCb.checked;
+            block.classList.toggle('disabled', !isRepeat);
+            block.querySelectorAll('input').forEach(function(el) { el.disabled = !isRepeat; });
+            if (isRepeat && fromIn && dateSingleIn && dateSingleIn.value) fromIn.value = dateSingleIn.value;
+            syncAddStepModalDaysState();
+        }
         function syncAddStepModalDaysState() {
             var overlay = document.getElementById('modal-add-step');
+            var repeatCb = document.getElementById('modal-add-step-repeat');
             var toIn = document.getElementById('modal-add-step-date-to');
             var wrap = document.getElementById('modal-add-step-days-wrap');
             var labelEl = document.getElementById('modal-add-step-days-label');
-            if (!overlay || !toIn || !wrap || !labelEl) return;
-            var hasEndDate = (toIn.value || '').trim() !== '';
+            if (!overlay || !wrap || !labelEl) return;
+            if (!repeatCb || !repeatCb.checked) { wrap.classList.add('disabled'); overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) { cb.disabled = true; }); return; }
+            var hasEndDate = toIn && (toIn.value || '').trim() !== '';
             wrap.classList.toggle('disabled', !hasEndDate);
             overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) {
                 cb.disabled = !hasEndDate;
                 if (hasEndDate && !cb.checked) cb.checked = true;
             });
-            labelEl.textContent = hasEndDate
-                ? 'Дни недели (все активны — нажмите, чтобы исключить день)'
-                : 'Укажите дату окончания, чтобы выбрать дни недели';
+            labelEl.textContent = hasEndDate ? 'Дни недели (все активны — нажмите, чтобы исключить день)' : 'Укажите дату окончания, чтобы выбрать дни недели';
         }
         function updateAddStepModalCount() {
             var overlay = document.getElementById('modal-add-step');
+            var repeatCb = document.getElementById('modal-add-step-repeat');
+            var dateSingleIn = document.getElementById('modal-add-step-date-single');
             var fromIn = document.getElementById('modal-add-step-date-from');
             var toIn = document.getElementById('modal-add-step-date-to');
             var countEl = document.getElementById('modal-add-step-count');
-            if (!overlay || !fromIn || !toIn || !countEl) return;
+            if (!overlay || !countEl) return;
             syncAddStepModalDaysState();
-            var fromStr = fromIn.value;
-            var toStr = toIn.value;
+            if (!repeatCb || !repeatCb.checked) {
+                var ds = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
+                countEl.textContent = ds ? 'Будет создан 1 шаг' : '';
+                return;
+            }
+            var fromStr = fromIn && fromIn.value ? fromIn.value : '';
+            var toStr = toIn && toIn.value ? toIn.value : '';
             var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day:checked'), function(c) { return parseInt(c.dataset.day, 10); });
             if (!fromStr || !toStr) { countEl.textContent = ''; return; }
             var from = new Date(fromStr);
@@ -3648,15 +3684,17 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function initAddStepModal() {
             var overlay = document.getElementById('modal-add-step');
             if (!overlay) return;
+            var repeatCb = document.getElementById('modal-add-step-repeat');
+            var dateSingleIn = document.getElementById('modal-add-step-date-single');
             var fromIn = document.getElementById('modal-add-step-date-from');
             var toIn = document.getElementById('modal-add-step-date-to');
             var cancelBtn = document.getElementById('modal-add-step-cancel');
             var createBtn = document.getElementById('modal-add-step-create');
             function update() { updateAddStepModalCount(); }
-            if (fromIn) fromIn.addEventListener('input', update);
-            if (fromIn) fromIn.addEventListener('change', update);
-            if (toIn) toIn.addEventListener('input', update);
-            if (toIn) toIn.addEventListener('change', update);
+            if (repeatCb) repeatCb.addEventListener('change', function() { syncAddStepModalRepeatState(); update(); });
+            if (dateSingleIn) { dateSingleIn.addEventListener('input', update); dateSingleIn.addEventListener('change', update); }
+            if (fromIn) { fromIn.addEventListener('input', update); fromIn.addEventListener('change', update); }
+            if (toIn) { toIn.addEventListener('input', update); toIn.addEventListener('change', update); }
             overlay.querySelectorAll('.modal-add-step-day').forEach(function(cb) { cb.addEventListener('change', update); });
             if (cancelBtn) cancelBtn.addEventListener('click', closeAddStepModal);
             overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeAddStepModal(); });
@@ -3666,6 +3704,24 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var titleIn = document.getElementById('modal-add-step-title-input');
                 var title = (titleIn && titleIn.value) ? titleIn.value.trim() : '';
                 if (!title) { alert('Введите название шага'); return; }
+                var isRepeat = repeatCb && repeatCb.checked;
+                if (!isRepeat) {
+                    var dateStr = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
+                    if (!dateStr) { alert('Укажите дату шага'); return; }
+                    createBtn.disabled = true;
+                    createBtn.textContent = 'Создаём…';
+                    addStepPromise(dreamId, title, dateStr).then(function() {
+                        closeAddStepModal();
+                        createBtn.disabled = false;
+                        createBtn.textContent = 'Создать';
+                        refreshAfterDreamChange();
+                    }).catch(function(err) {
+                        createBtn.disabled = false;
+                        createBtn.textContent = 'Создать';
+                        alert(err && err.message ? err.message : 'Ошибка при создании шага');
+                    });
+                    return;
+                }
                 var fromStr = fromIn && fromIn.value ? fromIn.value : '';
                 var toStr = toIn && toIn.value ? toIn.value : '';
                 if (!fromStr || !toStr) { alert('Укажите дату начала и дату окончания'); return; }

@@ -18,7 +18,7 @@ git diff --stat     # посмотреть, что изменено
 
 ```bash
 git add index.html index2.html main.py requirements.txt DEPLOY.md ostrov.service
-git add Readme/roadmap.md Readme/server-prompt.md Readme/sync-prod-with-sandbox.md Readme/structure.md
+git add Readme/server-prompt.md Readme/sync-prod-with-sandbox.md Readme/structure.md
 git status   # проверь список
 git commit -m "Актуальный интерфейс: мечты | шаги | витрина, бэкенд (SSL БД, bcrypt, избранные)"
 git push origin main

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap — Завтрак исполняющий желания</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #e8e4df; color: #333; }
+        .page-header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.96); backdrop-filter: blur(8px); border-bottom: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .page-header-inner { max-width: 1200px; margin: 0 auto; padding: 16px 20px; }
+        .page-title { margin: 0 0 12px; font-size: 1.4em; color: #1b5e20; font-weight: 600; }
+        .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .filters .filter-status { display: flex; gap: 6px; }
+        .filters .filter-status button { padding: 8px 14px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 6px; font-size: 13px; transition: all 0.2s; }
+        .filters .filter-status button:hover { background: #f0f8f0; border-color: #4CAF50; }
+        .filters .filter-status button.active { background: #4CAF50; color: #fff; border-color: #4CAF50; }
+        .filters .filter-status button .status-icon { margin-right: 4px; }
+        .filters select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; }
+        .filters label { font-size: 13px; color: #555; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .roadmap-table-wrap { background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-height: calc(100vh - 220px); overflow-y: auto; overflow-x: hidden; }
+        .roadmap-table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+        .roadmap-table th, .roadmap-table td { border: 1px solid #e8e8e8; padding: 10px 12px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
+        .roadmap-table thead { position: sticky; top: 0; z-index: 50; }
+        .roadmap-table thead th { background: #2e7d32; color: #fff; font-weight: 600; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .roadmap-table .col-step { width: 4%; text-align: center; font-weight: 600; }
+        .roadmap-table .col-text { width: 26%; }
+        .roadmap-table .col-section { width: 10%; }
+        .roadmap-table .col-status { width: 9%; }
+        .roadmap-table .col-initiator { width: 10%; }
+        .roadmap-table .col-count { width: 4%; text-align: center; }
+        .roadmap-table .col-date { width: 8%; }
+        .roadmap-table .col-done { width: 8%; }
+        .roadmap-table .col-priority { width: 8%; }
+        .roadmap-table .col-comment { width: 15%; }
+        .roadmap-table .col-date, .roadmap-table .col-done { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .roadmap-table tbody tr { background: #fff; }
+        .roadmap-table tbody tr:nth-child(even) { background: #fafafa; }
+        .roadmap-table tbody tr:hover { background: #f0f8f0; }
+        .roadmap-table tr.done { background: #f5f5f5; }
+        .roadmap-table tr.done:nth-child(even) { background: #f0f0f0; }
+        .roadmap-table tr.done .col-text { color: #666; }
+        .roadmap-table .status-cell { display: flex; align-items: center; gap: 4px; }
+        .roadmap-table .status-icon { font-size: 1.1em; }
+        .roadmap-table .count-badge { display: inline-block; min-width: 22px; padding: 2px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 10px; text-align: center; font-weight: 600; font-size: 12px; }
+        .roadmap-table .priority-high { color: #c62828; }
+        .roadmap-table .priority-mid { color: #f57c00; }
+        .roadmap-table .priority-low { color: #888; }
+        .last-update { font-size: 12px; color: #888; margin-top: 16px; padding: 0 4px; }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="page-header-inner">
+            <h1 class="page-title">🏝️ Roadmap — Завтрак исполняющий желания</h1>
+            <div class="filters">
+                <label>Статус:</label>
+                <div class="filter-status">
+                    <button type="button" class="filter-status-btn active" data-status="all">Все</button>
+                    <button type="button" class="filter-status-btn" data-status="plan"><span class="status-icon">💡</span>В плане</button>
+                    <button type="button" class="filter-status-btn" data-status="done"><span class="status-icon">✅</span>Сделано</button>
+                </div>
+                <label style="margin-left: 16px;">Раздел:</label>
+                <select id="filter-section">
+                    <option value="">Все разделы</option>
+                    <option value="Хедер">Хедер</option>
+                    <option value="Регистрация">Регистрация</option>
+                    <option value="Витрина">Витрина</option>
+                    <option value="Мечты">Мечты</option>
+                    <option value="Шаги">Шаги</option>
+                    <option value="Расписание">Расписание</option>
+                    <option value="Бадди">Бадди</option>
+                    <option value="Аватарка">Аватарка</option>
+                    <option value="Аналитика">Аналитика</option>
+                    <option value="Мобильная">Мобильная</option>
+                    <option value="Дизайн">Дизайн</option>
+                    <option value="Общее">Общее</option>
+                    <option value="Инфраструктура">Инфраструктура</option>
+                    <option value="Фильтры витрины">Фильтры витрины</option>
+                </select>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="roadmap-table-wrap">
+            <table class="roadmap-table" id="roadmap-table">
+                <thead>
+                    <tr>
+                        <th class="col-step">№</th>
+                        <th class="col-text">Текст</th>
+                        <th class="col-section">Раздел</th>
+                        <th class="col-status">Статус</th>
+                        <th class="col-initiator">Инициатор</th>
+                        <th class="col-count">N</th>
+                        <th class="col-date">Дата</th>
+                        <th class="col-done">Выполнено</th>
+                        <th class="col-priority">Приоритет</th>
+                        <th class="col-comment">Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody id="roadmap-tbody"></tbody>
+            </table>
+        </div>
+        <p class="last-update">План + обратная связь. № — уникальный номер шага, N — счётчик дубликатов. Обновлено: 2026-03-18</p>
+    </div>
+
+    <script>
+        var ROADMAP_DATA = [
+            // Хедер (1–2 сделано)
+            { step: 1, text: "Убрать заглушки в статистике — считать из БД", section: "Хедер", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 2, text: "Закрепить хедер при скролле", section: "Хедер", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            // Регистрация
+            { step: 3, text: "Маска ввода номера (не placeholder: формат +7 (999) 999-99-99, нельзя ввести букву/лишнюю цифру)", section: "Регистрация", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 4, text: "Подтверждение номера по SMS", section: "Регистрация", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            // Расписание, Бадди, Витрина, Мобильная
+            { step: 5, text: "Переименовать «Шаги» в «Расписание»", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 6, text: "Дедлайн у шага, редактирование на лету", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 7, text: "Раздел Расписание: список шагов, фильтры", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 8, text: "Финцель в Расписании: «Внеси N т.р.» на месяц", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 9, text: "buddy_id, просмотр мечт бадди", section: "Бадди", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 10, text: "buddy_trust, редактирование мечт бадди", section: "Бадди", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 11, text: "Мультибадди: несколько бадди, схема БД", section: "Бадди", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 12, text: "Аватарка бадди(ев) в хедере", section: "Бадди", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 13, text: "Витрина: страница, фильтры, модалка «Как помочь»", section: "Витрина", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 14, text: "Витрина в кабинете, просмотры, избранное", section: "Витрина", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 15, text: "Адаптивная вёрстка, touch-зоны", section: "Мобильная", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            { step: 16, text: "Один экран — одна мечта, свайп", section: "Мобильная", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
+            // Щербинина Светлана
+            { step: 17, text: "Фильтр по выполненным мечтам", section: "Мечты", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
+            { step: 18, text: "Бадди меняет статус мечты, но я этого не вижу", section: "Бадди", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
+            { step: 19, text: "Когда бадди ставит фильтр — скидывается на первое желание", section: "Бадди", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
+            { step: 20, text: "Разовые и повторяющиеся шаги: название + дата, галочка «Повторять шаг» (блок дат/дней недели)", section: "Шаги", status: "done", initiator: "Макс", count: 1, dateAdded: "2026-03-18", dateDone: "2026-03-18", priority: "", comment: "ТЗ п.4: разовый = название+дата; повторяющийся = + дата нач/кон, дни недели" },
+            { step: 21, text: "Подсказка по датам, когда разовое действие", section: "Шаги", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
+            { step: 22, text: "Дата окончания тянет за собой периодическое повторение", section: "Шаги", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
+            { step: 23, text: "Убрать обязательность полей: дата окончания и дата начала", section: "Шаги", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
+            // Быченкова Марина
+            { step: 24, text: "Если «в работе» или «выполнено» — уходит из списка? Показывать ли выполненные?", section: "Мечты", status: "plan", initiator: "Быченкова Марина", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            { step: 25, text: "Если желаний 500 000 — как искать? До нижних никто не долистает", section: "Витрина", status: "plan", initiator: "Быченкова Марина", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            { step: 26, text: "Разделы/фильтры в витрине: финансовые, интеллектуальные и т.д.", section: "Витрина", status: "plan", initiator: "Быченкова Марина", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            // Николаев Александр
+            { step: 27, text: "Сортировка дат в шагах: порядок разный (13, 14, 15, потом 10, 18). Сделать единообразно", section: "Шаги", status: "plan", initiator: "Николаев Александр", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            // Захваткин Константин
+            { step: 28, text: "Заглавная фотка: круассан при чём? Лучше остров — вид сверху, тропический остров с пляжем и пальмами", section: "Дизайн", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            { step: 29, text: "Вид связи: WhatsApp не актуальна. ТГ, лучше Макс, либо тел/мэйл/ссылка на соцсеть", section: "Витрина", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            { step: 30, text: "Долго листал — единицы реально исполнить. Либо абстрактно, либо дорого", section: "Витрина", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            { step: 31, text: "Цели должны быть измеримыми и реальными (не «Корочку хлеба», «Мир во всём мире»)", section: "Общее", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
+            // Фильтры витрины
+            { step: 32, text: "Оформить фильтры мечт в витрине: поиск, категории, фильтр «реально исполнить»", section: "Фильтры витрины", status: "plan", initiator: "План", count: 1, dateAdded: "2026-03-17", dateDone: "", priority: "", comment: "Большой раздел, вернёмся позже" },
+            { step: 33, text: "Научить Форжа самостоятельно вносить изменения в базу данных (запуск Python-скриптов, миграции)", section: "Инфраструктура", status: "done", initiator: "Макс", count: 1, dateAdded: "2026-03-18", dateDone: "2026-03-18", priority: "", comment: "Auto-Run в Cursor Settings → Agents. Тест: mig_test_agent_run" }
+        ];
+
+        function formatDate(s) {
+            if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return '—';
+            var p = s.split('-');
+            return p[2] + '.' + p[1] + '.' + p[0];
+        }
+        function render() {
+            var status = document.querySelector('.filter-status-btn.active').dataset.status;
+            var section = document.getElementById('filter-section').value;
+            var rows = ROADMAP_DATA.filter(function(r) {
+                if (status === 'plan' && r.status !== 'plan') return false;
+                if (status === 'done' && r.status !== 'done') return false;
+                if (section && r.section !== section) return false;
+                return true;
+            });
+            var statusInfo = { plan: { icon: '💡', label: 'В плане' }, done: { icon: '✅', label: 'Сделано' } };
+            var priorityLabel = { high: 'Высокий', mid: 'Средний', low: 'Низкий' };
+            var priorityClass = { high: 'priority-high', mid: 'priority-mid', low: 'priority-low' };
+            var tbody = document.getElementById('roadmap-tbody');
+            tbody.innerHTML = rows.map(function(r) {
+                var trClass = r.status === 'done' ? ' done' : '';
+                var countHtml = r.count > 1 ? '<span class="count-badge">' + r.count + '</span>' : '1';
+                var priorityHtml = r.priority ? '<span class="' + (priorityClass[r.priority] || '') + '">' + (priorityLabel[r.priority] || r.priority) + '</span>' : '—';
+                var si = statusInfo[r.status] || { icon: '', label: r.status };
+                var statusHtml = '<span class="status-cell"><span class="status-icon">' + si.icon + '</span>' + escapeHtml(si.label) + '</span>';
+                var stepNum = (r.step != null && r.step !== '') ? r.step : '—';
+                return '<tr class="' + trClass + '">' +
+                    '<td class="col-step">' + escapeHtml(String(stepNum)) + '</td>' +
+                    '<td class="col-text">' + escapeHtml(r.text) + '</td>' +
+                    '<td class="col-section">' + escapeHtml(r.section || '—') + '</td>' +
+                    '<td class="col-status">' + statusHtml + '</td>' +
+                    '<td class="col-initiator">' + escapeHtml(r.initiator || '—') + '</td>' +
+                    '<td class="col-count">' + countHtml + '</td>' +
+                    '<td class="col-date">' + formatDate(r.dateAdded) + '</td>' +
+                    '<td class="col-done">' + formatDate(r.dateDone) + '</td>' +
+                    '<td class="col-priority">' + priorityHtml + '</td>' +
+                    '<td class="col-comment">' + escapeHtml(r.comment || '') + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+        function escapeHtml(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        document.querySelectorAll('.filter-status-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-status-btn').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                render();
+            });
+        });
+        document.getElementById('filter-section').addEventListener('change', render);
+        render();
+    </script>
+</body>
+</html>
