@@ -4,6 +4,7 @@ import calendar
 from datetime import datetime
 from pathlib import Path
 import psycopg2
+from psycopg2 import OperationalError
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor, Json
 from fastapi import FastAPI, HTTPException, File, UploadFile
@@ -52,31 +53,60 @@ app.add_middleware(
 # Пул соединений с БД (Connection Pool) — переиспользуем соединения вместо создания нового на каждый запрос
 db_pool = None
 
+def _db_conn_kwargs():
+    """Параметры подключения к БД (host, user, password, ...)."""
+    conn_kw = dict(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASS"),
+        dbname=os.getenv("DB_NAME"),
+        cursor_factory=RealDictCursor,
+        connect_timeout=15,
+        keepalives=1,
+        keepalives_idle=30,
+    )
+    if os.getenv("DB_PORT"):
+        conn_kw["port"] = int(os.getenv("DB_PORT"))
+    sslmode = (os.getenv("DB_SSLMODE") or "").strip()
+    if sslmode:
+        conn_kw["sslmode"] = sslmode
+    return conn_kw
+
+def _connect_with_retry(max_attempts=3):
+    """Подключение к БД с повтором при SSL/сетевых ошибках."""
+    for attempt in range(max_attempts):
+        try:
+            return psycopg2.connect(**_db_conn_kwargs())
+        except OperationalError as e:
+            if attempt < max_attempts - 1 and ("SSL" in str(e) or "closed" in str(e).lower()):
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            raise
+    return None
+
 @app.on_event("startup")
 def startup_event():
     global db_pool
     if not os.getenv("DB_HOST"):
         return  # Локальный запуск без БД (например, только статика)
-    try:
-        conn_kw = dict(
-            host=os.getenv("DB_HOST"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASS"),
-            dbname=os.getenv("DB_NAME"),
-            cursor_factory=RealDictCursor,
-        )
-        if os.getenv("DB_PORT"):
-            conn_kw["port"] = int(os.getenv("DB_PORT"))
-        sslmode = (os.getenv("DB_SSLMODE") or "").strip()
-        if sslmode:
-            conn_kw["sslmode"] = sslmode
-        db_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=20,
-            **conn_kw,
-        )
-    except Exception as e:
-        print("⚠ Пул БД не создан:", e)
+    for attempt in range(3):
+        try:
+            conn_kw = _db_conn_kwargs()
+            db_pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=20,
+                **conn_kw,
+            )
+            return
+        except OperationalError as e:
+            if attempt < 2 and ("SSL" in str(e) or "closed" in str(e).lower()):
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            print("⚠ Пул БД не создан:", e)
+            break
+        except Exception as e:
+            print("⚠ Пул БД не создан:", e)
+            break
 
 @app.on_event("shutdown")
 def shutdown_event():
@@ -361,22 +391,10 @@ def _schedule_items_books(cur, user_id: int, date_from: str, date_to: str):
     return items
 
 def get_db_connection():
-    """Берёт соединение из пула. Если пула нет (запуск без БД) — создаёт разовое подключение."""
+    """Берёт соединение из пула. Если пула нет (запуск без БД) — создаёт разовое подключение с повтором при SSL-ошибках."""
     if db_pool is not None:
         return db_pool.getconn()
-    conn_kw = dict(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASS"),
-        dbname=os.getenv("DB_NAME"),
-        cursor_factory=RealDictCursor,
-    )
-    if os.getenv("DB_PORT"):
-        conn_kw["port"] = int(os.getenv("DB_PORT"))
-    sslmode = (os.getenv("DB_SSLMODE") or "").strip()
-    if sslmode:
-        conn_kw["sslmode"] = sslmode
-    return psycopg2.connect(**conn_kw)
+    return _connect_with_retry()
 
 @app.get("/", response_class=FileResponse)
 def root_page():
