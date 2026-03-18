@@ -10,7 +10,11 @@
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #e8e4df; color: #333; }
         .page-header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.96); backdrop-filter: blur(8px); border-bottom: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .page-header-inner { max-width: 1200px; margin: 0 auto; padding: 16px 20px; }
-        .page-title { margin: 0 0 12px; font-size: 1.4em; color: #1b5e20; font-weight: 600; }
+        .page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .page-title { margin: 0; font-size: 1.4em; color: #1b5e20; font-weight: 600; flex: 1; min-width: 0; }
+        .roadmap-add-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; background: #4CAF50; color: #fff; border: none; font-size: 24px; line-height: 1; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(76,175,80,0.4); transition: opacity 0.2s; }
+        .roadmap-add-btn:hover { opacity: 0.9; }
+        .roadmap-add-btn:focus { outline: 2px solid #4CAF50; outline-offset: 2px; }
         .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
         .filters .filter-status { display: flex; gap: 6px; }
         .filters .filter-status button { padding: 8px 14px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 6px; font-size: 13px; transition: all 0.2s; }
@@ -20,7 +24,7 @@
         .filters select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; }
         .filters label { font-size: 13px; color: #555; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .roadmap-table-wrap { background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-height: calc(100vh - 220px); overflow-y: auto; overflow-x: hidden; }
+        .roadmap-table-wrap { background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: hidden; }
         .roadmap-table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
         .roadmap-table th, .roadmap-table td { border: 1px solid #e8e8e8; padding: 10px 12px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
         .roadmap-table thead { position: sticky; top: 0; z-index: 50; }
@@ -39,32 +43,122 @@
         .roadmap-table tbody tr { background: #fff; }
         .roadmap-table tbody tr:nth-child(even) { background: #fafafa; }
         .roadmap-table tbody tr:hover { background: #f0f8f0; }
-        .roadmap-table tr.done { background: #f5f5f5; }
-        .roadmap-table tr.done:nth-child(even) { background: #f0f0f0; }
-        .roadmap-table tr.done .col-text { color: #666; }
-        .roadmap-table .status-cell { display: flex; align-items: center; gap: 4px; }
+        .roadmap-table tbody tr.status-plan td.col-status { border-left: 4px solid #f9a825; }
+        .roadmap-table tbody tr.status-in_progress td.col-status { border-left: 4px solid #c62828; }
+        .roadmap-table tbody tr.status-done td.col-status { border-left: 4px solid #2e7d32; }
+        .roadmap-table tr.status-done { background: #f5f5f5; }
+        .roadmap-table tr.status-done:nth-child(even) { background: #f0f0f0; }
+        .roadmap-table tr.status-done .col-text { color: #666; }
+        .roadmap-table .status-cell { display: flex; align-items: center; gap: 4px; padding: 4px; margin: -4px; border-radius: 4px; }
+        .roadmap-table .status-select { border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; font-size: 13px; background: #fff; cursor: pointer; min-width: 100px; }
+        .roadmap-table .status-select:focus { outline: none; border-color: #4CAF50; }
         .roadmap-table .status-icon { font-size: 1.1em; }
+        .roadmap-table .status-icon.in_progress { color: #c62828; }
         .roadmap-table .count-badge { display: inline-block; min-width: 22px; padding: 2px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 10px; text-align: center; font-weight: 600; font-size: 12px; }
         .roadmap-table .priority-high { color: #c62828; }
         .roadmap-table .priority-mid { color: #f57c00; }
         .roadmap-table .priority-low { color: #888; }
+        .roadmap-table .col-actions { width: 5%; text-align: right; white-space: nowrap; }
+        .roadmap-actions { display: inline-flex; align-items: center; gap: 4px; }
+        .roadmap-actions .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; font-size: 16px; line-height: 1; opacity: 0.7; }
+        .roadmap-actions .btn-icon:hover { opacity: 1; }
+        .roadmap-actions .btn-edit { color: #555; }
+        .roadmap-actions .btn-delete { color: #c62828; }
+        .roadmap-mobile-card .card-meta .roadmap-actions { margin-left: auto; }
+        /* Форма добавления идеи */
+        .add-idea-form { background: #f0f8f0; border: 1px solid #c8e6c9; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .add-idea-form h3 { margin: 0 0 12px; font-size: 1em; color: #2e7d32; }
+        .add-idea-form .form-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 10px; }
+        .add-idea-form .form-row:last-child { margin-bottom: 0; }
+        .add-idea-form label { display: block; font-size: 12px; color: #555; margin-bottom: 4px; }
+        .add-idea-form input, .add-idea-form select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .add-idea-form input[type="text"] { flex: 1; min-width: 200px; }
+        .add-idea-form select { min-width: 140px; }
+        .add-idea-form .btn-add { padding: 10px 20px; background: #4CAF50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .add-idea-form .btn-add:hover { background: #43a047; }
+        .add-idea-form .btn-add:disabled { background: #9e9e9e; cursor: not-allowed; }
+        .add-idea-form .msg { font-size: 13px; margin-top: 8px; }
+        .add-idea-form .msg.ok { color: #2e7d32; }
+        .add-idea-form .msg.err { color: #c62828; }
+        /* Мобильная версия: карточки */
+        .roadmap-mobile { display: none; }
+        .roadmap-mobile-card { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #f9a825; }
+        .roadmap-mobile-card.status-plan { border-left-color: #f9a825; }
+        .roadmap-mobile-card.status-in_progress { border-left-color: #c62828; }
+        .roadmap-mobile-card.status-done { border-left-color: #2e7d32; background: #fafafa; }
+        .roadmap-mobile-card .card-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+        .roadmap-mobile-card .card-row:last-child { margin-bottom: 0; }
+        .roadmap-mobile-card .card-num { font-weight: 700; color: #2e7d32; min-width: 28px; }
+        .roadmap-mobile-card .card-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; }
+        .roadmap-mobile-card .card-meta { font-size: 12px; color: #666; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .roadmap-mobile-card .card-meta .status-icon-only { font-size: 1.2em; cursor: pointer; padding: 4px; margin: -4px; border-radius: 4px; user-select: none; }
+        .roadmap-mobile-card .card-meta .status-icon-only:hover { background: rgba(0,0,0,0.06); }
+        .roadmap-mobile-card .card-meta .status-select { border: 1px solid #ccc; border-radius: 4px; padding: 4px 6px; font-size: 12px; background: #fff; cursor: pointer; min-width: 0; }
+        .roadmap-mobile-card .card-meta .status-select:focus { outline: none; border-color: #4CAF50; }
+        .add-idea-form-mobile { padding: 12px; }
+        .add-idea-form-mobile input, .add-idea-form-mobile select { width: 100%; margin-bottom: 8px; }
+        .add-idea-trigger { display: none; color: #2e7d32; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .add-idea-trigger:hover { color: #1b5e20; }
+        .roadmap-add-btn-mobile { display: none; }
+        .roadmap-add-btn-desktop { display: none; }
+        /* Модальное окно добавления идеи */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.visible { display: flex; }
+        .modal-add-idea { background: #fff; border-radius: 12px; padding: 24px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .modal-add-idea h3 { margin: 0 0 16px; font-size: 1.1em; color: #2e7d32; }
+        .modal-add-idea label { display: block; font-size: 12px; color: #555; margin-bottom: 4px; }
+        .modal-add-idea textarea { width: 100%; min-height: 120px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; resize: vertical; box-sizing: border-box; }
+        .modal-add-idea input, .modal-add-idea select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; margin-bottom: 12px; box-sizing: border-box; }
+        .modal-add-idea .modal-actions { display: flex; gap: 12px; margin-top: 16px; }
+        .modal-add-idea .btn-add { padding: 10px 24px; background: #4CAF50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .modal-add-idea .btn-add:hover { background: #43a047; }
+        .modal-add-idea .btn-add:disabled { background: #9e9e9e; cursor: not-allowed; }
+        .modal-add-idea .btn-cancel { padding: 10px 24px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .modal-add-idea .btn-cancel:hover { background: #d0d0d0; }
+        .modal-add-idea .msg { font-size: 13px; margin-top: 8px; }
+        .modal-add-idea .msg.ok { color: #2e7d32; }
+        .modal-add-idea .msg.err { color: #c62828; }
         .last-update { font-size: 12px; color: #888; margin-top: 16px; padding: 0 4px; }
+        @media (max-width: 768px) {
+            .roadmap-table-wrap { display: none; }
+            .roadmap-mobile { display: block; }
+            .roadmap-add-btn-mobile { display: flex; }
+            .roadmap-add-btn-desktop { display: none; }
+            .filters { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; }
+            .filters .filter-status { flex-wrap: wrap; }
+            .filters label.filters-label-status { display: none; }
+            .filters label.filters-label-section { display: none; }
+            .filters .filter-status-btn .status-text { display: none; }
+            .filters .filter-status-btn { padding: 8px 12px; }
+            .filters #filter-section { flex: 1; min-width: 120px; }
+            .add-idea-form { display: none; }
+        }
+        @media (min-width: 769px) {
+            .add-idea-form { display: none; }
+            .roadmap-add-btn-mobile { display: none; }
+            .roadmap-add-btn-desktop { display: flex; }
+        }
     </style>
 </head>
 <body>
     <header class="page-header">
         <div class="page-header-inner">
-            <h1 class="page-title">🏝️ Roadmap — Завтрак исполняющий желания</h1>
+            <div class="page-title-row">
+                <h1 class="page-title">🏝️ Roadmap — Завтрак исполняющий желания</h1>
+                <button type="button" class="roadmap-add-btn roadmap-add-btn-mobile" id="add-idea-btn-mobile" title="Добавить идею" aria-label="Добавить идею">+</button>
+                <button type="button" class="roadmap-add-btn roadmap-add-btn-desktop" id="add-idea-btn-desktop" title="Добавить идею" aria-label="Добавить идею">+</button>
+            </div>
             <div class="filters">
-                <label>Статус:</label>
+                <label class="filters-label-status">Статус:</label>
                 <div class="filter-status">
                     <button type="button" class="filter-status-btn active" data-status="all">Все</button>
-                    <button type="button" class="filter-status-btn" data-status="plan"><span class="status-icon">💡</span>В плане</button>
-                    <button type="button" class="filter-status-btn" data-status="done"><span class="status-icon">✅</span>Сделано</button>
+                    <button type="button" class="filter-status-btn" data-status="plan"><span class="status-icon">💡</span><span class="status-text">В плане</span></button>
+                    <button type="button" class="filter-status-btn" data-status="in_progress"><span class="status-icon">☭</span><span class="status-text">В работе</span></button>
+                    <button type="button" class="filter-status-btn" data-status="done"><span class="status-icon">✅</span><span class="status-text">Сделано</span></button>
                 </div>
-                <label style="margin-left: 16px;">Раздел:</label>
+                <label class="filters-label-section" style="margin-left: 16px;">Раздел:</label>
                 <select id="filter-section">
-                    <option value="">Все разделы</option>
+                    <option value="">ВСЕ</option>
                     <option value="Хедер">Хедер</option>
                     <option value="Регистрация">Регистрация</option>
                     <option value="Витрина">Витрина</option>
@@ -84,6 +178,80 @@
         </div>
     </header>
     <div class="container">
+        <span class="add-idea-trigger" id="add-idea-trigger">Добавить идею</span>
+        <div class="add-idea-form" id="add-idea-form" style="display:none;">
+            <h3>+ Добавить идею</h3>
+            <div class="form-row">
+                <div style="flex:1;min-width:200px;">
+                    <label for="add-text">Текст</label>
+                    <input type="text" id="add-text" placeholder="Опишите идею..." maxlength="500">
+                </div>
+                <div style="min-width:140px;">
+                    <label for="add-section">Раздел</label>
+                    <select id="add-section">
+                        <option value="">—</option>
+                        <option value="Хедер">Хедер</option>
+                        <option value="Регистрация">Регистрация</option>
+                        <option value="Витрина">Витрина</option>
+                        <option value="Мечты">Мечты</option>
+                        <option value="Шаги">Шаги</option>
+                        <option value="Расписание">Расписание</option>
+                        <option value="Бадди">Бадди</option>
+                        <option value="Аватарка">Аватарка</option>
+                        <option value="Аналитика">Аналитика</option>
+                        <option value="Мобильная">Мобильная</option>
+                        <option value="Дизайн">Дизайн</option>
+                        <option value="Общее">Общее</option>
+                        <option value="Инфраструктура">Инфраструктура</option>
+                        <option value="Фильтры витрины">Фильтры витрины</option>
+                    </select>
+                </div>
+                <div style="min-width:120px;">
+                    <label for="add-initiator">Инициатор</label>
+                    <input type="text" id="add-initiator" placeholder="Имя" maxlength="100">
+                </div>
+                <div>
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn-add" id="btn-add-idea">Добавить</button>
+                </div>
+            </div>
+            <div class="msg" id="add-msg"></div>
+        </div>
+
+        <div id="modal-add-idea-overlay" class="modal-overlay" aria-hidden="true" data-edit-id="">
+            <div class="modal-add-idea" role="dialog" aria-labelledby="modal-add-idea-title">
+                <h3 id="modal-add-idea-title">Добавить идею</h3>
+                <label for="modal-add-text">Описание идеи</label>
+                <textarea id="modal-add-text" placeholder="Опишите идею..." maxlength="500" rows="5"></textarea>
+                <label for="modal-add-section">Раздел</label>
+                <select id="modal-add-section">
+                    <option value="">—</option>
+                    <option value="Хедер">Хедер</option>
+                    <option value="Регистрация">Регистрация</option>
+                    <option value="Витрина">Витрина</option>
+                    <option value="Мечты">Мечты</option>
+                    <option value="Шаги">Шаги</option>
+                    <option value="Расписание">Расписание</option>
+                    <option value="Бадди">Бадди</option>
+                    <option value="Аватарка">Аватарка</option>
+                    <option value="Аналитика">Аналитика</option>
+                    <option value="Мобильная">Мобильная</option>
+                    <option value="Дизайн">Дизайн</option>
+                    <option value="Общее">Общее</option>
+                    <option value="Инфраструктура">Инфраструктура</option>
+                    <option value="Фильтры витрины">Фильтры витрины</option>
+                </select>
+                <label for="modal-add-initiator">Инициатор</label>
+                <input type="text" id="modal-add-initiator" placeholder="Имя" maxlength="100">
+                <div class="modal-actions">
+                    <button type="button" class="btn-add" id="modal-btn-add-idea">Добавить</button>
+                    <button type="button" class="btn-add" id="modal-btn-save-idea" style="display:none;">Сохранить</button>
+                    <button type="button" class="btn-cancel" id="modal-btn-cancel">Отмена</button>
+                </div>
+                <div class="msg" id="modal-add-msg"></div>
+            </div>
+        </div>
+
         <div class="roadmap-table-wrap">
             <table class="roadmap-table" id="roadmap-table">
                 <thead>
@@ -98,85 +266,63 @@
                         <th class="col-done">Выполнено</th>
                         <th class="col-priority">Приоритет</th>
                         <th class="col-comment">Комментарий</th>
+                        <th class="col-actions"></th>
                     </tr>
                 </thead>
                 <tbody id="roadmap-tbody"></tbody>
             </table>
         </div>
-        <p class="last-update">План + обратная связь. № — уникальный номер шага, N — счётчик дубликатов. Обновлено: 2026-03-18</p>
+
+        <div class="roadmap-mobile" id="roadmap-mobile"></div>
+
+        <p class="last-update">План + обратная связь. № — уникальный номер шага, N — счётчик дубликатов. Данные из БД.</p>
     </div>
 
     <script>
-        var ROADMAP_DATA = [
-            // Хедер (1–2 сделано)
-            { step: 1, text: "Убрать заглушки в статистике — считать из БД", section: "Хедер", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 2, text: "Закрепить хедер при скролле", section: "Хедер", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            // Регистрация
-            { step: 3, text: "Маска ввода номера (не placeholder: формат +7 (999) 999-99-99, нельзя ввести букву/лишнюю цифру)", section: "Регистрация", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 4, text: "Подтверждение номера по SMS", section: "Регистрация", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            // Расписание, Бадди, Витрина, Мобильная
-            { step: 5, text: "Переименовать «Шаги» в «Расписание»", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 6, text: "Дедлайн у шага, редактирование на лету", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 7, text: "Раздел Расписание: список шагов, фильтры", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 8, text: "Финцель в Расписании: «Внеси N т.р.» на месяц", section: "Расписание", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 9, text: "buddy_id, просмотр мечт бадди", section: "Бадди", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 10, text: "buddy_trust, редактирование мечт бадди", section: "Бадди", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 11, text: "Мультибадди: несколько бадди, схема БД", section: "Бадди", status: "plan", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 12, text: "Аватарка бадди(ев) в хедере", section: "Бадди", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 13, text: "Витрина: страница, фильтры, модалка «Как помочь»", section: "Витрина", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 14, text: "Витрина в кабинете, просмотры, избранное", section: "Витрина", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 15, text: "Адаптивная вёрстка, touch-зоны", section: "Мобильная", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            { step: 16, text: "Один экран — одна мечта, свайп", section: "Мобильная", status: "done", initiator: "План", count: 1, dateAdded: "", dateDone: "", priority: "", comment: "" },
-            // Щербинина Светлана
-            { step: 17, text: "Фильтр по выполненным мечтам", section: "Мечты", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
-            { step: 18, text: "Бадди меняет статус мечты, но я этого не вижу", section: "Бадди", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
-            { step: 19, text: "Когда бадди ставит фильтр — скидывается на первое желание", section: "Бадди", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
-            { step: 20, text: "Разовые и повторяющиеся шаги: название + дата, галочка «Повторять шаг» (блок дат/дней недели)", section: "Шаги", status: "done", initiator: "Макс", count: 1, dateAdded: "2026-03-18", dateDone: "2026-03-18", priority: "", comment: "ТЗ п.4: разовый = название+дата; повторяющийся = + дата нач/кон, дни недели" },
-            { step: 21, text: "Подсказка по датам, когда разовое действие", section: "Шаги", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
-            { step: 22, text: "Дата окончания тянет за собой периодическое повторение", section: "Шаги", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
-            { step: 23, text: "Убрать обязательность полей: дата окончания и дата начала", section: "Шаги", status: "plan", initiator: "Щербинина Светлана", count: 1, dateAdded: "2026-03-15", dateDone: "", priority: "", comment: "" },
-            // Быченкова Марина
-            { step: 24, text: "Если «в работе» или «выполнено» — уходит из списка? Показывать ли выполненные?", section: "Мечты", status: "plan", initiator: "Быченкова Марина", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            { step: 25, text: "Если желаний 500 000 — как искать? До нижних никто не долистает", section: "Витрина", status: "plan", initiator: "Быченкова Марина", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            { step: 26, text: "Разделы/фильтры в витрине: финансовые, интеллектуальные и т.д.", section: "Витрина", status: "plan", initiator: "Быченкова Марина", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            // Николаев Александр
-            { step: 27, text: "Сортировка дат в шагах: порядок разный (13, 14, 15, потом 10, 18). Сделать единообразно", section: "Шаги", status: "plan", initiator: "Николаев Александр", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            // Захваткин Константин
-            { step: 28, text: "Заглавная фотка: круассан при чём? Лучше остров — вид сверху, тропический остров с пляжем и пальмами", section: "Дизайн", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            { step: 29, text: "Вид связи: WhatsApp не актуальна. ТГ, лучше Макс, либо тел/мэйл/ссылка на соцсеть", section: "Витрина", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            { step: 30, text: "Долго листал — единицы реально исполнить. Либо абстрактно, либо дорого", section: "Витрина", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            { step: 31, text: "Цели должны быть измеримыми и реальными (не «Корочку хлеба», «Мир во всём мире»)", section: "Общее", status: "plan", initiator: "Захваткин Константин", count: 1, dateAdded: "2026-03-16", dateDone: "", priority: "", comment: "" },
-            // Фильтры витрины
-            { step: 32, text: "Оформить фильтры мечт в витрине: поиск, категории, фильтр «реально исполнить»", section: "Фильтры витрины", status: "plan", initiator: "План", count: 1, dateAdded: "2026-03-17", dateDone: "", priority: "", comment: "Большой раздел, вернёмся позже" },
-            { step: 33, text: "Научить Форжа самостоятельно вносить изменения в базу данных (запуск Python-скриптов, миграции)", section: "Инфраструктура", status: "done", initiator: "Макс", count: 1, dateAdded: "2026-03-18", dateDone: "2026-03-18", priority: "", comment: "Auto-Run в Cursor Settings → Agents. Тест: mig_test_agent_run" }
-        ];
+        var API_BASE = (function() {
+            try { return (window.location && window.location.origin) || ''; } catch(e) { return ''; }
+        })();
+        var ROADMAP_DATA = [];
 
         function formatDate(s) {
-            if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return '—';
-            var p = s.split('-');
+            if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(String(s))) return '—';
+            var p = String(s).split('-');
             return p[2] + '.' + p[1] + '.' + p[0];
         }
-        function render() {
-            var status = document.querySelector('.filter-status-btn.active').dataset.status;
+        function escapeHtml(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        function loadRoadmap() {
+            var status = document.querySelector('.filter-status-btn.active');
             var section = document.getElementById('filter-section').value;
-            var rows = ROADMAP_DATA.filter(function(r) {
-                if (status === 'plan' && r.status !== 'plan') return false;
-                if (status === 'done' && r.status !== 'done') return false;
-                if (section && r.section !== section) return false;
-                return true;
+            var statusVal = status ? status.dataset.status : 'all';
+            var url = API_BASE + '/roadmap';
+            if (statusVal && statusVal !== 'all') url += '?status=' + encodeURIComponent(statusVal);
+            if (section) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'section=' + encodeURIComponent(section);
+            fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+                ROADMAP_DATA = data;
+                render();
+            }).catch(function(err) {
+                console.error('Ошибка загрузки roadmap', err);
+                ROADMAP_DATA = [];
+                render();
             });
-            var statusInfo = { plan: { icon: '💡', label: 'В плане' }, done: { icon: '✅', label: 'Сделано' } };
+        }
+
+        function render() {
+            var statusInfo = { plan: { icon: '💡', label: 'В плане' }, in_progress: { icon: '☭', label: 'В работе' }, done: { icon: '✅', label: 'Сделано' } };
             var priorityLabel = { high: 'Высокий', mid: 'Средний', low: 'Низкий' };
             var priorityClass = { high: 'priority-high', mid: 'priority-mid', low: 'priority-low' };
+            var rows = ROADMAP_DATA;
+            var statusOpts = '<option value="plan">💡 В плане</option><option value="in_progress">☭ В работе</option><option value="done">✅ Сделано</option>';
+
             var tbody = document.getElementById('roadmap-tbody');
             tbody.innerHTML = rows.map(function(r) {
-                var trClass = r.status === 'done' ? ' done' : '';
+                var trClass = 'status-' + (r.status || 'plan');
                 var countHtml = r.count > 1 ? '<span class="count-badge">' + r.count + '</span>' : '1';
                 var priorityHtml = r.priority ? '<span class="' + (priorityClass[r.priority] || '') + '">' + (priorityLabel[r.priority] || r.priority) + '</span>' : '—';
-                var si = statusInfo[r.status] || { icon: '', label: r.status };
-                var statusHtml = '<span class="status-cell"><span class="status-icon">' + si.icon + '</span>' + escapeHtml(si.label) + '</span>';
+                var statusHtml = '<select class="status-select" data-id="' + r.id + '">' + statusOpts + '</select>';
                 var stepNum = (r.step != null && r.step !== '') ? r.step : '—';
-                return '<tr class="' + trClass + '">' +
+                return '<tr class="' + trClass + '" data-id="' + r.id + '">' +
                     '<td class="col-step">' + escapeHtml(String(stepNum)) + '</td>' +
                     '<td class="col-text">' + escapeHtml(r.text) + '</td>' +
                     '<td class="col-section">' + escapeHtml(r.section || '—') + '</td>' +
@@ -187,20 +333,282 @@
                     '<td class="col-done">' + formatDate(r.dateDone) + '</td>' +
                     '<td class="col-priority">' + priorityHtml + '</td>' +
                     '<td class="col-comment">' + escapeHtml(r.comment || '') + '</td>' +
+                    '<td class="col-actions"><span class="roadmap-actions"><button type="button" class="btn-icon btn-edit" data-id="' + r.id + '" title="Редактировать">✏️</button><button type="button" class="btn-icon btn-delete" data-id="' + r.id + '" title="Удалить">✕</button></span></td>' +
                     '</tr>';
             }).join('');
+            tbody.querySelectorAll('.status-select').forEach(function(el) {
+                var id = parseInt(el.getAttribute('data-id'), 10);
+                el.value = (ROADMAP_DATA.find(function(r) { return r.id === id; }) || {}).status || 'plan';
+                el.addEventListener('change', function() {
+                    var id = parseInt(this.getAttribute('data-id'), 10);
+                    var status = this.value;
+                    if (!id || !status) return;
+                    onStatusChange(id, status, this.closest('tr'), null);
+                });
+            });
+
+            var mobileEl = document.getElementById('roadmap-mobile');
+            var si = statusInfo;
+            mobileEl.innerHTML = rows.map(function(r) {
+                var cardClass = 'roadmap-mobile-card status-' + (r.status || 'plan');
+                var sel = '<select class="status-select" data-id="' + r.id + '">' + statusOpts + '</select>';
+                return '<div class="' + cardClass + '" data-id="' + r.id + '">' +
+                    '<div class="card-row">' +
+                    '<span class="card-num">' + escapeHtml(String(r.step || '—')) + '</span>' +
+                    '<span class="card-text">' + escapeHtml(r.text) + '</span>' +
+                    '</div>' +
+                    '<div class="card-meta">' +
+                    sel +
+                    '<span>' + escapeHtml(r.section || '—') + '</span>' +
+                    '<span>' + escapeHtml(r.initiator || '—') + '</span>' +
+                    '<span class="roadmap-actions"><button type="button" class="btn-icon btn-edit" data-id="' + r.id + '" title="Редактировать">✏️</button><button type="button" class="btn-icon btn-delete" data-id="' + r.id + '" title="Удалить">✕</button></span>' +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+            mobileEl.querySelectorAll('.status-select').forEach(function(el) {
+                var id = parseInt(el.getAttribute('data-id'), 10);
+                el.value = (ROADMAP_DATA.find(function(r) { return r.id === id; }) || {}).status || 'plan';
+                el.addEventListener('change', function() {
+                    var id = parseInt(this.getAttribute('data-id'), 10);
+                    var status = this.value;
+                    if (!id || !status) return;
+                    onStatusChange(id, status, null, this.closest('.roadmap-mobile-card'));
+                });
+            });
+            tbody.querySelectorAll('.btn-edit').forEach(function(btn) {
+                btn.addEventListener('click', function() { openEditModal(parseInt(this.getAttribute('data-id'), 10)); });
+            });
+            tbody.querySelectorAll('.btn-delete').forEach(function(btn) {
+                btn.addEventListener('click', function() { deleteRoadmapItem(parseInt(this.getAttribute('data-id'), 10), this.closest('tr')); });
+            });
+            mobileEl.querySelectorAll('.btn-edit').forEach(function(btn) {
+                btn.addEventListener('click', function() { openEditModal(parseInt(this.getAttribute('data-id'), 10)); });
+            });
+            mobileEl.querySelectorAll('.btn-delete').forEach(function(btn) {
+                btn.addEventListener('click', function() { deleteRoadmapItem(parseInt(this.getAttribute('data-id'), 10), this.closest('.roadmap-mobile-card')); });
+            });
         }
-        function escapeHtml(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        function getCurrentStatusFilter() {
+            var btn = document.querySelector('.filter-status-btn.active');
+            return btn ? btn.dataset.status : 'all';
+        }
+
+        function onStatusChange(id, status, trEl, cardEl) {
+            var statusFilter = getCurrentStatusFilter();
+            var row = trEl || cardEl;
+            if (row) {
+                row.classList.remove('status-plan', 'status-in_progress', 'status-done');
+                row.classList.add('status-' + status);
+            }
+            var item = ROADMAP_DATA.find(function(r) { return r.id === id; });
+            if (item) item.status = status;
+            if (statusFilter !== 'all' && statusFilter !== status) {
+                if (trEl) trEl.remove();
+                if (cardEl) cardEl.remove();
+                ROADMAP_DATA = ROADMAP_DATA.filter(function(r) { return r.id !== id; });
+            }
+            fetch(API_BASE + '/roadmap/' + id, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status })
+            }).then(function(r) {
+                if (!r.ok) throw new Error(r.statusText || 'Ошибка');
+            }).catch(function(err) {
+                console.error('Ошибка смены статуса', err);
+                loadRoadmap();
+            });
+        }
+
+        function openAddIdeaModal() {
+            document.getElementById('modal-add-idea-overlay').dataset.editId = '';
+            document.getElementById('modal-add-idea-title').textContent = 'Добавить идею';
+            document.getElementById('modal-btn-add-idea').style.display = '';
+            document.getElementById('modal-btn-save-idea').style.display = 'none';
+            document.getElementById('modal-add-text').value = '';
+            document.getElementById('modal-add-section').value = '';
+            document.getElementById('modal-add-initiator').value = '';
+            document.getElementById('modal-add-msg').textContent = '';
+            document.getElementById('modal-add-idea-overlay').classList.add('visible');
+            document.getElementById('modal-add-idea-overlay').setAttribute('aria-hidden', 'false');
+            document.getElementById('modal-add-text').focus();
+        }
+        function openEditModal(id) {
+            var item = ROADMAP_DATA.find(function(r) { return r.id === id; });
+            if (!item) return;
+            document.getElementById('modal-add-idea-overlay').dataset.editId = String(id);
+            document.getElementById('modal-add-idea-title').textContent = 'Редактировать идею';
+            document.getElementById('modal-btn-add-idea').style.display = 'none';
+            document.getElementById('modal-btn-save-idea').style.display = '';
+            document.getElementById('modal-add-text').value = item.text || '';
+            document.getElementById('modal-add-section').value = item.section || '';
+            document.getElementById('modal-add-initiator').value = item.initiator || '';
+            document.getElementById('modal-add-msg').textContent = '';
+            document.getElementById('modal-add-idea-overlay').classList.add('visible');
+            document.getElementById('modal-add-idea-overlay').setAttribute('aria-hidden', 'false');
+            document.getElementById('modal-add-text').focus();
+        }
+        function closeAddIdeaModal() {
+            document.getElementById('modal-add-idea-overlay').classList.remove('visible');
+            document.getElementById('modal-add-idea-overlay').setAttribute('aria-hidden', 'true');
+        }
+        function submitAddIdea() {
+            var textEl = document.getElementById('add-text');
+            var sectionEl = document.getElementById('add-section');
+            var initiatorEl = document.getElementById('add-initiator');
+            var btn = document.getElementById('btn-add-idea');
+            var msgEl = document.getElementById('add-msg');
+            var text = (textEl.value || '').trim();
+            if (!text) {
+                msgEl.textContent = 'Введите текст идеи';
+                msgEl.className = 'msg err';
+                return;
+            }
+            btn.disabled = true;
+            msgEl.textContent = '';
+            msgEl.className = 'msg';
+            fetch(API_BASE + '/roadmap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    section: (sectionEl.value || '').trim(),
+                    initiator: (initiatorEl.value || '').trim() || 'Пользователь'
+                })
+            }).then(function(r) {
+                if (!r.ok) throw new Error(r.statusText || 'Ошибка');
+                return r.json();
+            }).then(function() {
+                msgEl.textContent = 'Идея добавлена';
+                msgEl.className = 'msg ok';
+                textEl.value = '';
+                loadRoadmap();
+            }).catch(function(err) {
+                msgEl.textContent = 'Ошибка: ' + (err.message || 'не удалось добавить');
+                msgEl.className = 'msg err';
+            }).finally(function() {
+                btn.disabled = false;
+            });
+        }
+        function submitAddIdeaFromModal() {
+            var editId = document.getElementById('modal-add-idea-overlay').dataset.editId;
+            var textEl = document.getElementById('modal-add-text');
+            var sectionEl = document.getElementById('modal-add-section');
+            var initiatorEl = document.getElementById('modal-add-initiator');
+            var btn = document.getElementById('modal-btn-add-idea');
+            var msgEl = document.getElementById('modal-add-msg');
+            var text = (textEl.value || '').trim();
+            if (!text) {
+                msgEl.textContent = 'Введите описание идеи';
+                msgEl.className = 'msg err';
+                return;
+            }
+            if (editId) {
+                var saveBtn = document.getElementById('modal-btn-save-idea');
+                saveBtn.disabled = true;
+                msgEl.textContent = '';
+                msgEl.className = 'msg';
+                fetch(API_BASE + '/roadmap/' + editId, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        section: (sectionEl.value || '').trim(),
+                        initiator: (initiatorEl.value || '').trim()
+                    })
+                }).then(function(r) {
+                    if (!r.ok) throw new Error(r.statusText || 'Ошибка');
+                    return r.json();
+                }).then(function(data) {
+                    var item = ROADMAP_DATA.find(function(r) { return r.id === parseInt(editId, 10); });
+                    if (item) { item.text = data.text; item.section = data.section; item.initiator = data.initiator; }
+                    var tr = document.querySelector('.roadmap-table tbody tr[data-id="' + editId + '"]');
+                    var card = document.querySelector('.roadmap-mobile-card[data-id="' + editId + '"]');
+                    if (tr) {
+                        var txt = tr.querySelector('.col-text'); if (txt) txt.textContent = data.text;
+                        var sec = tr.querySelector('.col-section'); if (sec) sec.textContent = data.section || '—';
+                        var ini = tr.querySelector('.col-initiator'); if (ini) ini.textContent = data.initiator || '—';
+                    }
+                    if (card) {
+                        var ct = card.querySelector('.card-text'); if (ct) ct.textContent = data.text;
+                        var meta = card.querySelectorAll('.card-meta > span');
+                        if (meta.length >= 2) { meta[0].textContent = data.section || '—'; meta[1].textContent = data.initiator || '—'; }
+                    }
+                    closeAddIdeaModal();
+                }).catch(function(err) {
+                    msgEl.textContent = 'Ошибка: ' + (err.message || 'не удалось сохранить');
+                    msgEl.className = 'msg err';
+                }).finally(function() {
+                    saveBtn.disabled = false;
+                });
+                return;
+            }
+            btn.disabled = true;
+            msgEl.textContent = '';
+            msgEl.className = 'msg';
+            fetch(API_BASE + '/roadmap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    section: (sectionEl.value || '').trim(),
+                    initiator: (initiatorEl.value || '').trim() || 'Пользователь'
+                })
+            }).then(function(r) {
+                if (!r.ok) throw new Error(r.statusText || 'Ошибка');
+                return r.json();
+            }).then(function() {
+                msgEl.textContent = 'Идея добавлена';
+                msgEl.className = 'msg ok';
+                closeAddIdeaModal();
+                loadRoadmap();
+            }).catch(function(err) {
+                msgEl.textContent = 'Ошибка: ' + (err.message || 'не удалось добавить');
+                msgEl.className = 'msg err';
+            }).finally(function() {
+                btn.disabled = false;
+            });
+        }
+        function deleteRoadmapItem(id, rowEl) {
+            if (!confirm('Удалить эту идею?')) return;
+            fetch(API_BASE + '/roadmap/' + id, { method: 'DELETE' }).then(function(r) {
+                if (!r.ok) throw new Error(r.statusText || 'Ошибка');
+            }).then(function() {
+                if (rowEl) rowEl.remove();
+                ROADMAP_DATA = ROADMAP_DATA.filter(function(r) { return r.id !== id; });
+            }).catch(function(err) {
+                console.error('Ошибка удаления', err);
+                loadRoadmap();
+            });
+        }
 
         document.querySelectorAll('.filter-status-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.filter-status-btn').forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
-                render();
+                loadRoadmap();
             });
         });
-        document.getElementById('filter-section').addEventListener('change', render);
-        render();
+        document.getElementById('filter-section').addEventListener('change', loadRoadmap);
+        document.getElementById('btn-add-idea').addEventListener('click', submitAddIdea);
+        document.getElementById('add-text').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submitAddIdea();
+        });
+        var openModal = openAddIdeaModal;
+        var trigger = document.getElementById('add-idea-trigger');
+        if (trigger) trigger.addEventListener('click', openModal);
+        var btnMobile = document.getElementById('add-idea-btn-mobile');
+        if (btnMobile) btnMobile.addEventListener('click', openModal);
+        var btnDesktop = document.getElementById('add-idea-btn-desktop');
+        if (btnDesktop) btnDesktop.addEventListener('click', openModal);
+        document.getElementById('modal-btn-add-idea').addEventListener('click', submitAddIdeaFromModal);
+        document.getElementById('modal-btn-save-idea').addEventListener('click', submitAddIdeaFromModal);
+        document.getElementById('modal-btn-cancel').addEventListener('click', closeAddIdeaModal);
+        document.getElementById('modal-add-idea-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeAddIdeaModal();
+        });
+
+        loadRoadmap();
     </script>
 </body>
 </html>

@@ -257,9 +257,32 @@ UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_help_intent_user`, `i
 
 ---
 
+### 12. `roadmap`
+
+**Назначение:** Идеи и обратная связь по развитию продукта. Данные загружаются в roadmap.html из БД; добавление идей — через браузер (десктоп и мобильная версия). Миграция mig_roadmap.
+
+| Колонка     | Тип            | Описание |
+|-------------|----------------|----------|
+| `id`        | SERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `step`      | INT NOT NULL   | Номер шага (№) для отображения. |
+| `text`      | TEXT NOT NULL  | Текст идеи. |
+| `section`   | VARCHAR(100)   | Раздел (Хедер, Витрина, Мечты и т.д.). |
+| `status`    | VARCHAR(20) NOT NULL DEFAULT 'plan' | plan \| in_progress \| done. |
+| `initiator` | VARCHAR(100)  | Инициатор (План, имя пользователя или тестировщика). |
+| `count`     | INT NOT NULL DEFAULT 1 | Счётчик дубликатов (N). |
+| `date_added`| DATE          | Дата добавления. |
+| `date_done` | DATE          | Дата выполнения. |
+| `priority`  | VARCHAR(20)   | Приоритет (high, mid, low). |
+| `comment`   | TEXT          | Комментарий. |
+| `created_at`| TIMESTAMP WITH TIME ZONE DEFAULT NOW() | Когда создана запись. |
+
+Индексы: `idx_roadmap_status`, `idx_roadmap_section`. API: `GET /roadmap`, `POST /roadmap`.
+
+---
+
 ## Актуальные таблицы (без префикса _old_)
 
-Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_dream_views**, **user_dream_favorites**, **dream_favorite_notifications**, **user_dream_help_intent**, **steps_rules**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
+Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_dream_views**, **user_dream_favorites**, **dream_favorite_notifications**, **user_dream_help_intent**, **steps_rules**, **roadmap**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
 
 ## Таблицы с префиксом _old_
 

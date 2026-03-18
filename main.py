@@ -222,6 +222,17 @@ class DreamBookLogCreate(BaseModel):
     minutes_spent: Optional[int] = None
     pages_read: Optional[int] = None
 
+class RoadmapItemCreate(BaseModel):
+    text: str
+    section: Optional[str] = ""
+    initiator: Optional[str] = ""
+
+class RoadmapItemUpdate(BaseModel):
+    status: Optional[str] = None  # plan | in_progress | done
+    text: Optional[str] = None
+    section: Optional[str] = None
+    initiator: Optional[str] = None
+
 def _load_steps(cur, dream_ids):
     """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of {id, title, completed, deadline, deleted, plan_amount, fact_amount}."""
     out = {}
@@ -2608,6 +2619,168 @@ def _split_full_name(full_name: str) -> tuple:
     """Разбивка «ФИО» на name и surname (первое слово — имя, остальное — фамилия)."""
     parts = (full_name or "").strip().split(maxsplit=1)
     return (parts[0], parts[1] if len(parts) > 1 else "") if parts else ("", "")
+
+# --- Roadmap API (публичный: просмотр и добавление идей) ---
+@app.get("/roadmap")
+def roadmap_list(status: Optional[str] = None, section: Optional[str] = None):
+    """Список пунктов roadmap. Фильтры: status=plan|done|all, section=Раздел."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            where = []
+            params = []
+            if status and status != "all":
+                where.append("status = %s")
+                params.append(status)
+            if section:
+                where.append("section = %s")
+                params.append(section)
+            sql = "SELECT id, step, text, section, status, initiator, count, date_added, date_done, priority, comment FROM roadmap ORDER BY step"
+            if where:
+                sql = "SELECT id, step, text, section, status, initiator, count, date_added, date_done, priority, comment FROM roadmap WHERE " + " AND ".join(where) + " ORDER BY step"
+                cur.execute(sql, params)
+            else:
+                cur.execute(sql)
+            rows = cur.fetchall()
+            return [{
+                "id": r["id"],
+                "step": r["step"],
+                "text": r["text"],
+                "section": r["section"] or "",
+                "status": r["status"],
+                "initiator": r["initiator"] or "",
+                "count": r["count"] or 1,
+                "dateAdded": str(r["date_added"]) if r["date_added"] else "",
+                "dateDone": str(r["date_done"]) if r["date_done"] else "",
+                "priority": r["priority"] or "",
+                "comment": r["comment"] or "",
+            } for r in rows]
+    finally:
+        _return_conn(conn)
+
+@app.post("/roadmap")
+def roadmap_create(item: RoadmapItemCreate):
+    """Добавить идею в roadmap. step назначается автоматически."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        conn.autocommit = False
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT COALESCE(MAX(step), 0) + 1 AS next_step FROM roadmap")
+            next_step = cur.fetchone()["next_step"]
+            today = datetime.now().strftime("%Y-%m-%d")
+            cur.execute("""
+                INSERT INTO roadmap (step, text, section, status, initiator, count, date_added)
+                VALUES (%s, %s, %s, 'plan', %s, 1, %s)
+                RETURNING id, step, text, section, status, initiator, count, date_added, date_done, priority, comment
+            """, (next_step, (item.text or "").strip(), (item.section or "").strip(), (item.initiator or "").strip(), today))
+            row = cur.fetchone()
+            conn.commit()
+            return {
+                "id": row["id"],
+                "step": row["step"],
+                "text": row["text"],
+                "section": row["section"] or "",
+                "status": row["status"],
+                "initiator": row["initiator"] or "",
+                "count": row["count"] or 1,
+                "dateAdded": str(row["date_added"]) if row["date_added"] else "",
+                "dateDone": str(row["date_done"]) if row["date_done"] else "",
+                "priority": row["priority"] or "",
+                "comment": row["comment"] or "",
+            }
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+@app.patch("/roadmap/{item_id}")
+def roadmap_update(item_id: int, body: RoadmapItemUpdate):
+    """Обновить пункт roadmap (статус, текст, раздел, инициатор)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        conn.autocommit = False
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, status, text, section, initiator FROM roadmap WHERE id = %s", (item_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Пункт не найден")
+            updates = []
+            params = []
+            if body.status is not None:
+                if body.status not in ("plan", "in_progress", "done"):
+                    raise HTTPException(status_code=400, detail="status должен быть plan, in_progress или done")
+                updates.append("status = %s")
+                params.append(body.status)
+                if body.status == "done":
+                    updates.append("date_done = %s")
+                    params.append(datetime.now().strftime("%Y-%m-%d"))
+                else:
+                    updates.append("date_done = NULL")
+            if body.text is not None:
+                updates.append("text = %s")
+                params.append((body.text or "").strip())
+            if body.section is not None:
+                updates.append("section = %s")
+                params.append((body.section or "").strip())
+            if body.initiator is not None:
+                updates.append("initiator = %s")
+                params.append((body.initiator or "").strip())
+            if not updates:
+                raise HTTPException(status_code=400, detail="Укажите хотя бы одно поле для обновления")
+            params.append(item_id)
+            cur.execute(
+                "UPDATE roadmap SET " + ", ".join(updates) + " WHERE id = %s RETURNING id, step, text, section, status, initiator, count, date_added, date_done, priority, comment",
+                params,
+            )
+            updated = cur.fetchone()
+            conn.commit()
+            return {
+                "id": updated["id"],
+                "step": updated["step"],
+                "text": updated["text"],
+                "section": updated["section"] or "",
+                "status": updated["status"],
+                "initiator": updated["initiator"] or "",
+                "count": updated["count"] or 1,
+                "dateAdded": str(updated["date_added"]) if updated["date_added"] else "",
+                "dateDone": str(updated["date_done"]) if updated["date_done"] else "",
+                "priority": updated["priority"] or "",
+                "comment": updated["comment"] or "",
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+@app.delete("/roadmap/{item_id}")
+def roadmap_delete(item_id: int):
+    """Удалить пункт roadmap."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM roadmap WHERE id = %s RETURNING id", (item_id,))
+            if cur.fetchone() is None:
+                raise HTTPException(status_code=404, detail="Пункт не найден")
+        conn.commit()
+        return {"message": "Удалено"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
 
 # --- Админ API (схема БД: name, surname) ---
 @app.get("/admin/users")
