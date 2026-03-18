@@ -93,7 +93,6 @@
         .modal-actions .btn-danger { background: #c62828; color: #fff; }
         .modal-actions .btn-danger:hover { background: #b71c1c; }
         .dreams-table tr.accordion-row td { background: #f9f9f9; padding: 12px 12px 16px 24px; border-left: 3px solid #4CAF50; vertical-align: top; }
-        .dreams-table tr.add-dream-row td { padding: 12px; background: #f0f8f0; }
         .dream-new-highlight { animation: dream-highlight 0.4s ease-out; box-shadow: 0 0 0 2px rgba(76,175,80,0.6); }
         .dreams-table tr.dream-new-highlight td { background: rgba(232,245,233,0.9) !important; }
         .dreams-mobile-card.dream-new-highlight { box-shadow: 0 0 0 3px rgba(76,175,80,0.5); }
@@ -193,20 +192,23 @@
         .app-sticky-top { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 95vw; max-width: 980px; box-sizing: border-box; z-index: 20; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-radius: 8px 8px 0 0; }
         .app-sticky-inner { padding: 20px 20px 0 20px; box-sizing: border-box; }
         #app-sticky-spacer { width: 100%; }
-        /* Футер: всегда фиксирован внизу экрана (и на мобиле, и на десктопе) */
+        /* Футер: ширина как у хедера и контента (95vw, max 980px), фиксирован внизу */
         .app-footer {
             position: fixed;
             bottom: 0;
-            left: 0;
-            right: 0;
-            display: none;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95vw;
+            max-width: 980px;
             height: calc(48px + env(safe-area-inset-bottom));
             padding-bottom: env(safe-area-inset-bottom);
             background: #fff;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+            border-radius: 0 0 8px 8px;
             z-index: 19;
+            box-sizing: border-box;
         }
-        .app-footer-inner { max-width: 980px; margin: 0 auto; height: 48px; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
+        .app-footer-inner { width: 100%; height: 48px; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
         .app-footer-counter { font-size: 14px; color: #555; font-weight: 600; white-space: nowrap; }
         .app-footer-spacer { flex: 1; min-width: 0; }
         .app-footer-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
@@ -216,8 +218,7 @@
         .app-footer-add:hover { opacity: 0.9; }
         .app-footer-logout { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
         .app-footer-logout:hover { color: #666; }
-        .app-version { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
-        .desktop-logout-btn { display: inline-block; }
+        .app-version { font-size: 11px; color: #999; margin-left: auto; }
         /* Хедер: аватар (высота = 3 строки) + справа: имя, сбылось|помог, Мечты|Шаги */
         .app-header { display: flex; align-items: stretch; gap: 12px; padding-bottom: 16px; min-height: 72px; }
         .app-header-avatar { width: 72px; min-width: 72px; min-height: 72px; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: stretch; }
@@ -303,7 +304,7 @@
         .app-menu a { padding: 6px 14px; border-radius: 4px; text-decoration: none; color: #333; background: #f0f0f0; transition: transform 0.15s ease, background 0.15s ease; }
         .app-menu a:hover { background: #e0e0e0; transform: translate(-2px, -2px); }
         .app-menu a.active { background: #4CAF50; color: white; }
-        .app-content { min-height: 120px; }
+        .app-content { min-height: 120px; padding-bottom: 60px; }
         .buddy-placeholder { padding: 24px; text-align: center; color: #888; font-size: 1.1em; }
         .steps-list-plain { list-style: none; padding: 0; margin: 0; }
         .step-item-plain { padding: 8px 10px; border-bottom: 1px solid #eee; }
@@ -453,14 +454,12 @@
             .dreams-mobile-card .card-steps-title { font-size: 12px; color: #666; margin-bottom: 8px; }
             /* Старый счётчик/кнопка под карточками скрываем, оставляем только футер */
             .dreams-mobile-nav { display: none; }
-            .dreams-mobile-add-wrap { display: none; }
             .dreams-mobile-add { width: 100%; max-width: 280px; min-height: 44px; }
             /* Трёхсекционная раскладка: хедер сверху, контент по центру, футер снизу */
             #profile-view { display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; }
             .app-content { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
-            /* Футер показываем на мобиле; базовые стили (position/fixed/safe-area) — вне media */
-            .app-footer { display: block; }
-            .desktop-logout-btn { display: none !important; }
+            /* Футер: на мобиле на всю ширину */
+            .app-footer { display: block; width: 100%; left: 0; transform: none; border-radius: 0; }
             .dreams-mobile-card { margin: 0; }
         }
         /* Десктоп: мобильный блок скрыт */
@@ -637,9 +636,6 @@
                         </div>
                         <div class="dreams-mobile-nav">
                             <span class="dreams-mobile-counter">0 / 0</span>
-                        </div>
-                        <div class="dreams-mobile-add-wrap">
-                            <button type="button" class="dreams-mobile-add">+ Добавить мечту</button>
                         </div>
                     </div>
                 </div>
@@ -974,11 +970,10 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
+                    <span class="app-version" aria-hidden="true">2</span>
                 </div>
             </footer>
-            <button onclick="logout()" class="desktop-logout-btn" style="margin-top: 20px;">Выйти</button>
         </div>
-        <div class="app-version" aria-hidden="true">1</div>
     </div>
 
     <script>
@@ -1483,7 +1478,6 @@
                     emptyEl.classList.add('hidden');
                     renderDreamsTable(dreams);
                 }
-                appendAddDreamRow(tbodyEl);
                 document.getElementById('dreams-block').classList.remove('hidden');
                 renderDreamsMobileCards(dreams);
                 }
@@ -3185,34 +3179,22 @@
                 if (res.ok) refreshAfterDreamChange(); else alert('Ошибка удаления');
             } catch (e) { alert('Ошибка сети'); }
         }
-        function appendAddDreamRow(tbodyEl) {
-            var tr = document.createElement('tr');
-            tr.className = 'add-dream-row';
-            tr.innerHTML = '<td colspan="6"><button type="button" onclick="openNewDreamModal()">+ Добавить мечту</button></td>';
-            tbodyEl.appendChild(tr);
-        }
         function renderDreamsMobileCards(dreams) {
             var block = document.getElementById('dreams-mobile-swipe');
             var track = block && block.querySelector('.dreams-mobile-track');
             var counterEl = block && block.querySelector('.dreams-mobile-counter');
-            var addWrap = block && block.querySelector('.dreams-mobile-add-wrap');
-            var addBtn = block && block.querySelector('.dreams-mobile-add');
             if (!track || !counterEl) return;
             track.innerHTML = '';
             track.dataset.currentIndex = '0';
             track.style.transform = 'translateX(0)';
-            if (addBtn) addBtn.onclick = function() { openNewDreamModal(); };
             if (!dreams || dreams.length === 0) {
                 var emptyCard = document.createElement('div');
                 emptyCard.className = 'dreams-mobile-card dreams-mobile-card-empty';
-                emptyCard.innerHTML = '<p style="margin-bottom:12px;">Пока нет записанных мечт.</p><button type="button" class="dreams-mobile-add">+ Добавить мечту</button>';
+                emptyCard.innerHTML = '<p style="margin-bottom:12px;">Пока нет записанных мечт.</p>';
                 track.appendChild(emptyCard);
-                emptyCard.querySelector('.dreams-mobile-add').onclick = function() { openNewDreamModal(); };
                 counterEl.textContent = '0 / 0';
-                if (addWrap) addWrap.classList.add('hidden');
                 return;
             }
-            if (addWrap) addWrap.classList.remove('hidden');
             dreams.forEach(function(d) {
                 var text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
                 var statusId = d.status_id != null ? d.status_id : (d.status_obj && d.status_obj.id) || 1;
