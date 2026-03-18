@@ -24,7 +24,7 @@
         .filters select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; }
         .filters label { font-size: 13px; color: #555; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .roadmap-table-wrap { background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: hidden; }
+        .roadmap-table-wrap { background: rgba(255,255,255,0.9); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: auto; }
         .roadmap-table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
         .roadmap-table th, .roadmap-table td { border: 1px solid #e8e8e8; padding: 10px 12px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
         .roadmap-table thead { position: sticky; top: 0; z-index: 50; }
@@ -32,7 +32,7 @@
         .roadmap-table .col-step { width: 4%; text-align: center; font-weight: 600; }
         .roadmap-table .col-text { width: 26%; }
         .roadmap-table .col-section { width: 10%; }
-        .roadmap-table .col-status { width: 9%; }
+        .roadmap-table .col-status { width: 10%; min-width: 90px; }
         .roadmap-table .col-initiator { width: 10%; }
         .roadmap-table .col-count { width: 4%; text-align: center; }
         .roadmap-table .col-date { width: 8%; }
@@ -50,7 +50,7 @@
         .roadmap-table tr.status-done:nth-child(even) { background: #f0f0f0; }
         .roadmap-table tr.status-done .col-text { color: #666; }
         .roadmap-table .status-cell { display: flex; align-items: center; gap: 4px; padding: 4px; margin: -4px; border-radius: 4px; }
-        .roadmap-table .status-select { border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; font-size: 13px; background: #fff; cursor: pointer; min-width: 100px; }
+        .roadmap-table .status-select { border: 1px solid #ccc; border-radius: 4px; padding: 4px 6px; font-size: 13px; background: #fff; cursor: pointer; min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; }
         .roadmap-table .status-select:focus { outline: none; border-color: #4CAF50; }
         .roadmap-table .status-icon { font-size: 1.1em; }
         .roadmap-table .status-icon.in_progress { color: #c62828; }
@@ -58,7 +58,7 @@
         .roadmap-table .priority-high { color: #c62828; }
         .roadmap-table .priority-mid { color: #f57c00; }
         .roadmap-table .priority-low { color: #888; }
-        .roadmap-table .col-actions { width: 5%; text-align: right; white-space: nowrap; }
+        .roadmap-table .col-actions { width: 6%; min-width: 64px; text-align: right; white-space: nowrap; }
         .roadmap-actions { display: inline-flex; align-items: center; gap: 4px; }
         .roadmap-actions .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; font-size: 16px; line-height: 1; opacity: 0.7; }
         .roadmap-actions .btn-icon:hover { opacity: 1; }
@@ -93,7 +93,7 @@
         .roadmap-mobile-card .card-meta { font-size: 12px; color: #666; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .roadmap-mobile-card .card-meta .status-icon-only { font-size: 1.2em; cursor: pointer; padding: 4px; margin: -4px; border-radius: 4px; user-select: none; }
         .roadmap-mobile-card .card-meta .status-icon-only:hover { background: rgba(0,0,0,0.06); }
-        .roadmap-mobile-card .card-meta .status-select { border: 1px solid #ccc; border-radius: 4px; padding: 4px 6px; font-size: 12px; background: #fff; cursor: pointer; min-width: 0; }
+        .roadmap-mobile-card .card-meta .status-select { border: 1px solid #ccc; border-radius: 4px; padding: 4px 6px; font-size: 12px; background: #fff; cursor: pointer; min-width: 0; width: auto; max-width: 44px; }
         .roadmap-mobile-card .card-meta .status-select:focus { outline: none; border-color: #4CAF50; }
         .add-idea-form-mobile { padding: 12px; }
         .add-idea-form-mobile input, .add-idea-form-mobile select { width: 100%; margin-bottom: 8px; }
@@ -314,6 +314,7 @@
             var priorityClass = { high: 'priority-high', mid: 'priority-mid', low: 'priority-low' };
             var rows = ROADMAP_DATA;
             var statusOpts = '<option value="plan">💡 В плане</option><option value="in_progress">☭ В работе</option><option value="done">✅ Сделано</option>';
+            var statusOptsMobile = '<option value="plan">💡</option><option value="in_progress">☭</option><option value="done">✅</option>';
 
             var tbody = document.getElementById('roadmap-tbody');
             tbody.innerHTML = rows.map(function(r) {
@@ -351,7 +352,7 @@
             var si = statusInfo;
             mobileEl.innerHTML = rows.map(function(r) {
                 var cardClass = 'roadmap-mobile-card status-' + (r.status || 'plan');
-                var sel = '<select class="status-select" data-id="' + r.id + '">' + statusOpts + '</select>';
+                var sel = '<select class="status-select status-select-mobile" data-id="' + r.id + '">' + statusOptsMobile + '</select>';
                 return '<div class="' + cardClass + '" data-id="' + r.id + '">' +
                     '<div class="card-row">' +
                     '<span class="card-num">' + escapeHtml(String(r.step || '—')) + '</span>' +
