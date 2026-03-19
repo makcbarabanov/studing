@@ -118,13 +118,13 @@ def shutdown_event():
             pass
         db_pool = None
 
-def _return_conn(conn):
-    """Вернуть соединение в пул или закрыть, если пула нет (разовое подключение)."""
+def _return_conn(conn, discard=False):
+    """Вернуть соединение в пул или закрыть. discard=True — отбросить сломанное (SSL closed и т.п.), не возвращать в пул."""
     if conn is None:
         return
     try:
         if db_pool is not None:
-            db_pool.putconn(conn)
+            db_pool.putconn(conn, close=discard)
         else:
             conn.close()
     except Exception:
@@ -402,10 +402,25 @@ def _schedule_items_books(cur, user_id: int, date_from: str, date_to: str):
     return items
 
 def get_db_connection():
-    """Берёт соединение из пула. Если пула нет (запуск без БД) — создаёт разовое подключение с повтором при SSL-ошибках."""
-    if db_pool is not None:
-        return db_pool.getconn()
-    return _connect_with_retry()
+    """Берёт соединение из пула. Валидирует его (SELECT 1); при SSL/connection closed — отбрасывает и повторяет до 3 раз."""
+    if db_pool is None:
+        return _connect_with_retry()
+    for attempt in range(3):
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+            return conn
+        except OperationalError as e:
+            try:
+                db_pool.putconn(conn, close=True)
+            except Exception:
+                pass
+            if attempt < 2 and ("SSL" in str(e) or "closed" in str(e).lower() or "connection" in str(e).lower()):
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            raise
+    return None
 
 @app.get("/", response_class=FileResponse)
 def root_page():
@@ -1072,6 +1087,7 @@ def _build_dream_item(row, steps_by_dream, books_by_dream=None):
         "description": "",
         "image_url": None,
         "status": row.get("status_code") or "planned",
+        "status_id": row.get("status_id"),
         "status_obj": status_obj,
         "deadline": deadline,
         "category": row.get("category_code"),
@@ -2028,6 +2044,10 @@ def get_dreams(user_id: int, viewer_id: Optional[int] = None):
             status_code=500,
             detail=f"БД: таблица dreams отсутствует или другая ошибка. Текст: {e!s}"
         )
+    except OperationalError as e:
+        _return_conn(conn, discard=True)
+        conn = None
+        raise HTTPException(status_code=503, detail=f"Ошибка соединения с БД (повторите попытку): {str(e)}")
     except Exception as e:
         import traceback
         raise HTTPException(
