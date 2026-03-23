@@ -444,16 +444,10 @@ def index_page():
     return FileResponse(Path(__file__).parent / "index.html")
 
 
-@app.get("/temp.html", response_class=FileResponse)
-def temp_page():
-    """Временная сводка поведенческих сценариев (тестировщик). Удалить после переноса в structure.md."""
-    return FileResponse(Path(__file__).parent / "temp.html")
-
-
 @app.get("/index2.html", response_class=FileResponse)
 def index2_page():
-    """Вариант интерфейса: заголовок «мечты | шаги», под ним контекстный заголовок (Мои мечты / Витрина / Уведомления)."""
-    return FileResponse(Path(__file__).parent / "index2.html")
+    """Вариант интерфейса (архив): заголовок «мечты | шаги», под ним контекстный заголовок (Мои мечты / Витрина / Уведомления)."""
+    return FileResponse(Path(__file__).parent / "archive" / "index2.html")
 
 @app.get("/roadmap.html", response_class=FileResponse)
 def roadmap_page():
