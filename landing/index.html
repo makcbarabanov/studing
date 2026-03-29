@@ -85,6 +85,12 @@
                 12px
                 max(20px, env(safe-area-inset-left, 0px));
         }
+        /* nav с классом nav-header — отступы на самом .nav-header */
+        header nav.nav-header {
+            padding: 0;
+            max-width: none;
+            margin: 0;
+        }
         .menu {
             display: flex;
             flex-wrap: wrap;
@@ -148,6 +154,69 @@
             background: rgba(17, 109, 255, 0.08);
         }
         .menu-btn-mail svg {
+            display: block;
+        }
+
+        /* Мобильное меню: кнопка справа + выпадающая панель */
+        .nav-header {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 44px;
+            padding:
+                max(12px, env(safe-area-inset-top, 0px))
+                max(20px, env(safe-area-inset-right, 0px))
+                12px
+                max(20px, env(safe-area-inset-left, 0px));
+        }
+        .menu-toggle {
+            display: none;
+            position: absolute;
+            top: max(10px, env(safe-area-inset-top, 0px));
+            right: max(12px, env(safe-area-inset-right, 0px));
+            z-index: 1002;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 12px rgba(28, 35, 51, 0.12);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: background 0.2s, color 0.2s;
+        }
+        .menu-toggle:hover {
+            background: #fff;
+            color: var(--primary);
+        }
+        .menu-toggle-bars {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            width: 20px;
+        }
+        .menu-toggle-bars span {
+            display: block;
+            height: 2px;
+            border-radius: 1px;
+            background: currentColor;
+        }
+        .menu-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(2px);
+        }
+        .menu-backdrop.is-visible {
             display: block;
         }
 
@@ -1339,21 +1408,82 @@
         }
 
         @media (max-width: 768px) {
+            .menu-toggle {
+                display: inline-flex;
+            }
+            .nav-header {
+                justify-content: flex-end;
+                align-items: flex-start;
+                min-height: 52px;
+                padding-top: max(10px, env(safe-area-inset-top, 0px));
+                padding-right: max(56px, calc(12px + env(safe-area-inset-right, 0px)));
+                padding-left: max(12px, env(safe-area-inset-left, 0px));
+                padding-bottom: 8px;
+            }
+            .nav-header .menu {
+                display: none;
+                position: absolute;
+                top: calc(100% - 4px);
+                right: max(8px, env(safe-area-inset-right, 0px));
+                left: auto;
+                width: min(280px, calc(100vw - 24px));
+                max-height: min(70vh, 420px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                flex-direction: column;
+                flex-wrap: nowrap;
+                align-items: stretch;
+                justify-content: flex-start;
+                gap: 0;
+                padding: 8px 0;
+                margin: 0;
+                background: rgba(255, 255, 255, 0.97);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(28, 35, 51, 0.1);
+                border-radius: 14px;
+                box-shadow: var(--shadow);
+                z-index: 1001;
+            }
+            .nav-header .menu.is-open {
+                display: flex;
+            }
+            .nav-header .menu a:not(:last-child)::after {
+                display: none;
+            }
+            .nav-header .menu a {
+                font-size: 0.75rem;
+                padding: 12px 16px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                border-radius: 0;
+                border-bottom: 1px solid rgba(28, 35, 51, 0.06);
+            }
+            .nav-header .menu a:last-of-type {
+                border-bottom: none;
+            }
+            .nav-header .menu .menu-mission {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
+                border-top: 1px solid rgba(28, 35, 51, 0.08);
+                margin-top: 4px;
+                padding-top: 4px;
+            }
+            .nav-header .menu .menu-mission > a {
+                border-bottom: 1px solid rgba(28, 35, 51, 0.06);
+            }
+            .nav-header .menu .menu-btn-mail {
+                align-self: center;
+                margin: 8px auto 10px;
+                min-width: 48px;
+                min-height: 48px;
+            }
             section {
                 padding: 52px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
                 scroll-margin-top: 52px;
-            }
-            .menu {
-                gap: 8px 10px;
-                justify-content: flex-start;
-                padding-bottom: 4px;
-            }
-            .menu a {
-                font-size: 0.62rem;
-                padding: 10px 12px;
-                min-height: 44px;
-                display: inline-flex;
-                align-items: center;
             }
             .menu-btn-mail {
                 min-width: 44px;
@@ -1438,13 +1568,33 @@
                 max-width: none;
             }
         }
+        @media (min-width: 769px) {
+            .menu-toggle {
+                display: none !important;
+            }
+            .menu-backdrop {
+                display: none !important;
+            }
+            .nav-header {
+                justify-content: center;
+            }
+            .nav-header .menu {
+                display: flex !important;
+            }
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <nav>
-            <div class="menu">
+        <div class="menu-backdrop" id="menu-backdrop" aria-hidden="true"></div>
+        <nav class="nav-header">
+            <button type="button" class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Открыть меню">
+                <span class="menu-toggle-bars" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+            </button>
+            <div id="nav-menu" class="menu">
                 <a href="#hero">Старт</a>
                 <a href="#story">История</a>
                 <a href="#master">Мастерская</a>
@@ -1817,6 +1967,59 @@
         });
 
         video.load();
+    })();
+    </script>
+    <script>
+    (function () {
+        var toggle = document.getElementById('menu-toggle');
+        var menu = document.getElementById('nav-menu');
+        var backdrop = document.getElementById('menu-backdrop');
+        if (!toggle || !menu || !backdrop) return;
+
+        function closeMenu() {
+            menu.classList.remove('is-open');
+            backdrop.classList.remove('is-visible');
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-label', 'Открыть меню');
+            document.body.style.overflow = '';
+        }
+
+        function openMenu() {
+            menu.classList.add('is-open');
+            backdrop.classList.add('is-visible');
+            toggle.setAttribute('aria-expanded', 'true');
+            toggle.setAttribute('aria-label', 'Закрыть меню');
+            document.body.style.overflow = 'hidden';
+        }
+
+        toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (menu.classList.contains('is-open')) closeMenu();
+            else openMenu();
+        });
+
+        backdrop.addEventListener('click', closeMenu);
+
+        menu.querySelectorAll('a[href^="#"]').forEach(function (a) {
+            a.addEventListener('click', function () {
+                closeMenu();
+            });
+        });
+
+        var mailBtn = menu.querySelector('.menu-btn-mail');
+        if (mailBtn) {
+            mailBtn.addEventListener('click', function () {
+                closeMenu();
+            });
+        }
+
+        window.addEventListener('resize', function () {
+            if (window.matchMedia('(min-width: 769px)').matches) closeMenu();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && menu.classList.contains('is-open')) closeMenu();
+        });
     })();
     </script>
     <script>
