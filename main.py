@@ -9,7 +9,7 @@ from psycopg2 import pool
 from psycopg2.extras import RealDictCursor, Json
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List
@@ -31,8 +31,14 @@ load_dotenv()
 # 2. Создаем Диспетчера
 app = FastAPI()
 
-# Каталоги: медиа (аватары) и статика (картинки для фона и т.п.)
 BASE_DIR = Path(__file__).resolve().parent
+
+@app.get("/landing", include_in_schema=False)
+def landing_root_redirect():
+    """Без слэша → /landing/ (index.html через StaticFiles)."""
+    return RedirectResponse(url="/landing/", status_code=307)
+
+# Каталоги: медиа (аватары) и статика (картинки для фона и т.п.)
 MEDIA_DIR = BASE_DIR / "media"
 AVATARS_DIR = MEDIA_DIR / "avatars"
 AVATARS_DIR.mkdir(parents=True, exist_ok=True)
@@ -40,6 +46,9 @@ EXAMPLES_DIR = BASE_DIR / "examples"
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 if EXAMPLES_DIR.is_dir():
     app.mount("/examples", StaticFiles(directory=str(EXAMPLES_DIR)), name="examples")
+LANDING_DIR = BASE_DIR / "landing"
+if LANDING_DIR.is_dir():
+    app.mount("/landing", StaticFiles(directory=str(LANDING_DIR), html=True), name="landing")
 
 # --- БЛОК БЕЗОПАСНОСТИ (CORS) ---
 app.add_middleware(

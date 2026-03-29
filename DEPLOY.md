@@ -35,6 +35,18 @@
     chmod 755 /home/makc /home/makc/app /home/makc/app/media /home/makc/app/media/avatars
     chmod 644 /home/makc/app/media/avatars/* 2>/dev/null || true
 
+## Лендинг Bridge: `/landing`
+
+Статика в каталоге `landing/` (репозиторий). После `git pull` перезапусти сервис приложения. Доступ: `https://www.islanddream.ru/landing/` (без слэша редирект на со слэшем).
+
+- **Форма «Творец»:** на Python-хостинге PHP не выполняется. Задай URL веб-приложения Google Apps Script в `landing/index.html` (перед `</body>`), например:
+  `<script>window.ISLAND_GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/.../exec';</script>`
+  Либо Formspree / свой webhook — см. комментарии в `index.html`.
+- В архиве видео было `scrieen1.mp4`, в разметке — `screen1.mp4`; при копировании файл переименован в `screen1.mp4`.
+- Папка `landing/` с `screen1.mp4` (~10 МБ): при необходимости используй Git LFS или выноси тяжёлые файлы на CDN.
+
+Nginx менять не нужно: всё идёт в `proxy_pass` на uvicorn.
+
 ## Безопасность (Production)
 
 - **Uvicorn** должен слушать только **127.0.0.1:8000**, чтобы трафик шёл только через Nginx (proxy). На проде используется **island.service** (см. [Readme/Contex.md](Readme/Contex.md)). В репо — `island.service` с `--host 127.0.0.1`. На сервере после правки: `sudo systemctl daemon-reload && sudo systemctl restart island`.
