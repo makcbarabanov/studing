@@ -24,7 +24,7 @@
             proxy_set_header X-Forwarded-Proto $scheme;
         }
         location /media/ {
-            alias /home/makc/app/media/;
+            alias /home/makc/Apps/island/media/;
         }
     }
 
@@ -32,8 +32,8 @@
 
 Права на сервере, чтобы nginx (www-data) мог читать аватары:
 
-    chmod 755 /home/makc /home/makc/app /home/makc/app/media /home/makc/app/media/avatars
-    chmod 644 /home/makc/app/media/avatars/* 2>/dev/null || true
+    chmod 755 /home/makc /home/makc/Apps/island /home/makc/Apps/island/media /home/makc/Apps/island/media/avatars
+    chmod 644 /home/makc/Apps/island/media/avatars/* 2>/dev/null || true
 
 ## Лендинг Bridge: `/landing`
 
@@ -50,5 +50,5 @@ Nginx менять не нужно: всё идёт в `proxy_pass` на uvicorn
 ## Безопасность (Production)
 
 - **Uvicorn** должен слушать только **127.0.0.1:8000**, чтобы трафик шёл только через Nginx (proxy). На проде используется **island.service** (см. [Readme/Contex.md](Readme/Contex.md)). В репо — `island.service` с `--host 127.0.0.1`. На сервере после правки: `sudo systemctl daemon-reload && sudo systemctl restart island`.
-- **Секреты:** приложение читает переменные из `.env` в рабочем каталоге (`load_dotenv()` в main.py). Файл `.env` не должен быть в репозитории; на сервере: `chmod 600 /home/makc/app/.env`.
+- **Секреты:** приложение читает переменные из `.env` в рабочем каталоге (`load_dotenv()` в main.py). Файл `.env` не должен быть в репозитории; на сервере: `chmod 600 /home/makc/Apps/island/.env`.
 - **SSL:** для islanddream.ru типично Certbot (Let's Encrypt) + автопродление (cron или systemd timer). Конфиг Nginx — в `sites-available` с `listen 443 ssl` и путями к сертификатам.

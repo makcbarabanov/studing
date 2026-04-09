@@ -21,9 +21,9 @@ After=network.target
 Type=simple
 User=makc
 Group=makc
-WorkingDirectory=/home/makc/app
-Environment=PATH=/home/makc/app/venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/makc/app/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+WorkingDirectory=/home/makc/Apps/island
+Environment=PATH=/home/makc/Apps/island/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/makc/Apps/island/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=3
 
@@ -46,7 +46,7 @@ WantedBy=multi-user.target
 
 - **server_name:** 188.225.44.48, islanddream.ru, www.islanddream.ru
 - **location /** → `proxy_pass http://127.0.0.1:8000`; заголовки Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto — настроены.
-- **location /media/** → `alias /home/makc/app/media/`
+- **location /media/** → `alias /home/makc/Apps/island/media/`
 - **listen 443 ssl** — сертификаты Let's Encrypt (Certbot):  
   `ssl_certificate` / `ssl_certificate_key` — `/etc/letsencrypt/live/islanddream.ru/`  
   Подключены `options-ssl-nginx.conf` и `ssl-dhparams.pem`.
@@ -80,10 +80,10 @@ tcp   LISTEN 0  2048  0.0.0.0:8000  0.0.0.0:*   users:(("uvicorn",pid=20080,fd=7
 
 ## 5. Environment (секреты)
 
-- **Файл:** `/home/makc/app/.env` — существует, приложение читает переменные через `load_dotenv()` в main.py (WorkingDirectory=/home/makc/app). В unit-файле секреты не прописаны, только `Environment=PATH=...`.
+- **Файл:** `/home/makc/Apps/island/.env` — существует, приложение читает переменные через `load_dotenv()` в main.py (WorkingDirectory=/home/makc/Apps/island). В unit-файле секреты не прописаны, только `Environment=PATH=...`.
 - **Права на .env:** `-rw-rw-r--` (664), владелец makc:makc. Пользователи из группы `makc` могут читать файл.
 
-**Рекомендация (по возможности):** ограничить доступ: `chmod 600 /home/makc/app/.env`, чтобы читать мог только владелец.
+**Рекомендация (по возможности):** ограничить доступ: `chmod 600 /home/makc/Apps/island/.env`, чтобы читать мог только владелец.
 
 ---
 
@@ -112,7 +112,7 @@ ss -tulpn | grep 8000
 Опционально (ужесточение прав на .env):
 
 ```bash
-chmod 600 /home/makc/app/.env
+chmod 600 /home/makc/Apps/island/.env
 ```
 
 ---
@@ -125,6 +125,6 @@ chmod 600 /home/makc/app/.env
 
 - В `/etc/systemd/system/island.service` заменён `--host 0.0.0.0` на `--host 127.0.0.1`.
 - Выполнены `systemctl daemon-reload` и `systemctl restart island`.
-- Права на `/home/makc/app/.env` ужесточены: `chmod 600`.
+- Права на `/home/makc/Apps/island/.env` ужесточены: `chmod 600`.
 
 Проверено: `ss` → **127.0.0.1:8000**; `systemctl status island` → active (running). Кухонное окно закрыто.

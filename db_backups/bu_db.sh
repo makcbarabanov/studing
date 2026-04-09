@@ -1,5 +1,5 @@
 #!/bin/bash
-BACKUP_DIR="/home/makc/app/db_backups"   # или ~/db_backups
+BACKUP_DIR="/home/makc/Apps/island/db_backups"   # или ~/db_backups
 SIZE_FILE="$BACKUP_DIR/last_size.txt"
 PG_HOST="83.217.220.97"
 PG_USER="marabot"

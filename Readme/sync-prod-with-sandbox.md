@@ -9,7 +9,7 @@
 На своём компе, в каталоге проекта (песок):
 
 ```bash
-cd /home/makc/app   # или где у тебя проект
+cd /home/makc/Apps/island   # или где у тебя проект
 git status
 git diff --stat     # посмотреть, что изменено
 ```

@@ -6,9 +6,9 @@ After=network.target
 Type=simple
 User=makc
 Group=makc
-WorkingDirectory=/home/makc/app
-Environment=PATH=/home/makc/app/venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/makc/app/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/home/makc/Apps/island
+Environment=PATH=/home/makc/Apps/island/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/makc/Apps/island/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=3
 
