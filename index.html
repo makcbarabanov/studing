@@ -1039,7 +1039,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">37</span>
+                    <span class="app-version" aria-hidden="true">40</span>
                 </div>
             </footer>
         </div>
@@ -3107,6 +3107,24 @@
         var profileEditBack = document.getElementById('profile-edit-back');
         if (profileEditBack) profileEditBack.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         var profileEditSave = document.getElementById('profile-edit-save');
+        function parseApiErrorResponse(resp, fallbackMessage) {
+            var contentType = (resp && resp.headers && resp.headers.get('content-type')) || '';
+            if (contentType.indexOf('application/json') !== -1) {
+                return resp.json().then(function(d) {
+                    return (d && (d.detail || d.message)) || fallbackMessage || 'Ошибка запроса';
+                }).catch(function() {
+                    return fallbackMessage || 'Ошибка запроса';
+                });
+            }
+            return resp.text().then(function(txt) {
+                var raw = (txt || '').trim();
+                if (!raw) return fallbackMessage || 'Ошибка запроса';
+                var noTags = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                return noTags || fallbackMessage || ('HTTP ' + resp.status);
+            }).catch(function() {
+                return fallbackMessage || 'Ошибка запроса';
+            });
+        }
         if (profileEditSave) profileEditSave.addEventListener('click', function() {
             if (!currentUser || !currentUser.id) return;
             var curPw = document.getElementById('profile-edit-current-password');
@@ -3130,7 +3148,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 }).then(function(r) {
-                    if (!r.ok) return r.json().then(function(d) { throw new Error(d.detail || r.statusText); });
+                    if (!r.ok) return parseApiErrorResponse(r, 'Ошибка сохранения профиля').then(function(msg) { throw new Error(msg); });
                     return r.json();
                 });
             }
@@ -3148,7 +3166,10 @@
                 var fd = new FormData();
                 fd.append('file', file);
                 fetch(API_BASE_URL + '/avatar?user_id=' + currentUser.id, { method: 'POST', body: fd })
-                    .then(function(r) { return r.ok ? r.json() : r.json().then(function(d) { throw new Error(d.detail || r.statusText); }); })
+                    .then(function(r) {
+                        if (!r.ok) return parseApiErrorResponse(r, 'Ошибка загрузки аватара').then(function(msg) { throw new Error(msg); });
+                        return r.json();
+                    })
                     .then(function(data) {
                         currentUser.avatar_path = data.avatar_path;
                         currentUser.avatar_url = API_BASE_URL + '/media/' + (data.avatar_path || '').replace(/^\//, '') + '?t=' + Date.now();
@@ -3307,8 +3328,10 @@
                 accTr.dataset.dreamId = dreamId;
                 var steps = sortStepsByDeadline((d.steps || []).filter(function(s) { return !s.deleted; }));
                 var isFinanceCategory = !!(d.category_obj && d.category_obj.code === 'finance');
-                var isFinGoal = (steps.length > 0 && steps[0].plan_amount != null) ||
-                    (isFinanceCategory && steps.length >= 12);
+                var isFinGoal = ENABLE_SPECIAL_STEPS_BOOKS_FINANCE && (
+                    (steps.length > 0 && steps[0].plan_amount != null) ||
+                    (isFinanceCategory && steps.length >= 12)
+                );
                 var showAddStepBtn = !isFinGoal || (isFinanceCategory && steps.length < 12);
                 var defaultPlan = 17000;
                 var stepsContent = '';

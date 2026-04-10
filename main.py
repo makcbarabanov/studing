@@ -30,6 +30,7 @@ load_dotenv()
 
 # 2. Создаем Диспетчера
 app = FastAPI()
+ENABLE_SPECIAL_BOOKS_IN_SCHEDULE = False
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -2075,7 +2076,9 @@ def get_schedule(user_id: int, date_from: Optional[str] = None, date_to: Optiona
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             items = _schedule_items_standard(cur, user_id, date_from, date_to)
-            items.extend(_schedule_items_books(cur, user_id, date_from, date_to))
+            # Спец-режим книг временно отключен: в расписании остаются только обычные шаги.
+            if ENABLE_SPECIAL_BOOKS_IN_SCHEDULE:
+                items.extend(_schedule_items_books(cur, user_id, date_from, date_to))
             items.sort(key=lambda x: (x["date"], x["title"]))
             return {"items": items, "date_from": date_from, "date_to": date_to}
     except Exception as e:
