@@ -286,7 +286,10 @@ def _load_steps(cur, dream_ids):
                     "plan_amount": None, "fact_amount": None,
                 })
         except psycopg2.ProgrammingError:
-            pass
+            try:
+                cur.connection.rollback()
+            except Exception:
+                pass
     return out
 
 def _load_books(cur, dream_ids):
@@ -314,7 +317,10 @@ def _load_books(cur, dream_ids):
                 "finished_at": str(r["finished_at"]) if r.get("finished_at") else None,
             })
     except psycopg2.ProgrammingError:
-        pass
+        try:
+            cur.connection.rollback()
+        except Exception:
+            pass
     return out
 
 def _schedule_items_standard(cur, user_id: int, date_from: str, date_to: str):
