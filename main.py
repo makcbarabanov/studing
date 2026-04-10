@@ -188,6 +188,8 @@ class DreamUpdate(BaseModel):
 class StepCreate(BaseModel):
     title: str
     deadline: Optional[str] = None  # YYYY-MM-DD
+    start_time: Optional[str] = None  # HH:MM
+    end_time: Optional[str] = None    # HH:MM
 
 class FinanceStepsCreate(BaseModel):
     """Тело запроса для создания шагов финцели (анкета «Добавить шаги»)."""
@@ -202,6 +204,8 @@ class StepUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
     deadline: Optional[str] = None  # YYYY-MM-DD
+    start_time: Optional[str] = None  # HH:MM
+    end_time: Optional[str] = None    # HH:MM
     deleted: Optional[bool] = None  # мягкое удаление / восстановление
     fact_amount: Optional[float] = None  # для шагов финцели — фактический взнос за период
 
@@ -244,13 +248,13 @@ class RoadmapItemUpdate(BaseModel):
     initiator: Optional[str] = None
 
 def _load_steps(cur, dream_ids):
-    """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of {id, title, completed, deadline, deleted, plan_amount, fact_amount}."""
+    """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of step dict."""
     out = {}
     if not dream_ids:
         return out
     try:
         cur.execute(
-            "SELECT dream_id, id, title, completed, sort_order, deadline, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+            "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
             (dream_ids,),
         )
         for s in cur.fetchall():
@@ -265,6 +269,8 @@ def _load_steps(cur, dream_ids):
                 "title": s["title"],
                 "completed": bool(s["completed"]),
                 "deadline": str(dl) if dl else None,
+                "start_time": str(s.get("start_time"))[:5] if s.get("start_time") else None,
+                "end_time": str(s.get("end_time"))[:5] if s.get("end_time") else None,
                 "deleted": bool(s.get("deleted", False)),
                 "plan_amount": float(plan) if plan is not None else None,
                 "fact_amount": float(fact) if fact is not None else None,
@@ -282,7 +288,7 @@ def _load_steps(cur, dream_ids):
                     out[did] = []
                 out[did].append({
                     "id": s["id"], "title": s["title"], "completed": bool(s["completed"]),
-                    "deadline": None, "deleted": False,
+                    "deadline": None, "start_time": None, "end_time": None, "deleted": False,
                     "plan_amount": None, "fact_amount": None,
                 })
         except psycopg2.ProgrammingError:
@@ -2304,10 +2310,12 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
             cur.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM dreams_steps WHERE dream_id = %s", (dream_id,))
             next_order = cur.fetchone()["next_order"]
             deadline = body.deadline if body.deadline else None
+            start_time = body.start_time if body.start_time else None
+            end_time = body.end_time if body.end_time else None
             try:
                 cur.execute(
-                    "INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deadline) VALUES (%s, %s, false, %s, %s) RETURNING id, title, completed, deadline",
-                    (dream_id, body.title.strip(), next_order, deadline),
+                    "INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deadline, start_time, end_time) VALUES (%s, %s, false, %s, %s, %s, %s) RETURNING id, title, completed, deadline, start_time, end_time",
+                    (dream_id, body.title.strip(), next_order, deadline, start_time, end_time),
                 )
             except psycopg2.ProgrammingError:
                 cur.connection.rollback()
@@ -2323,6 +2331,8 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
                 "title": row["title"],
                 "completed": bool(row["completed"]),
                 "deadline": str(dl) if dl else None,
+                "start_time": str(row.get("start_time"))[:5] if row.get("start_time") else None,
+                "end_time": str(row.get("end_time"))[:5] if row.get("end_time") else None,
             }
     except HTTPException:
         raise
@@ -2452,6 +2462,12 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             if body.deadline is not None:
                 updates.append("deadline = %s")
                 vals.append(body.deadline if body.deadline else None)
+            if body.start_time is not None:
+                updates.append("start_time = %s")
+                vals.append(body.start_time if body.start_time else None)
+            if body.end_time is not None:
+                updates.append("end_time = %s")
+                vals.append(body.end_time if body.end_time else None)
             if body.deleted is not None:
                 updates.append("deleted = %s")
                 vals.append(body.deleted)
