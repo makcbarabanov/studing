@@ -207,6 +207,14 @@
         var currentModalDream = null;
         var helperNameStorageKey = 'dreamsHelperName_v1';
 
+        function formatShortRuDate(s) {
+            var raw = (s || '').toString().trim();
+            if (!raw || raw === '—') return '';
+            var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return m[3] + '.' + m[2] + '.' + m[1].slice(-2);
+            return raw;
+        }
+
         var modalElements = {
             overlay: document.getElementById('helpModal'),
             authorLine: document.getElementById('modalAuthorLine'),
@@ -262,7 +270,7 @@
             modalElements.authorLine.innerHTML = '<div>' + (dream.user_name || 'Участник') + cityPart + '</div>';
             modalElements.dreamDescription.textContent = dream.dream || 'Нет описания';
             if (dream.deadline) {
-                var dlStr = new Date(dream.deadline).toLocaleDateString('ru-RU');
+                var dlStr = formatShortRuDate(String(dream.deadline).slice(0, 10));
                 modalElements.dreamDescription.textContent += '\n\nДедлайн: до ' + dlStr;
             }
             updateModalMessage();
@@ -332,7 +340,7 @@
                 var st = dream.status || 'planned';
                 var label = statusText[st] || dream.status_label || 'Неизвестно';
                 var cls = statusClass[st] || 'planned';
-                var dateStr = dream.date ? new Date(dream.date).toLocaleDateString('ru-RU') : '';
+                var dateStr = dream.date ? formatShortRuDate(String(dream.date).slice(0, 10)) : '';
                 var priceHtml = dream.price != null && dream.price !== '' ? '<div class="price">💰 ' + dream.price + '</div>' : '';
                 return '<div class="dream-card">' +
                     '<span class="status-badge ' + cls + '">' + label + '</span>' +

@@ -20,6 +20,7 @@
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { opacity: 0.8; }
         .hidden { display: none; }
+        .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         /* Хедер только в кабинете: на лендинге (вход/регистрация) блок кабинета скрыт */
         #profile-view.hidden { display: none !important; }
         .error { color: red; margin-top: 10px; }
@@ -76,9 +77,27 @@
         .modal-dream-table td { padding: 6px 0; vertical-align: middle; }
         .modal-dream-table td:first-child { text-align: right; padding-right: 12px; width: 1%; white-space: nowrap; color: #555; font-size: 14px; }
         .modal-dream-table td:last-child { width: 99%; }
-        .modal-dream-table input[type="date"],
         .modal-dream-table input[type="number"],
         .modal-dream-table select { width: 100%; max-width: 220px; padding: 8px; box-sizing: border-box; }
+        .modal-dream-table input.island-date-field { width: 100%; max-width: 220px; padding: 8px; box-sizing: border-box; margin: 0; font-variant-numeric: tabular-nums; }
+        .modal-dream-table input.island-date-field.island-date-field-invalid { border-color: #c62828; }
+        .island-date-calendar-popover { position: fixed; width: 300px; background: linear-gradient(180deg, #f5fbff 0%, #fff 32%); border: 1px solid #81d4fa; border-radius: 8px; box-shadow: 0 8px 26px rgba(25, 118, 210, 0.18); padding: 10px; box-sizing: border-box; z-index: 220; }
+        .island-date-calendar-popover.hidden { display: none !important; }
+        .island-date-calendar-popover button { width: auto; margin: 0; }
+        .island-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; padding: 8px 6px; background: #e3f2fd; border-radius: 6px; border: 1px solid #b3e5fc; }
+        .island-cal-head-mid { flex: 1 1 auto; display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 6px; min-width: 0; white-space: nowrap; }
+        .island-date-calendar-popover .island-cal-month-select,
+        .island-date-calendar-popover .island-cal-year-select { width: auto; margin: 0 !important; padding: 5px 6px; font-size: 13px; border: 1px solid #64b5f6; border-radius: 4px; background: #fff; color: #01579b; font-weight: 600; cursor: pointer; box-sizing: border-box; }
+        .island-date-calendar-popover .island-cal-month-select { flex: 0 1 auto; min-width: 0; max-width: 5.5em; }
+        .island-date-calendar-popover .island-cal-year-select { flex: 0 0 auto; min-width: 4.25em; max-width: 5.5em; }
+        .island-cal-nav { flex-shrink: 0; min-width: 36px; padding: 6px 10px; background: #bbdefb !important; color: #0d47a1 !important; border: 1px solid #64b5f6 !important; border-radius: 4px; cursor: pointer; font-size: 18px; line-height: 1; }
+        .island-cal-nav:hover { background: #90caf9 !important; border-color: #42a5f5 !important; }
+        .island-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 6px; font-size: 11px; font-weight: 700; color: #01579b; text-align: center; }
+        .island-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .island-cal-day { padding: 8px 4px; min-height: 36px; background: #fff !important; color: #01579b !important; border: 1px solid #b3e5fc !important; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .island-cal-day:hover:not(:disabled) { background: #e3f2fd !important; border-color: #42a5f5 !important; color: #003c6f !important; }
+        .island-cal-day-selected { background: #bbdefb !important; border-color: #1565c0 !important; font-weight: 700; color: #002171 !important; }
+        .island-cal-day-empty { visibility: hidden; cursor: default; pointer-events: none; border: none !important; background: transparent !important; }
         .modal-dream-visibility-toggle { display: flex; gap: 12px; margin-top: 12px; }
         .modal-dream-visibility-option { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s; }
         .modal-dream-visibility-option:hover { background: #f8f8f8; border-color: #ccc; }
@@ -104,11 +123,11 @@
         .step-item-plain .step-check input { width: 16px; height: 16px; cursor: pointer; }
         .step-row .step-title, .step-item-plain .step-title-wrap { flex: 1; min-width: 200px; max-width: 100%; min-height: 22px; padding: 0 10px; border-left: 1px solid #ccc; cursor: pointer; word-break: break-word; }
         .step-row .step-title:hover, .step-item-plain .step-title-wrap:hover { background: #eee; }
-        .step-row .step-deadline-inline, .step-item-plain .step-deadline { margin-left: auto; padding: 0 10px; border-left: 1px solid #ccc; font-size: 0.9em; color: #666; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
-        .step-row .step-deadline-inline .step-date-text, .step-item-plain .step-deadline .step-date-text { display: block; }
+        .step-row .step-deadline-inline, .step-item-plain .step-deadline { margin-left: auto; padding: 0 10px; border-left: 1px solid #ccc; font-size: 0.9em; color: #666; white-space: nowrap; flex-shrink: 0; cursor: default; }
+        .step-row .step-deadline-inline .step-date-text, .step-item-plain .step-deadline .step-date-text { display: block; font-size: calc(1em + 1px); font-weight: 500; }
         .step-row .step-deadline-inline .step-time-range, .step-item-plain .step-deadline .step-time-range { display: block; font-size: 11px; color: #999; line-height: 1.15; }
         .step-row .step-deadline-inline .step-time-range.placeholder, .step-item-plain .step-deadline .step-time-range.placeholder { color: #c7c7c7; }
-        .step-row .step-deadline-inline:hover, .step-item-plain .step-deadline:hover { background: #f5f5f5; }
+        .step-row .step-title { cursor: default; }
         .step-row .step-delete-inline, .step-item-plain .step-delete { flex-shrink: 0; width: 1em; min-width: 1em; padding: 4px 4px; margin: 0; border-left: 1px solid #ccc; background: none; border-right: none; border-top: none; border-bottom: none; cursor: pointer; color: #666; font-size: 1em; box-sizing: content-box; text-align: center; }
         .step-row .step-delete-inline:hover, .step-item-plain .step-delete:hover { color: #c62828; }
         .step-row .step-edit-inline { flex-shrink: 0; width: 1.4em; min-width: 1.4em; padding: 4px 4px; margin: 0; border-left: 1px solid #ccc; background: none; border-right: none; border-top: none; border-bottom: none; cursor: pointer; color: #2e7d32; font-size: 1em; line-height: 1; box-sizing: content-box; text-align: center; }
@@ -133,9 +152,7 @@
         .add-step-row a:hover { color: #0d47a1; }
         .step-row.add-step-form { gap: 10px; }
         .step-row.add-step-form input[type="text"] { flex: 1; min-width: 0; padding: 4px 8px; }
-        .step-row.add-step-form input[type="date"] { width: 10.5em; min-width: 0; padding: 4px 8px; box-sizing: border-box; }
         .step-row.add-step-form button { padding: 6px 12px; width: auto; flex: 0 0 auto; }
-        input[type="date"] { width: 10.5em; box-sizing: border-box; }
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.hidden { display: none; }
         .modal { background: white; padding: 24px; border-radius: 8px; min-width: 320px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
@@ -163,9 +180,6 @@
         .modal-add-step .modal-add-step-title-input { width: 100%; max-width: 100%; padding: 8px; box-sizing: border-box; resize: vertical; min-height: 2.5em; }
         .modal-add-step .modal-add-step-date { width: 11ch; padding: 8px; margin: 0; box-sizing: border-box; font-variant-numeric: tabular-nums; display: block; height: 38px; }
         .modal-add-step .modal-add-step-date-field { display: flex; align-items: stretch; gap: 6px; height: 38px; margin: 0; padding: 0; }
-        .modal-add-step .modal-add-step-date-picker-btn { width: auto; min-width: 0; padding: 0 8px; margin: 0; height: 38px; border: 1px solid #ccc; background: #fff; color: #555; border-radius: 4px; cursor: pointer; line-height: 1; box-sizing: border-box; display: block; }
-        .modal-add-step .modal-add-step-date-picker-btn:hover { background: #f5f5f5; border-color: #999; }
-        .modal-add-step .modal-add-step-date-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
         .modal-add-step .modal-add-step-dates-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0; }
         .modal-add-step .modal-add-step-date-group { display: flex; flex-direction: column; gap: 4px; }
         .modal-add-step .modal-add-step-date-group label { margin: 0; font-weight: 500; }
@@ -175,6 +189,7 @@
         .modal-add-step .modal-add-step-time { width: 9em; padding: 8px; box-sizing: border-box; height: 38px; }
         .modal-add-step-row-exec { flex-wrap: wrap; align-items: flex-end; }
         .modal-add-step-row-exec .modal-add-step-inline-times { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; flex: 1 1 200px; min-width: 0; }
+        .modal-add-step-row-exec .modal-add-step-inline-times.modal-add-step-bordered-block { align-items: stretch; }
         .modal-add-step-row-exec .modal-add-step-time { width: 6.5em; }
         .modal-add-step-dates-scope-wrap { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 8px; }
         .modal-add-step-dates-scope-wrap .modal-add-step-dates-row { margin: 0; flex: 1 1 auto; min-width: 0; }
@@ -183,6 +198,11 @@
         .modal-add-step .modal-add-step-days-wrap { margin-top: 12px; }
         .modal-add-step .modal-add-step-days-wrap.disabled { opacity: 0.5; pointer-events: none; }
         .modal-add-step-mode-row { margin-top: 12px; display: flex; flex-direction: row; justify-content: flex-start; align-items: flex-start; gap: 12px; flex-wrap: nowrap; }
+        .modal-add-step-bordered-block { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; box-sizing: border-box; background: #fafafa; }
+        .modal-add-step-bordered-block .modal-add-step-date-block-head { text-align: center; margin-bottom: 8px; }
+        .modal-add-step-bordered-block .modal-add-step-date-block-head .modal-add-step-field-label { margin: 0; }
+        .modal-add-step-bordered-block .modal-add-step-date-field { margin: 0 auto; justify-content: center; max-width: 100%; }
+        .modal-add-step-time-bordered-inner { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; justify-content: flex-start; }
         .modal-add-step-single-block { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; transition: opacity 0.2s; }
         .modal-add-step-repeat-btn-block { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; transition: opacity 0.2s; }
         .modal-add-step .modal-add-step-field-label { margin: 0 0 4px 0; font-weight: 500; min-height: 20px; line-height: 20px; display: block; }
@@ -192,6 +212,10 @@
         .modal-add-step .modal-add-step-repeat-btn-wrap .modal-add-step-repeat-btn { height: 100%; min-height: 0; margin: 0; padding: 0 12px; box-sizing: border-box; display: block; }
         .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row { display: flex; gap: 8px; align-items: stretch; height: 38px; min-height: 38px; }
         .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row .modal-add-step-repeat-btn { flex: 1 1 0; min-width: 0; width: auto; }
+        .modal-add-step-finish-all-btn { margin-top: 10px; width: 100%; padding: 8px 12px; font-size: 13px; border-radius: 4px; border: 1px solid #c62828; background: #fff; color: #b71c1c; cursor: pointer; font-weight: 500; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .modal-add-step-finish-all-btn:hover { background: #ffebee; border-color: #b71c1c; }
+        .modal-add-step-finish-all-btn__icon { flex-shrink: 0; width: 23px; height: 20px; object-fit: contain; display: block; }
+        #modal-add-step-bulk-end-confirm { z-index: 110; }
         .modal-add-step-single-block.disabled { opacity: 0.5; pointer-events: none; }
         .modal-add-step-date { height: 38px; box-sizing: border-box; }
         .modal-add-step-repeat-btn { margin: 0; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #2e7d32; cursor: pointer; font-size: 14px; width: 10.5em; height: 38px; min-height: 38px; box-sizing: border-box; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; }
@@ -843,11 +867,11 @@
                     <table class="modal-dream-table" role="presentation">
                         <tr>
                             <td><label for="new-dream-deadline">Дедлайн</label></td>
-                            <td><input type="date" id="new-dream-deadline" placeholder="дд.мм.гг"></td>
+                            <td><input type="text" id="new-dream-deadline" class="island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off" aria-describedby="new-dream-deadline-format-hint"></td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td><p class="modal-deadline-hints" style="margin:2px 0 0 0;font-size:13px;color:#666;">Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">конец года (31.12.<span id="new-eoy-year"></span>)</a>, <a href="#" data-deadline="none">без даты</a></p></td>
+                            <td><p id="new-dream-deadline-format-hint" class="modal-deadline-hints" style="margin:2px 0 0 0;font-size:13px;color:#666;">Формат дд.мм.гг. Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">конец года (31.12.<span id="new-eoy-year"></span>)</a>, <a href="#" data-deadline="none">без даты</a></p></td>
                         </tr>
                         <tr>
                             <td><label for="new-dream-price">Цена руб</label></td>
@@ -883,11 +907,11 @@
                     <table class="modal-dream-table" role="presentation">
                         <tr>
                             <td><label for="edit-dream-deadline">Дедлайн</label></td>
-                            <td><input type="date" id="edit-dream-deadline"></td>
+                            <td><input type="text" id="edit-dream-deadline" class="island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off" aria-describedby="edit-dream-deadline-format-hint"></td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td><p class="modal-deadline-hints" style="margin:2px 0 0 0;font-size:13px;color:#666;">Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">31 дек.</a>, <a href="#" data-deadline="none">без даты</a></p></td>
+                            <td><p id="edit-dream-deadline-format-hint" class="modal-deadline-hints" style="margin:2px 0 0 0;font-size:13px;color:#666;">Формат дд.мм.гг. Подсказки: <a href="#" data-deadline="7days">7 дней</a>, <a href="#" data-deadline="eoy">31 дек.</a>, <a href="#" data-deadline="none">без даты</a></p></td>
                         </tr>
                         <tr>
                             <td><label for="edit-dream-price">Цена руб</label></td>
@@ -913,6 +937,21 @@
                         <button type="button" id="btn-submit-edit-dream" onclick="submitEditDream()">Сохранить</button>
                     </div>
                 </div>
+            </div>
+            <!-- Общий календарь дедлайна мечты (текст дд.мм.гг + сетка; без отдельной иконки) -->
+            <div id="island-date-calendar-popover" class="island-date-calendar-popover hidden" role="dialog" aria-modal="true" aria-label="Календарь даты" aria-hidden="true">
+                <div class="island-cal-head">
+                    <button type="button" class="island-cal-nav" id="island-cal-prev" aria-label="Предыдущий месяц">‹</button>
+                    <div class="island-cal-head-mid">
+                        <label class="visually-hidden" for="island-cal-month">Месяц</label>
+                        <select id="island-cal-month" class="island-cal-month-select" aria-label="Месяц"></select>
+                        <label class="visually-hidden" for="island-cal-year">Год</label>
+                        <select id="island-cal-year" class="island-cal-year-select" aria-label="Год"></select>
+                    </div>
+                    <button type="button" class="island-cal-nav" id="island-cal-next" aria-label="Следующий месяц">›</button>
+                </div>
+                <div class="island-cal-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+                <div class="island-cal-grid" id="island-cal-grid"></div>
             </div>
             <!-- Модальное окно: добавить бадди -->
             <div id="modal-add-buddy" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-buddy-title">
@@ -987,22 +1026,24 @@
                     <h3 id="modal-add-step-title">Добавить шаг</h3>
                     <textarea id="modal-add-step-title-input" placeholder="напр. урок английского" class="modal-add-step-title-input" rows="2"></textarea>
                     <div class="modal-add-step-mode-row modal-add-step-row-exec">
-                        <div class="modal-add-step-single-block" id="modal-add-step-single-block">
-                            <label for="modal-add-step-date-single" class="modal-add-step-field-label" id="modal-add-step-date-single-label">Выполнить до</label>
+                        <div class="modal-add-step-single-block modal-add-step-bordered-block" id="modal-add-step-single-block">
+                            <div class="modal-add-step-date-block-head">
+                                <label for="modal-add-step-date-single" class="modal-add-step-field-label" id="modal-add-step-date-single-label">Выполнить до</label>
+                            </div>
                             <div class="modal-add-step-date-field">
-                                <input type="text" id="modal-add-step-date-single" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yy" maxlength="10">
-                                <button type="button" class="modal-add-step-date-picker-btn" data-date-text-id="modal-add-step-date-single" data-date-native-id="modal-add-step-date-single-native" title="Открыть календарь" aria-label="Открыть календарь">📅</button>
-                                <input type="date" id="modal-add-step-date-single-native" class="modal-add-step-date-native" tabindex="-1" aria-hidden="true">
+                                <input type="text" id="modal-add-step-date-single" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                             </div>
                         </div>
-                        <div class="modal-add-step-inline-times" aria-label="Время шага">
-                            <div class="modal-add-step-time-group">
-                                <label for="modal-add-step-time-from">Время с</label>
-                                <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="08:15" maxlength="5">
-                            </div>
-                            <div class="modal-add-step-time-group">
-                                <label for="modal-add-step-time-to">Время по</label>
-                                <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="08:30" maxlength="5">
+                        <div class="modal-add-step-inline-times modal-add-step-bordered-block" aria-label="Время шага">
+                            <div class="modal-add-step-time-bordered-inner">
+                                <div class="modal-add-step-time-group">
+                                    <label for="modal-add-step-time-from">Время с</label>
+                                    <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="08:15" maxlength="5">
+                                </div>
+                                <div class="modal-add-step-time-group">
+                                    <label for="modal-add-step-time-to">Время по</label>
+                                    <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="08:30" maxlength="5">
+                                </div>
                             </div>
                         </div>
                         <div class="modal-add-step-repeat-btn-block">
@@ -1018,17 +1059,13 @@
                             <div class="modal-add-step-date-group">
                                 <label for="modal-add-step-date-from">Дата начала</label>
                                 <div class="modal-add-step-date-field">
-                                    <input type="text" id="modal-add-step-date-from" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yy" maxlength="10">
-                                    <button type="button" class="modal-add-step-date-picker-btn" data-date-text-id="modal-add-step-date-from" data-date-native-id="modal-add-step-date-from-native" title="Открыть календарь" aria-label="Открыть календарь">📅</button>
-                                    <input type="date" id="modal-add-step-date-from-native" class="modal-add-step-date-native" tabindex="-1" aria-hidden="true">
+                                    <input type="text" id="modal-add-step-date-from" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                                 </div>
                             </div>
                             <div class="modal-add-step-date-group">
                                 <label for="modal-add-step-date-to">Дата окончания</label>
                                 <div class="modal-add-step-date-field">
-                                    <input type="text" id="modal-add-step-date-to" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yy" maxlength="10">
-                                    <button type="button" class="modal-add-step-date-picker-btn" data-date-text-id="modal-add-step-date-to" data-date-native-id="modal-add-step-date-to-native" title="Открыть календарь" aria-label="Открыть календарь">📅</button>
-                                    <input type="date" id="modal-add-step-date-to-native" class="modal-add-step-date-native" tabindex="-1" aria-hidden="true">
+                                    <input type="text" id="modal-add-step-date-to" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                                 </div>
                             </div>
                         </div>
@@ -1038,10 +1075,11 @@
                                 <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-one" data-scope="single">1 шаг</button>
                                 <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-all" data-scope="all_series">12 шагов</button>
                             </div>
+                            <button type="button" class="modal-add-step-finish-all-btn" id="modal-add-step-finish-all-series" title="Удалить все шаги серии с даты открытого шага включительно"><img src="/assets/ui/step-finish-all-calendar.png" alt="" class="modal-add-step-finish-all-btn__icon" width="23" height="20" decoding="async" aria-hidden="true"><span>Завершить все</span></button>
                         </div>
                     </div>
                     <div class="modal-add-step-repeat-block" id="modal-add-step-repeat-block">
-                        <div class="modal-add-step-time-hint">Подсказка: нажми на кнопку 📅 рядом с датой</div>
+                        <div class="modal-add-step-time-hint">Календарь открывается при фокусе в поле даты (стандарт «Остров», см. Readme/UI-standards.md).</div>
                         <div class="modal-add-step-days-wrap" id="modal-add-step-days-wrap">
                             <label class="modal-add-step-days-label" id="modal-add-step-days-label">Дни недели</label>
                             <div class="modal-add-step-days" id="modal-add-step-days">
@@ -1061,6 +1099,16 @@
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="modal-add-step-cancel">Отмена</button>
                         <button type="button" id="modal-add-step-create">Создать</button>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-add-step-bulk-end-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-bulk-end-title">
+                <div class="modal">
+                    <h3 id="modal-add-step-bulk-end-title">Завершить серию шагов</h3>
+                    <p id="modal-add-step-bulk-end-text" style="margin:12px 0;color:#333;line-height:1.45;"></p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="modal-add-step-bulk-end-no">Нет</button>
+                        <button type="button" id="modal-add-step-bulk-end-yes">Да</button>
                     </div>
                 </div>
             </div>
@@ -1090,7 +1138,7 @@
                     <label>Нужная сумма (₽)</label>
                     <input type="number" id="modal-fin-target-amount" min="1" step="1000" placeholder="Напр. 3000000" style="max-width:200px;">
                     <label>Срок (дата окончания)</label>
-                    <input type="date" id="modal-fin-end-date" class="modal-add-step-date">
+                    <input type="text" id="modal-fin-end-date" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                     <p class="modal-deadline-hints">Подсказки: <a href="#" data-fin-end="12months">12 месяцев</a>, <a href="#" data-fin-end="eoy">До конца года</a></p>
                     <label style="margin-top:12px;">Доли по месяцам</label>
                     <div style="display:flex;gap:16px;margin-bottom:8px;">
@@ -1122,7 +1170,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">89</span>
+                    <span class="app-version" aria-hidden="true">101</span>
                 </div>
             </footer>
         </div>
@@ -1677,6 +1725,20 @@
         }
 
         var lastCabinetSection = 'dreams';
+        /** После сохранения шага в модалке — вернуть этот раздел (steps / dreams / …). */
+        var restoreSectionAfterStepSave = null;
+        /** { dreamId: number, targets: Array<{id:number}> } — подтверждение «Завершить все» для серии. */
+        var bulkEndConfirmState = null;
+        function captureStepModalReturnSection() {
+            if (!document.getElementById('steps-block').classList.contains('hidden'))
+                restoreSectionAfterStepSave = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (!document.getElementById('buddy-block').classList.contains('hidden'))
+                restoreSectionAfterStepSave = 'buddy';
+            else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden'))
+                restoreSectionAfterStepSave = 'showcase';
+            else
+                restoreSectionAfterStepSave = 'dreams';
+        }
         var dreamsViewMode = 'slider'; // 'slider' | 'list' — на мобиле: счётчик в футере → список, «Мечты» в хедере → слайдер
         var dreamsFilter = 'in_progress'; // all | planned | in_progress | done | open | closed — по умолчанию «В работе»
         var dreamIdToRestoreAfterRefresh = null;
@@ -2734,13 +2796,6 @@
                 if (delBtn) delBtn.addEventListener('click', function() { setStepDeleted(s.dream_id, s.id, true); });
                 var editBtnEl = li.querySelector('.step-edit');
                 if (editBtnEl) editBtnEl.addEventListener('click', function() { openEditStepModal(s); });
-                if (!isBuddy && !s.isFinStep) {
-                    li.querySelector('.step-title-text').addEventListener('click', function() { startEditStepInline(s, this, 'title'); });
-                    li.querySelector('.step-deadline').addEventListener('click', function() { startEditStepInline(s, this, 'deadline'); });
-                } else {
-                    li.querySelector('.step-title-wrap').style.cursor = 'default';
-                    li.querySelector('.step-deadline').style.cursor = 'default';
-                }
             });
         }
         function renderStepsDeletedList() {
@@ -2834,35 +2889,6 @@
             btnCancel.addEventListener('click', closeFinStepConfirmModal);
             overlay.addEventListener('click', function(e) { if (e.target === overlay) closeFinStepConfirmModal(); });
         })();
-        function startEditStepInline(stepObj, el, field) {
-            var isTitle = field === 'title';
-            var current = isTitle ? stripStepTitleCounterSuffix((stepObj.title || '').trim()) : ((stepObj.deadline || '').toString().slice(0, 10));
-            var input = document.createElement('input');
-            input.type = isTitle ? 'text' : 'date';
-            input.value = current;
-            input.style.width = isTitle ? '100%' : '120px';
-            el.parentNode.replaceChild(input, el);
-            input.focus();
-            function save() {
-                var val = input.value.trim();
-                if (isTitle) val = stripStepTitleCounterSuffix(val);
-                if (isTitle && !val) { input.parentNode.replaceChild(el, input); return; }
-                var body = isTitle ? { title: val } : { deadline: val || null };
-                fetch(API_BASE_URL + '/dreams/' + stepObj.dream_id + '/steps/' + stepObj.id + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                    .then(function(r) { if (!r.ok) return Promise.reject(); if (isTitle) stepObj.title = val; else stepObj.deadline = val || null; })
-                    .then(function() {
-                        var span = document.createElement('span');
-                        span.className = el.className;
-                        span.textContent = isTitle ? val : (val ? formatDeadlineDisplay(val.slice(0, 10)) : '—');
-                        if (!isTitle) span.classList.add('step-deadline');
-                        input.parentNode.replaceChild(span, input);
-                        span.addEventListener('click', function() { startEditStepInline(stepObj, span, field); });
-                    })
-                    .catch(function() { input.parentNode.replaceChild(el, input); });
-            }
-            input.addEventListener('blur', save);
-            input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); save(); } });
-        }
         (function setupStepsFilterButtons() {
             var wrap = document.getElementById('steps-filter');
             if (!wrap) return;
@@ -3030,7 +3056,6 @@
                 accTr.querySelectorAll('.step-row').forEach(function(row) {
                     var stepId = row.dataset.stepId;
                     row.querySelector('input[type=checkbox]').addEventListener('change', function() { saveStepCompleted(dreamId, stepId, this.checked); });
-                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
                 });
             });
         }
@@ -3414,37 +3439,278 @@
             var d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
             return isNaN(d.getTime()) ? null : d;
         }
-        function bindStepDatePicker(textId, nativeId, updateFn) {
-            var textIn = document.getElementById(textId);
-            var nativeIn = document.getElementById(nativeId);
-            if (!textIn || !nativeIn) return;
-            nativeIn.addEventListener('change', function() {
-                var iso = (nativeIn.value || '').trim();
-                if (iso) textIn.value = isoToUiDate(iso);
-                if (typeof updateFn === 'function') updateFn();
-            });
-            textIn.addEventListener('blur', function() {
-                var raw = (textIn.value || '').trim();
-                if (!raw) return;
-                var iso = uiDateToIso(raw);
-                if (iso) textIn.value = isoToUiDate(iso);
+        var islandDateCalPop = null;
+        var islandDateCalInput = null;
+        var islandDateCalViewY = 2026;
+        var islandDateCalViewM = 1;
+        var ISLAND_CAL_MONTH_LONG = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        var ISLAND_CAL_MONTH_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+        function islandCalEnsurePop() {
+            if (!islandDateCalPop) islandDateCalPop = document.getElementById('island-date-calendar-popover');
+            return islandDateCalPop;
+        }
+        function islandCalDaysInMonth(y, m0) {
+            return new Date(y, m0 + 1, 0).getDate();
+        }
+        function islandCalClose() {
+            var pop = islandCalEnsurePop();
+            if (pop) {
+                pop.classList.add('hidden');
+                pop.setAttribute('aria-hidden', 'true');
+            }
+            islandDateCalInput = null;
+        }
+        function islandCalPosition() {
+            var pop = islandCalEnsurePop();
+            var inp = islandDateCalInput;
+            if (!pop || !inp || pop.classList.contains('hidden')) return;
+            var r = inp.getBoundingClientRect();
+            var ph = pop.offsetHeight || 270;
+            var spaceBelow = window.innerHeight - r.bottom - 8;
+            var below = spaceBelow >= ph || spaceBelow >= (r.top - 8);
+            var top = (below && spaceBelow >= Math.min(ph, 120)) ? (r.bottom + 6) : Math.max(4, r.top - ph - 6);
+            var pw = pop.offsetWidth || 300;
+            var left = Math.min(Math.max(4, r.left), window.innerWidth - pw - 4);
+            pop.style.left = left + 'px';
+            pop.style.top = top + 'px';
+        }
+        function islandCalSetViewFromValue() {
+            var inp = islandDateCalInput;
+            if (!inp) return;
+            var iso = uiDateToIso((inp.value || '').trim());
+            var now = new Date();
+            if (iso) {
+                var q = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                islandDateCalViewY = parseInt(q[1], 10);
+                islandDateCalViewM = parseInt(q[2], 10);
+            } else {
+                islandDateCalViewY = now.getFullYear();
+                islandDateCalViewM = now.getMonth() + 1;
+            }
+        }
+        function islandCalEnsureMonthOptions() {
+            var sel = document.getElementById('island-cal-month');
+            if (!sel) return;
+            if (sel._islandMonthOptsVersion === 2) return;
+            sel._islandMonthOptsVersion = 2;
+            sel.innerHTML = '';
+            for (var i = 1; i <= 12; i++) {
+                var opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = ISLAND_CAL_MONTH_SHORT[i - 1];
+                opt.title = ISLAND_CAL_MONTH_LONG[i - 1];
+                sel.appendChild(opt);
+            }
+        }
+        function islandCalSyncMonthSelect() {
+            var sel = document.getElementById('island-cal-month');
+            if (!sel) return;
+            islandCalEnsureMonthOptions();
+            sel.value = String(islandDateCalViewM);
+        }
+        function islandCalFillYearSelect() {
+            var sel = document.getElementById('island-cal-year');
+            if (!sel) return;
+            var cur = new Date().getFullYear();
+            var vy = islandDateCalViewY;
+            var minY = Math.min(vy - 25, cur - 5);
+            var maxY = Math.max(vy + 25, cur + 15);
+            minY = Math.max(1980, minY);
+            maxY = Math.min(2120, maxY);
+            if (vy < minY) minY = vy;
+            if (vy > maxY) maxY = vy;
+            sel.innerHTML = '';
+            for (var yr = minY; yr <= maxY; yr++) {
+                var opt = document.createElement('option');
+                opt.value = String(yr);
+                opt.textContent = String(yr);
+                sel.appendChild(opt);
+            }
+            sel.value = String(vy);
+        }
+        function islandCalRender() {
+            islandCalEnsurePop();
+            var grid = document.getElementById('island-cal-grid');
+            if (!islandDateCalPop || !grid) return;
+            var y = islandDateCalViewY;
+            var m = islandDateCalViewM;
+            islandCalSyncMonthSelect();
+            islandCalFillYearSelect();
+            var m0 = m - 1;
+            var dim = islandCalDaysInMonth(y, m0);
+            var first = new Date(y, m0, 1);
+            var startPad = (first.getDay() + 6) % 7;
+            var curIso = islandDateCalInput ? uiDateToIso((islandDateCalInput.value || '').trim()) : null;
+            grid.innerHTML = '';
+            var dNum = 0;
+            for (var row = 0; row < 6; row++) {
+                for (var col = 0; col < 7; col++) {
+                    var idx = row * 7 + col;
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'island-cal-day';
+                    if (idx < startPad || dNum >= dim) {
+                        btn.classList.add('island-cal-day-empty');
+                        btn.disabled = true;
+                        btn.textContent = '';
+                    } else {
+                        dNum++;
+                        btn.textContent = String(dNum);
+                        var isoCell = String(y) + '-' + String(m).padStart(2, '0') + '-' + String(dNum).padStart(2, '0');
+                        btn.dataset.iso = isoCell;
+                        if (curIso && curIso === isoCell) btn.classList.add('island-cal-day-selected');
+                        (function(isoVal) {
+                            btn.addEventListener('click', function(ev) {
+                                ev.preventDefault();
+                                if (islandDateCalInput) {
+                                    islandDateCalInput.value = isoToUiDate(isoVal);
+                                    islandDateCalInput.classList.remove('island-date-field-invalid');
+                                    islandCalRender();
+                                }
+                            });
+                        })(isoCell);
+                    }
+                    grid.appendChild(btn);
+                }
+            }
+        }
+        function islandCalOpenForInput(inputEl) {
+            islandCalEnsurePop();
+            if (!islandDateCalPop) return;
+            islandDateCalInput = inputEl;
+            islandCalSetViewFromValue();
+            islandCalRender();
+            islandDateCalPop.classList.remove('hidden');
+            islandDateCalPop.setAttribute('aria-hidden', 'false');
+            requestAnimationFrame(function() {
+                islandCalPosition();
+                requestAnimationFrame(islandCalPosition);
             });
         }
-        function openStepDatePicker(btnEl) {
-            if (!btnEl) return;
-            var textId = btnEl.dataset.dateTextId;
-            var nativeId = btnEl.dataset.dateNativeId;
-            var textIn = document.getElementById(textId || '');
-            var nativeIn = document.getElementById(nativeId || '');
-            if (!textIn || !nativeIn) return;
-            var iso = uiDateToIso((textIn.value || '').trim());
-            if (iso) nativeIn.value = iso;
-            try {
-                if (typeof nativeIn.showPicker === 'function') nativeIn.showPicker();
-                else nativeIn.click();
-            } catch (_) {
-                nativeIn.click();
+        function islandCalRefreshFromTyping(inputEl) {
+            islandCalEnsurePop();
+            if (!islandDateCalPop || islandDateCalInput !== inputEl || islandDateCalPop.classList.contains('hidden')) return;
+            var iso = uiDateToIso((inputEl.value || '').trim());
+            if (iso) {
+                var q = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                islandDateCalViewY = parseInt(q[1], 10);
+                islandDateCalViewM = parseInt(q[2], 10);
+            } else {
+                var now = new Date();
+                islandDateCalViewY = now.getFullYear();
+                islandDateCalViewM = now.getMonth() + 1;
             }
+            islandCalRender();
+            islandCalPosition();
+        }
+        function islandCalOnDocMouseDown(ev) {
+            var pop = islandDateCalPop;
+            if (!pop || pop.classList.contains('hidden')) return;
+            if (islandDateCalInput && (ev.target === islandDateCalInput || islandDateCalInput.contains(ev.target))) return;
+            if (pop.contains(ev.target)) return;
+            if (ev.target.closest && ev.target.closest('.modal-deadline-hints')) return;
+            islandCalClose();
+        }
+        function islandDateFieldBlur(ev) {
+            var inp = ev.target;
+            if (!inp || !inp.classList.contains('island-date-field')) return;
+            setTimeout(function() {
+                var ae = document.activeElement;
+                if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden') && ae && islandDateCalPop.contains(ae)) return;
+                islandCalClose();
+                var raw = (inp.value || '').trim();
+                if (!raw) {
+                    inp.classList.remove('island-date-field-invalid');
+                    return;
+                }
+                var iso = uiDateToIso(raw);
+                if (iso) {
+                    inp.value = isoToUiDate(iso);
+                    inp.classList.remove('island-date-field-invalid');
+                } else inp.classList.add('island-date-field-invalid');
+            }, 200);
+        }
+        function initIslandDateCalendar() {
+            islandCalEnsurePop();
+            if (!islandDateCalPop) return;
+            var prev = document.getElementById('island-cal-prev');
+            var next = document.getElementById('island-cal-next');
+            if (prev && !prev._islandCalBound) {
+                prev._islandCalBound = true;
+                prev.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    islandDateCalViewM--;
+                    if (islandDateCalViewM < 1) { islandDateCalViewM = 12; islandDateCalViewY--; }
+                    islandCalRender();
+                    islandCalPosition();
+                });
+            }
+            if (next && !next._islandCalBound) {
+                next._islandCalBound = true;
+                next.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    islandDateCalViewM++;
+                    if (islandDateCalViewM > 12) { islandDateCalViewM = 1; islandDateCalViewY++; }
+                    islandCalRender();
+                    islandCalPosition();
+                });
+            }
+            islandCalEnsureMonthOptions();
+            var monthSel = document.getElementById('island-cal-month');
+            if (monthSel && !monthSel._islandCalBound) {
+                monthSel._islandCalBound = true;
+                monthSel.addEventListener('change', function() {
+                    var v = parseInt(monthSel.value, 10);
+                    if (!isNaN(v) && v >= 1 && v <= 12) {
+                        islandDateCalViewM = v;
+                        islandCalRender();
+                        islandCalPosition();
+                    }
+                });
+            }
+            var yearSel = document.getElementById('island-cal-year');
+            if (yearSel && !yearSel._islandCalBound) {
+                yearSel._islandCalBound = true;
+                yearSel.addEventListener('change', function() {
+                    var v = parseInt(yearSel.value, 10);
+                    if (!isNaN(v)) {
+                        islandDateCalViewY = v;
+                        islandCalRender();
+                        islandCalPosition();
+                    }
+                });
+            }
+            if (!window._islandDateGlobalListeners) {
+                window._islandDateGlobalListeners = true;
+                document.addEventListener('mousedown', islandCalOnDocMouseDown, true);
+                window.addEventListener('resize', function() {
+                    if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) islandCalPosition();
+                });
+            }
+            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance'].forEach(function(mid) {
+                var ov = document.getElementById(mid);
+                if (ov && !ov._islandCalScroll) {
+                    ov._islandCalScroll = true;
+                    ov.addEventListener('scroll', function() {
+                        if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) islandCalPosition();
+                    }, true);
+                    var modal = ov.querySelector('.modal');
+                    if (modal) modal.addEventListener('scroll', function() {
+                        if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) islandCalPosition();
+                    }, true);
+                }
+            });
+            document.querySelectorAll('.island-date-field').forEach(function(inp) {
+                if (inp._islandCalInpBound) return;
+                inp._islandCalInpBound = true;
+                inp.addEventListener('focus', function() { islandCalOpenForInput(inp); });
+                inp.addEventListener('input', function() {
+                    var raw = (inp.value || '').trim();
+                    if (raw && uiDateToIso(raw)) inp.classList.remove('island-date-field-invalid');
+                    islandCalRefreshFromTyping(inp);
+                });
+                inp.addEventListener('blur', islandDateFieldBlur);
+            });
         }
         function buildStepDateTimeHtml(stepObj) {
             var dl = formatDeadlineDisplay(stepObj && stepObj.deadline ? stepObj.deadline : '—');
@@ -3599,9 +3865,6 @@
                         var checked = checkbox.checked;
                         saveStepCompleted(dreamId, stepId, checked).then(function() { if (s) s.completed = checked; row.classList.toggle('completed', checked); }).catch(function() { checkbox.checked = !checked; });
                     });
-                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, this); });
-                    var deadlineEl = row.querySelector('.step-deadline-inline');
-                    if (deadlineEl && s) deadlineEl.addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline }, this, 'deadline'); });
                     var editBtn = row.querySelector('.step-edit-inline');
                     if (editBtn) editBtn.addEventListener('click', function(ev) {
                         ev.stopPropagation();
@@ -3737,9 +4000,6 @@
                         var checked = checkbox.checked;
                         saveStepCompleted(dreamId, stepId, checked).then(function() { if (s) s.completed = checked; row.classList.toggle('completed', checked); }).catch(function() { checkbox.checked = !checked; });
                     });
-                    row.querySelector('.step-title').addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepTitle(dreamId, stepId, row.querySelector('.step-title')); });
-                    var deadlineEl = row.querySelector('.step-deadline-inline');
-                    if (deadlineEl && s) deadlineEl.addEventListener('click', function(ev) { ev.stopPropagation(); startEditStepInline({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline }, deadlineEl, 'deadline'); });
                     var editBtn = row.querySelector('.step-edit-inline');
                     if (editBtn) editBtn.addEventListener('click', function(ev) {
                         ev.stopPropagation();
@@ -3854,11 +4114,19 @@
         function setDeadlineFromHint(inputId, hint) {
             var el = document.getElementById(inputId);
             if (!el) return;
-            if (hint === 'none') { el.value = ''; return; }
+            if (hint === 'none') {
+                el.value = '';
+                el.classList.remove('island-date-field-invalid');
+                islandCalRefreshFromTyping(el);
+                return;
+            }
             var d = new Date();
             if (hint === '7days') { d.setDate(d.getDate() + 7); }
             else if (hint === 'eoy') { d.setMonth(11); d.setDate(31); }
-            el.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            el.value = isoToUiDate(iso);
+            el.classList.remove('island-date-field-invalid');
+            islandCalRefreshFromTyping(el);
         }
         function setVisibilityToggleState(toggleId, isPrivate) {
             var wrap = document.getElementById(toggleId);
@@ -3886,8 +4154,10 @@
             });
         }
         function openNewDreamModal() {
+            islandCalClose();
             document.getElementById('new-dream-text').value = '';
-            document.getElementById('new-dream-deadline').value = '';
+            var nd = document.getElementById('new-dream-deadline');
+            if (nd) { nd.value = ''; nd.classList.remove('island-date-field-invalid'); }
             var priceEl = document.getElementById('new-dream-price');
             if (priceEl) priceEl.value = '';
             setVisibilityToggleState('new-dream-visibility-toggle', true);
@@ -3911,9 +4181,11 @@
             setTimeout(function() { var el = document.getElementById('new-dream-text'); if (el) el.focus(); }, 50);
         }
         function closeNewDreamModal() {
+            islandCalClose();
             document.getElementById('modal-new-dream').classList.add('hidden');
         }
         function openEditDreamModal(d) {
+            islandCalClose();
             var id = d.id;
             var text = (d.title || d.dream || '').trim();
             var deadline = (d.deadline || '').toString().slice(0, 10);
@@ -3921,7 +4193,11 @@
             var categoryId = d.category_id != null ? d.category_id : (d.category_obj && d.category_obj.id);
             document.getElementById('edit-dream-id').value = id;
             document.getElementById('edit-dream-text').value = text;
-            document.getElementById('edit-dream-deadline').value = deadline;
+            var edDl = document.getElementById('edit-dream-deadline');
+            if (edDl) {
+                edDl.value = (deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline)) ? isoToUiDate(deadline) : '';
+                edDl.classList.remove('island-date-field-invalid');
+            }
             var statusSelect = document.getElementById('edit-dream-status');
             statusSelect.innerHTML = getStatusOptionsHtml(statusId);
             var catSelect = document.getElementById('edit-dream-category');
@@ -3939,6 +4215,7 @@
             document.getElementById('modal-edit-dream').classList.remove('hidden');
         }
         function closeEditDreamModal() {
+            islandCalClose();
             document.getElementById('modal-edit-dream').classList.add('hidden');
         }
         async function deleteDreamFromModal() {
@@ -3970,7 +4247,17 @@
             var dreamId = parseInt(document.getElementById('edit-dream-id').value, 10);
             var text = document.getElementById('edit-dream-text').value.trim();
             if (!text) return;
-            var deadline = document.getElementById('edit-dream-deadline').value || null;
+            var deadlineRaw = (document.getElementById('edit-dream-deadline').value || '').trim();
+            var deadline = null;
+            if (deadlineRaw) {
+                deadline = uiDateToIso(deadlineRaw);
+                if (!deadline) {
+                    errDiv.textContent = 'Дедлайн: введите дату в формате дд.мм.гг.';
+                    errDiv.classList.remove('hidden');
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+            }
             var priceEl = document.getElementById('edit-dream-price');
             var priceVal = priceEl && priceEl.value !== '' ? parseFloat(priceEl.value) : null;
             if (priceVal !== null && isNaN(priceVal)) priceVal = null;
@@ -4022,7 +4309,17 @@
             errDiv.textContent = '';
             errDiv.classList.add('hidden');
             if (btn) { btn.disabled = true; btn.textContent = 'Сохранение…'; }
-            var deadline = document.getElementById('new-dream-deadline').value || null;
+            var deadlineRaw = (document.getElementById('new-dream-deadline').value || '').trim();
+            var deadline = null;
+            if (deadlineRaw) {
+                deadline = uiDateToIso(deadlineRaw);
+                if (!deadline) {
+                    errDiv.textContent = 'Дедлайн: введите дату в формате дд.мм.гг.';
+                    errDiv.classList.remove('hidden');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Добавить'; }
+                    return;
+                }
+            }
             var statusId = parseInt(document.getElementById('new-dream-status').value, 10) || 1;
             var categoryIdEl = document.getElementById('new-dream-category');
             var categoryId = categoryIdEl && categoryIdEl.value ? parseInt(categoryIdEl.value, 10) : null;
@@ -4107,7 +4404,12 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
         }
         function refreshAfterDreamChange() {
-            if (dreamEditContext.viewerId != null) loadBuddyDreams(); else showProfile();
+            var section = restoreSectionAfterStepSave;
+            restoreSectionAfterStepSave = null;
+            var p = dreamEditContext.viewerId != null ? loadBuddyDreams() : showProfile();
+            Promise.resolve(p).then(function() {
+                if (section) switchMenu(section);
+            });
         }
         /** Шаги одной мечты для подсчёта «серии»: сначала кэш раздела «Шаги», иначе шаги из загруженных мечт (ЛК / бадди). */
         function getDreamStepsForSeriesCount(dreamId) {
@@ -4263,6 +4565,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function openAddStepModal(dreamId) {
             var overlay = document.getElementById('modal-add-step');
             if (!overlay) return;
+            captureStepModalReturnSection();
             overlay.dataset.stepModalUi = 'create';
             overlay.dataset.mode = 'create';
             overlay.dataset.dreamId = String(dreamId);
@@ -4346,13 +4649,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var startUi = bounds.min ? isoToUiDate(bounds.min) : endUi;
                 if (fromIn) fromIn.value = startUi || '';
                 if (toIn) toIn.value = endUi || '';
-                var natF = document.getElementById('modal-add-step-date-from-native');
-                var natT = document.getElementById('modal-add-step-date-to-native');
-                var natS = document.getElementById('modal-add-step-date-single-native');
-                var curStepIso = (stepObj.deadline || '').toString().slice(0, 10);
-                if (bounds.min && natF) natF.value = bounds.min;
-                if (bounds.max && natT) natT.value = bounds.max;
-                if (curStepIso && natS) natS.value = curStepIso;
                 var inferred = inferSeriesWeekdaySelection(stepObj);
                 overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
                     var day = parseInt(btn.dataset.day, 10);
@@ -4384,7 +4680,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var eoy = new Date();
                 if (eoy.getMonth() >= 10) eoy.setFullYear(eoy.getFullYear() + 1);
                 eoy.setMonth(11); eoy.setDate(31);
-                endIn.value = eoy.getFullYear() + '-' + '12' + '-' + '31';
+                var eoyIso = eoy.getFullYear() + '-12-31';
+                endIn.value = isoToUiDate(eoyIso);
             }
             if (dueIn) dueIn.value = '31';
             updateFinanceEqualHint();
@@ -4392,6 +4689,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (amountIn) amountIn.focus();
         }
         function closeAddStepFinanceModal() {
+            islandCalClose();
             var overlay = document.getElementById('modal-add-step-finance');
             if (overlay) overlay.classList.add('hidden');
         }
@@ -4405,8 +4703,88 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             hintEl.textContent = 'При равных долях: ≈ ' + (perMonth >= 1000 ? (perMonth / 1000) + ' т.р.' : perMonth + ' ₽') + ' в месяц';
         }
         function closeAddStepModal() {
+            islandCalClose();
             var overlay = document.getElementById('modal-add-step');
             if (overlay) overlay.classList.add('hidden');
+            var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
+            if (bulkOv) bulkOv.classList.add('hidden');
+            bulkEndConfirmState = null;
+        }
+        function openFinishAllSeriesConfirm() {
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay || overlay.classList.contains('hidden') || overlay.dataset.stepModalUi !== 'edit-series') return;
+            var dreamId = parseInt(overlay.dataset.dreamId, 10);
+            var stepId = parseInt(overlay.dataset.stepId, 10);
+            if (!dreamId || !stepId) return;
+            var ref = findStepObjForSeriesSave(dreamId, stepId);
+            if (!ref) {
+                alert('Не удалось найти шаг в кэше. Обнови страницу и открой редактирование снова.');
+                return;
+            }
+            var members = getSeriesMembersForEdit(ref).filter(function(s) { return s && !s.deleted; });
+            var cutoff = (ref.deadline || '').toString().slice(0, 10);
+            if (!cutoff) {
+                alert('У открытого шага нет даты — операция недоступна.');
+                return;
+            }
+            var targets = members.filter(function(m) {
+                var d = (m.deadline || '').toString().slice(0, 10);
+                return d && d >= cutoff;
+            });
+            if (targets.length === 0) {
+                alert('Нет шагов для удаления с этой даты.');
+                return;
+            }
+            bulkEndConfirmState = { dreamId: dreamId, targets: targets };
+            var txt = document.getElementById('modal-add-step-bulk-end-text');
+            if (txt) {
+                txt.textContent = 'Удалить ' + stepsCountWordRu(targets.length) + ' с ' + formatDeadlineDisplay(cutoff) + ' включительно?';
+            }
+            var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
+            if (bulkOv) bulkOv.classList.remove('hidden');
+        }
+        function closeFinishAllSeriesConfirm() {
+            var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
+            if (bulkOv) bulkOv.classList.add('hidden');
+            bulkEndConfirmState = null;
+        }
+        function executeFinishAllSeriesDeletes() {
+            if (!bulkEndConfirmState || !bulkEndConfirmState.targets || !bulkEndConfirmState.targets.length) {
+                closeFinishAllSeriesConfirm();
+                return;
+            }
+            var dreamId = bulkEndConfirmState.dreamId;
+            var targets = bulkEndConfirmState.targets.slice();
+            bulkEndConfirmState = null;
+            var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
+            if (bulkOv) bulkOv.classList.add('hidden');
+            var yesBtn = document.getElementById('modal-add-step-bulk-end-yes');
+            if (yesBtn) yesBtn.disabled = true;
+            Promise.all(targets.map(function(m) {
+                return patchStep(dreamId, m.id, { deleted: true });
+            })).then(function() {
+                targets.forEach(function(m) {
+                    var s = stepsFlatCache.find(function(x) { return x && x.id === m.id && x.dream_id === dreamId; });
+                    if (s) s.deleted = true;
+                    var d = (currentUserDreamsCache || []).find(function(x) { return Number(x.id) === dreamId; });
+                    if (d && d.steps) {
+                        var st = d.steps.find(function(x) { return x.id === m.id; });
+                        if (st) st.deleted = true;
+                    }
+                    d = (buddyDreamsCache || []).find(function(x) { return Number(x.id) === dreamId; });
+                    if (d && d.steps) {
+                        var st2 = d.steps.find(function(x) { return x.id === m.id; });
+                        if (st2) st2.deleted = true;
+                    }
+                });
+                closeAddStepModal();
+                dreamIdToRestoreAfterRefresh = dreamId;
+                refreshAfterDreamChange();
+            }).catch(function(err) {
+                alert(err && err.message ? err.message : 'Ошибка при удалении шагов');
+            }).finally(function() {
+                if (yesBtn) yesBtn.disabled = false;
+            });
         }
         function syncAddStepModalRepeatState() {
             var overlay = document.getElementById('modal-add-step');
@@ -4477,10 +4855,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (!fromUi || !toUi) { countEl.textContent = ''; return; }
             var fromStr = uiDateToIso(fromUi);
             var toStr = uiDateToIso(toUi);
-            if (!fromStr || !toStr) { countEl.textContent = 'Формат дат: dd.mm.yy'; return; }
+            if (!fromStr || !toStr) { countEl.textContent = 'Формат дат: дд.мм.гг'; return; }
             var from = isoToDate(fromStr);
             var to = isoToDate(toStr);
-            if (!from || !to) { countEl.textContent = 'Формат дат: dd.mm.yy'; return; }
+            if (!from || !to) { countEl.textContent = 'Формат дат: дд.мм.гг'; return; }
             if (from > to) { countEl.textContent = 'Укажите период: дата начала ≤ дата окончания'; return; }
             var n = 0;
             var d = new Date(from);
@@ -4512,15 +4890,17 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             if (scopeOneBtn) scopeOneBtn.addEventListener('click', function() { editScopeClick(false); });
             if (scopeAllBtn) scopeAllBtn.addEventListener('click', function() { editScopeClick(true); });
+            var finishAllBtn = document.getElementById('modal-add-step-finish-all-series');
+            if (finishAllBtn) finishAllBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openFinishAllSeriesConfirm(); });
+            var bulkEndOv = document.getElementById('modal-add-step-bulk-end-confirm');
+            var bulkEndNo = document.getElementById('modal-add-step-bulk-end-no');
+            var bulkEndYes = document.getElementById('modal-add-step-bulk-end-yes');
+            if (bulkEndNo) bulkEndNo.addEventListener('click', function(ev) { ev.stopPropagation(); closeFinishAllSeriesConfirm(); });
+            if (bulkEndYes) bulkEndYes.addEventListener('click', function(ev) { ev.stopPropagation(); executeFinishAllSeriesDeletes(); });
+            if (bulkEndOv) bulkEndOv.addEventListener('click', function(ev) { if (ev.target === bulkEndOv) closeFinishAllSeriesConfirm(); });
             if (dateSingleIn) { dateSingleIn.addEventListener('input', update); dateSingleIn.addEventListener('change', update); }
             if (fromIn) { fromIn.addEventListener('input', update); fromIn.addEventListener('change', update); }
             if (toIn) { toIn.addEventListener('input', update); toIn.addEventListener('change', update); }
-            bindStepDatePicker('modal-add-step-date-single', 'modal-add-step-date-single-native', update);
-            bindStepDatePicker('modal-add-step-date-from', 'modal-add-step-date-from-native', update);
-            bindStepDatePicker('modal-add-step-date-to', 'modal-add-step-date-to-native', update);
-            overlay.querySelectorAll('.modal-add-step-date-picker-btn').forEach(function(btn) {
-                btn.addEventListener('click', function() { openStepDatePicker(btn); });
-            });
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     if (btn.disabled) return;
@@ -4544,7 +4924,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     var dateUiEdit = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
                     if (!dateUiEdit) { alert('Укажите дату шага'); return; }
                     var dateStrEdit = uiDateToIso(dateUiEdit);
-                    if (!dateStrEdit) { alert('Неверный формат даты. Используй dd.mm.yy'); return; }
+                    if (!dateStrEdit) { alert('Неверный формат даты. Используй дд.мм.гг'); return; }
                     var timeFromRawEdit = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
                     var timeToRawEdit = timeToIn && timeToIn.value ? timeToIn.value.trim() : '';
                     var timeFromEdit = timeFromRawEdit ? normalizeTime24Input(timeFromRawEdit) : '';
@@ -4559,7 +4939,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                         if (!fromUiEdit || !toUiEdit) { alert('Укажите дату начала и дату окончания'); return; }
                         var fromIsoEdit = uiDateToIso(fromUiEdit);
                         var toIsoEdit = uiDateToIso(toUiEdit);
-                        if (!fromIsoEdit || !toIsoEdit) { alert('Неверный формат дат. Используй dd.mm.yy'); return; }
+                        if (!fromIsoEdit || !toIsoEdit) { alert('Неверный формат дат. Используй дд.мм.гг'); return; }
                         var fromDateEdit = isoToDate(fromIsoEdit);
                         var toDateEdit = isoToDate(toIsoEdit);
                         if (!fromDateEdit || !toDateEdit || fromDateEdit > toDateEdit) { alert('Дата начала должна быть не позже даты окончания'); return; }
@@ -4687,7 +5067,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     var dateUi = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
                     if (!dateUi) { alert('Укажите дату шага'); return; }
                     var dateStr = uiDateToIso(dateUi);
-                    if (!dateStr) { alert('Неверный формат даты. Используй dd.mm.yy'); return; }
+                    if (!dateStr) { alert('Неверный формат даты. Используй дд.мм.гг'); return; }
                     var timeFromRaw = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
                     var timeToRaw = timeToIn && timeToIn.value ? timeToIn.value.trim() : '';
                     var timeFromStr = timeFromRaw ? normalizeTime24Input(timeFromRaw) : '';
@@ -4715,10 +5095,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!fromUi || !toUi) { alert('Укажите дату начала и дату окончания'); return; }
                 var fromStr = uiDateToIso(fromUi);
                 var toStr = uiDateToIso(toUi);
-                if (!fromStr || !toStr) { alert('Неверный формат дат. Используй dd.mm.yy'); return; }
+                if (!fromStr || !toStr) { alert('Неверный формат дат. Используй дд.мм.гг'); return; }
                 var from = isoToDate(fromStr);
                 var to = isoToDate(toStr);
-                if (!from || !to) { alert('Неверный формат дат. Используй dd.mm.yy'); return; }
+                if (!from || !to) { alert('Неверный формат дат. Используй дд.мм.гг'); return; }
                 if (from > to) { alert('Дата начала должна быть не позже даты окончания'); return; }
                 var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(b) { return parseInt(b.dataset.day, 10); });
                 var dates = [];
@@ -4814,11 +5194,12 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     if (this.dataset.finEnd === '12months') {
                         var d = new Date();
                         d.setMonth(d.getMonth() + 12);
-                        endIn.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                        var iso12 = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                        endIn.value = isoToUiDate(iso12);
                     } else if (this.dataset.finEnd === 'eoy') {
                         var y = new Date().getFullYear();
                         if (new Date().getMonth() >= 10) y++;
-                        endIn.value = y + '-12-31';
+                        endIn.value = isoToUiDate(y + '-12-31');
                     }
                 });
             });
@@ -4842,8 +5223,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!dreamId) return;
                 var targetAmount = amountIn && amountIn.value ? parseFloat(amountIn.value) : NaN;
                 if (isNaN(targetAmount) || targetAmount <= 0) { alert('Введите нужную сумму'); return; }
-                var endDate = endIn && endIn.value ? endIn.value : '';
-                if (!endDate) { alert('Укажите дату окончания срока'); return; }
+                var endDateUi = endIn && endIn.value ? endIn.value.trim() : '';
+                if (!endDateUi) { alert('Укажите дату окончания срока'); return; }
+                var endDate = uiDateToIso(endDateUi);
+                if (!endDate) { alert('Неверный формат даты окончания. Используй дд.мм.гг'); return; }
                 var dueDay = dueIn && dueIn.value ? parseInt(dueIn.value, 10) : 31;
                 if (isNaN(dueDay) || dueDay < 1) dueDay = 1;
                 if (dueDay > 31) dueDay = 31;
@@ -4902,28 +5285,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: completed }) });
             } catch (e) { alert('Ошибка сети'); }
         }
-        function startEditStepTitle(dreamId, stepId, spanEl) {
-            var oldText = stripStepTitleCounterSuffix((spanEl.textContent || '').trim());
-            var input = document.createElement('input');
-            input.type = 'text';
-            input.value = oldText;
-            input.style.width = '100%';
-            spanEl.textContent = '';
-            spanEl.appendChild(input);
-            input.focus();
-            function save() {
-                var newText = stripStepTitleCounterSuffix(input.value.trim());
-                spanEl.removeChild(input);
-                spanEl.textContent = newText || '—';
-                if (newText !== oldText) {
-                    patchStep(dreamId, stepId, { title: newText }).catch(function(err) {
-                        alert(err && err.message ? err.message : 'Ошибка сети');
-                    });
-                }
-            }
-            input.addEventListener('blur', save);
-            input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); save(); } if (ev.key === 'Escape') { spanEl.removeChild(input); spanEl.textContent = oldText || '—'; } });
-        }
         async function patchStep(dreamId, stepId, body) {
             try {
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -4978,13 +5339,20 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var mEdit = document.getElementById('modal-edit-dream');
             var mBuddy = document.getElementById('modal-add-buddy');
             var mAddStep = document.getElementById('modal-add-step');
+            var mFin = document.getElementById('modal-add-step-finance');
+            var mBulkEnd = document.getElementById('modal-add-step-bulk-end-confirm');
+            var islandCalPop = document.getElementById('island-date-calendar-popover');
+            if (islandCalPop && !islandCalPop.classList.contains('hidden')) { islandCalClose(); ev.preventDefault(); return; }
+            if (mFin && !mFin.classList.contains('hidden')) { closeAddStepFinanceModal(); ev.preventDefault(); return; }
             if (mNew && !mNew.classList.contains('hidden')) { closeNewDreamModal(); ev.preventDefault(); return; }
             if (mEdit && !mEdit.classList.contains('hidden')) { closeEditDreamModal(); ev.preventDefault(); return; }
             if (mBuddy && !mBuddy.classList.contains('hidden')) { closeAddBuddyModal(); ev.preventDefault(); return; }
+            if (mBulkEnd && !mBulkEnd.classList.contains('hidden')) { closeFinishAllSeriesConfirm(); ev.preventDefault(); return; }
             if (mAddStep && !mAddStep.classList.contains('hidden')) { closeAddStepModal(); ev.preventDefault(); }
         });
         initAddStepModal();
         initAddStepFinanceModal();
+        initIslandDateCalendar();
 
         function logout() {
             currentUser = null;
