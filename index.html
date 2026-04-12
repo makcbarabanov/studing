@@ -173,6 +173,12 @@
         .modal-add-step .modal-add-step-time-group { display: flex; flex-direction: column; gap: 4px; }
         .modal-add-step .modal-add-step-time-group label { margin: 0; font-weight: 500; }
         .modal-add-step .modal-add-step-time { width: 9em; padding: 8px; box-sizing: border-box; height: 38px; }
+        .modal-add-step-row-exec { flex-wrap: wrap; align-items: flex-end; }
+        .modal-add-step-row-exec .modal-add-step-inline-times { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; flex: 1 1 200px; min-width: 0; }
+        .modal-add-step-row-exec .modal-add-step-time { width: 6.5em; }
+        .modal-add-step-dates-scope-wrap { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 8px; }
+        .modal-add-step-dates-scope-wrap .modal-add-step-dates-row { margin: 0; flex: 1 1 auto; min-width: 0; }
+        .modal-add-step-dates-scope-wrap .modal-add-step-edit-scope-btns { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
         .modal-add-step .modal-add-step-time-hint { margin-top: 6px; font-size: 12px; color: #888; }
         .modal-add-step .modal-add-step-days-wrap { margin-top: 12px; }
         .modal-add-step .modal-add-step-days-wrap.disabled { opacity: 0.5; pointer-events: none; }
@@ -184,12 +190,16 @@
         .modal-add-step-repeat-btn-block .modal-add-step-repeat-btn { font-weight: 500; }
         .modal-add-step .modal-add-step-repeat-btn-wrap { height: 38px; display: flex; align-items: stretch; margin: 0; padding: 0; }
         .modal-add-step .modal-add-step-repeat-btn-wrap .modal-add-step-repeat-btn { height: 100%; min-height: 0; margin: 0; padding: 0 12px; box-sizing: border-box; display: block; }
+        .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row { display: flex; gap: 8px; align-items: stretch; height: 38px; min-height: 38px; }
+        .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row .modal-add-step-repeat-btn { flex: 1 1 0; min-width: 0; width: auto; }
         .modal-add-step-single-block.disabled { opacity: 0.5; pointer-events: none; }
         .modal-add-step-date { height: 38px; box-sizing: border-box; }
         .modal-add-step-repeat-btn { margin: 0; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #2e7d32; cursor: pointer; font-size: 14px; width: 10.5em; height: 38px; min-height: 38px; box-sizing: border-box; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; }
         .modal-add-step-repeat-btn:hover { background: #f5f5f5; border-color: #999; }
         .modal-add-step-repeat-btn.active { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; font-weight: 600; }
-        .modal-add-step-repeat-block { margin-top: 12px; padding: 12px; background: #f0f0f0; border-radius: 6px; transition: opacity 0.2s, background 0.2s; min-height: 180px; }
+        /* Редактирование серии: скрыть «Повторять» (дублирует data-step-modal-ui в JS) */
+        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-repeat-only-wrap { display: none !important; }
+        .modal-add-step-repeat-block { margin-top: 12px; padding: 12px; background: #f0f0f0; border-radius: 6px; transition: opacity 0.2s, background 0.2s; min-height: 96px; }
         .modal-add-step-repeat-block.disabled { opacity: 0.5; pointer-events: none; background: #e8e8e8; }
         .modal-add-step .modal-add-step-days-label { margin-bottom: 6px; }
         .modal-add-step .modal-add-step-days { display: flex; gap: 6px; flex-wrap: nowrap; margin: 8px 0; }
@@ -198,7 +208,8 @@
         .modal-add-step .modal-add-step-day-btn.selected { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; font-weight: 600; }
         .modal-add-step .modal-add-step-day-btn:focus-visible { outline: 2px solid #4CAF50; outline-offset: 2px; }
         .modal-add-step .modal-add-step-day-btn:disabled { cursor: not-allowed; opacity: 0.7; }
-        .modal-add-step .modal-add-step-count { font-size: 13px; color: #666; margin: 10px 0 0 0; min-height: 1.5em; line-height: 1.5; }
+        .modal-add-step-footer-meta { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 12px; margin: 10px 0 0 0; min-height: 1.5em; font-size: 13px; color: #666; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .modal-add-step-footer-meta .modal-add-step-count { margin: 0; flex: 0 0 auto; white-space: nowrap; line-height: 1.5; min-height: 1.5em; }
         .add-buddy-list { max-height: 50vh; overflow-y: auto; }
         .add-buddy-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
         .add-buddy-item:last-child { border-bottom: none; }
@@ -269,6 +280,21 @@
         .app-header-stats .stat-clickable:hover { color: #4CAF50; }
         .app-header-stats .stat-clickable .stat-num { font-weight: 600; }
         .app-header-stats .stat-sep { color: #ccc; user-select: none; pointer-events: none; }
+        /* Навигация «мечты | шаги | витрина» — как фильтр мечт (.dreams-filter-btn.active); см. Readme/UI-standards.md */
+        .app-header-stats .stat-clickable.cabinet-nav-link { text-decoration: none; text-underline-offset: 0; }
+        .cabinet-nav-link {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #555;
+            border: 1px solid transparent;
+            line-height: 1.35;
+            transition: background 0.2s, color 0.2s;
+        }
+        .cabinet-nav-link:hover { color: #333; background: rgba(0, 0, 0, 0.05); }
+        .cabinet-nav-link.active { background: #4CAF50; color: #fff; font-weight: 600; }
+        .cabinet-nav-link.active:hover { color: #fff; background: #43a047; }
         /* В хедере всегда навигация «мечты | шаги | витрина»; старые счётчики (0/2 сбылось | 0 помог) не показываем ни на десктопе, ни на мобиле */
         #stat-dreams-ratio, #stat-helped-n { display: none !important; }
         .showcase-filter-link { color:#888; text-decoration:none; }
@@ -654,7 +680,7 @@
                         <button type="button" id="header-bell" class="app-header-bell app-header-bell-next-to-name" aria-label="Уведомления" title="Уведомления"><span class="app-header-bell-icon">🔔</span><span id="header-bell-dot" class="app-header-bell-dot hidden"></span></button>
                     </div>
                     <div class="app-header-stats">
-                        <span id="header-link-dreams" class="stat-clickable" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable" role="button" tabindex="0" title="Витрина мечт">витрина</span>
+                        <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
                         <span id="stat-dreams-ratio" class="stat-num hidden" aria-hidden="true"></span><span id="stat-helped-n" class="stat-num hidden" aria-hidden="true"></span>
                     </div>
                 </div>
@@ -768,7 +794,7 @@
                             <div id="profile-edit-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:#eee;overflow:hidden;flex-shrink:0;"></div>
                             <div>
                                 <input type="file" id="profile-edit-avatar-file" accept="image/*" style="font-size:13px;">
-                                <p style="font-size:12px;color:#888;margin-top:4px;">jpg, png, webp, gif, до 2 МБ</p>
+                                <p style="font-size:12px;color:#888;margin-top:4px;">jpg, png, webp, gif, до 20 МБ</p>
                             </div>
                         </div>
                         <label style="display:block;margin-bottom:4px;font-weight:600;">Telegram</label>
@@ -817,7 +843,7 @@
                     <table class="modal-dream-table" role="presentation">
                         <tr>
                             <td><label for="new-dream-deadline">Дедлайн</label></td>
-                            <td><input type="date" id="new-dream-deadline" placeholder="дд.мм.гггг"></td>
+                            <td><input type="date" id="new-dream-deadline" placeholder="дд.мм.гг"></td>
                         </tr>
                         <tr>
                             <td></td>
@@ -956,43 +982,43 @@
                 </div>
             </div>
             <!-- Модальное окно: добавить шаг(и) -->
-            <div id="modal-add-step" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-title">
+            <div id="modal-add-step" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-title" data-step-modal-ui="create">
                 <div class="modal modal-add-step">
                     <h3 id="modal-add-step-title">Добавить шаг</h3>
                     <textarea id="modal-add-step-title-input" placeholder="напр. урок английского" class="modal-add-step-title-input" rows="2"></textarea>
-                    <div class="modal-add-step-time-row">
-                        <div class="modal-add-step-time-group">
-                            <label for="modal-add-step-time-from">Время с</label>
-                            <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="08:15" maxlength="5">
-                        </div>
-                        <div class="modal-add-step-time-group">
-                            <label for="modal-add-step-time-to">Время по</label>
-                            <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="08:30" maxlength="5">
-                        </div>
-                    </div>
-                    <div class="modal-add-step-time-hint">Время необязательно, формат HH:MM (24 часа)</div>
-                    <div class="modal-add-step-mode-row">
+                    <div class="modal-add-step-mode-row modal-add-step-row-exec">
                         <div class="modal-add-step-single-block" id="modal-add-step-single-block">
-                            <label for="modal-add-step-date-single" class="modal-add-step-field-label">Выполнить до</label>
+                            <label for="modal-add-step-date-single" class="modal-add-step-field-label" id="modal-add-step-date-single-label">Выполнить до</label>
                             <div class="modal-add-step-date-field">
-                                <input type="text" id="modal-add-step-date-single" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10">
+                                <input type="text" id="modal-add-step-date-single" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yy" maxlength="10">
                                 <button type="button" class="modal-add-step-date-picker-btn" data-date-text-id="modal-add-step-date-single" data-date-native-id="modal-add-step-date-single-native" title="Открыть календарь" aria-label="Открыть календарь">📅</button>
                                 <input type="date" id="modal-add-step-date-single-native" class="modal-add-step-date-native" tabindex="-1" aria-hidden="true">
                             </div>
                         </div>
+                        <div class="modal-add-step-inline-times" aria-label="Время шага">
+                            <div class="modal-add-step-time-group">
+                                <label for="modal-add-step-time-from">Время с</label>
+                                <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="08:15" maxlength="5">
+                            </div>
+                            <div class="modal-add-step-time-group">
+                                <label for="modal-add-step-time-to">Время по</label>
+                                <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="08:30" maxlength="5">
+                            </div>
+                        </div>
                         <div class="modal-add-step-repeat-btn-block">
                             <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Выполнить до</span>
-                            <div class="modal-add-step-repeat-btn-wrap">
+                            <div class="modal-add-step-repeat-btn-wrap" id="modal-add-step-repeat-only-wrap">
                                 <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-repeat">Повторять</button>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-add-step-repeat-block" id="modal-add-step-repeat-block">
+                    <div class="modal-add-step-time-hint">Время необязательно, формат HH:MM (24 часа)</div>
+                    <div id="modal-add-step-dates-scope-wrap" class="modal-add-step-dates-scope-wrap hidden">
                         <div class="modal-add-step-dates-row">
                             <div class="modal-add-step-date-group">
                                 <label for="modal-add-step-date-from">Дата начала</label>
                                 <div class="modal-add-step-date-field">
-                                    <input type="text" id="modal-add-step-date-from" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10">
+                                    <input type="text" id="modal-add-step-date-from" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yy" maxlength="10">
                                     <button type="button" class="modal-add-step-date-picker-btn" data-date-text-id="modal-add-step-date-from" data-date-native-id="modal-add-step-date-from-native" title="Открыть календарь" aria-label="Открыть календарь">📅</button>
                                     <input type="date" id="modal-add-step-date-from-native" class="modal-add-step-date-native" tabindex="-1" aria-hidden="true">
                                 </div>
@@ -1000,12 +1026,21 @@
                             <div class="modal-add-step-date-group">
                                 <label for="modal-add-step-date-to">Дата окончания</label>
                                 <div class="modal-add-step-date-field">
-                                    <input type="text" id="modal-add-step-date-to" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10">
+                                    <input type="text" id="modal-add-step-date-to" class="modal-add-step-date" inputmode="numeric" placeholder="dd.mm.yy" maxlength="10">
                                     <button type="button" class="modal-add-step-date-picker-btn" data-date-text-id="modal-add-step-date-to" data-date-native-id="modal-add-step-date-to-native" title="Открыть календарь" aria-label="Открыть календарь">📅</button>
                                     <input type="date" id="modal-add-step-date-to-native" class="modal-add-step-date-native" tabindex="-1" aria-hidden="true">
                                 </div>
                             </div>
                         </div>
+                        <div class="modal-add-step-edit-scope-btns hidden" id="modal-add-step-edit-scope-btns">
+                            <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Область</span>
+                            <div class="modal-add-step-scope-btn-row">
+                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-one" data-scope="single">1 шаг</button>
+                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-all" data-scope="all_series">12 шагов</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-add-step-repeat-block" id="modal-add-step-repeat-block">
                         <div class="modal-add-step-time-hint">Подсказка: нажми на кнопку 📅 рядом с датой</div>
                         <div class="modal-add-step-days-wrap" id="modal-add-step-days-wrap">
                             <label class="modal-add-step-days-label" id="modal-add-step-days-label">Дни недели</label>
@@ -1020,7 +1055,9 @@
                             </div>
                         </div>
                     </div>
-                    <p class="modal-add-step-count" id="modal-add-step-count"></p>
+                    <div class="modal-add-step-footer-meta">
+                        <p class="modal-add-step-count" id="modal-add-step-count"></p>
+                    </div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="modal-add-step-cancel">Отмена</button>
                         <button type="button" id="modal-add-step-create">Создать</button>
@@ -1085,7 +1122,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">72</span>
+                    <span class="app-version" aria-hidden="true">89</span>
                 </div>
             </footer>
         </div>
@@ -1655,10 +1692,14 @@
                 return da.localeCompare(db);
             });
         }
+        /** Убирает суффикс « (3/12)» из заголовка — тот же смысл, что на бэкенде `_step_title_series_key`. */
+        function stripStepTitleCounterSuffix(t) {
+            return (t || '').toString().trim().replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+        }
         function buildStepTitleCounterMap(steps) {
             var byTitle = {};
             (steps || []).forEach(function(s) {
-                var t = ((s && s.title) || '').trim();
+                var t = stripStepTitleCounterSuffix(((s && s.title) || '').trim());
                 if (!t) return;
                 if (!byTitle[t]) byTitle[t] = [];
                 byTitle[t].push(s);
@@ -1675,7 +1716,7 @@
             return out;
         }
         function stepTitleWithCounter(stepObj, titleCounterMap) {
-            var base = ((stepObj && stepObj.title) || '').trim();
+            var base = stripStepTitleCounterSuffix(((stepObj && stepObj.title) || '').trim());
             if (!base) return '';
             var key = String(stepObj.id);
             return (titleCounterMap && titleCounterMap[key]) ? titleCounterMap[key] : base;
@@ -1777,6 +1818,18 @@
                 if (fc) fc.setAttribute('title', 'Нажмите для списка мечт');
             }
         }
+        function updateCabinetNavActive(section) {
+            var d = document.getElementById('header-link-dreams');
+            var s = document.getElementById('header-link-steps');
+            var v = document.getElementById('header-link-showcase');
+            if (!d || !s || !v) return;
+            d.classList.remove('active');
+            s.classList.remove('active');
+            v.classList.remove('active');
+            if (section === 'dreams' || section === 'buddy') d.classList.add('active');
+            else if (section === 'steps' || section === 'steps-buddy') s.classList.add('active');
+            else if (section === 'showcase') v.classList.add('active');
+        }
         function switchMenu(section) {
             document.getElementById('dreams-block').classList.add('hidden');
             document.getElementById('buddy-block').classList.add('hidden');
@@ -1866,6 +1919,7 @@
                 var footerAddSb = document.getElementById('app-footer-add'); if (footerAddSb) footerAddSb.classList.add('hidden');
                 loadSteps(currentUser ? currentUser.buddy_id : 0, true);
             }
+            updateCabinetNavActive(section);
         }
 
         function loadProfileEditForm() {
@@ -2102,7 +2156,7 @@
                 } else {
                 var author = document.createElement('div');
                 author.className = 'showcase-author';
-                author.textContent = '👤 ' + (d.user_name || 'Участник') + (d.date ? ' · ' + new Date(d.date).toLocaleDateString('ru-RU') : '');
+                author.textContent = '👤 ' + (d.user_name || 'Участник') + (d.date ? ' · ' + formatDeadlineDisplay(String(d.date).slice(0, 10)) : '');
                 var dreamText = document.createElement('div');
                 dreamText.className = 'showcase-dream';
                 dreamText.textContent = (d.dream || '').slice(0, 200) + ((d.dream || '').length > 200 ? '…' : '');
@@ -2373,7 +2427,7 @@
             var messageEl = document.getElementById('modal-help-message');
             if (messageEl) messageEl.value = msg;
             if (authorEl) authorEl.textContent = (dream.user_name || 'Участник') + (dream.city ? ', ' + dream.city : '');
-            if (dreamTextEl) dreamTextEl.textContent = (dream.dream || 'Нет описания') + (dream.deadline ? '\n\nДедлайн: до ' + new Date(dream.deadline).toLocaleDateString('ru-RU') : '');
+            if (dreamTextEl) dreamTextEl.textContent = (dream.dream || 'Нет описания') + (dream.deadline ? '\n\nДедлайн: до ' + formatDeadlineDisplay(String(dream.deadline).slice(0, 10)) : '');
             contactBtns.innerHTML = '';
             contactFallback.textContent = 'Загрузка контактов…';
             document.getElementById('modal-help-dream').classList.remove('hidden');
@@ -2567,7 +2621,12 @@
                             title: s.title || '',
                             completed: s.completed,
                             deadline: s.deadline || null,
-                            deleted: s.deleted || false
+                            deleted: s.deleted || false,
+                            start_time: s.start_time || null,
+                            end_time: s.end_time || null,
+                            series_id: s.series_id || null,
+                            series_index: s.series_index || null,
+                            series_total: s.series_total || null
                         });
                     });
                     }
@@ -2777,7 +2836,7 @@
         })();
         function startEditStepInline(stepObj, el, field) {
             var isTitle = field === 'title';
-            var current = isTitle ? stepObj.title : ((stepObj.deadline || '').toString().slice(0, 10));
+            var current = isTitle ? stripStepTitleCounterSuffix((stepObj.title || '').trim()) : ((stepObj.deadline || '').toString().slice(0, 10));
             var input = document.createElement('input');
             input.type = isTitle ? 'text' : 'date';
             input.value = current;
@@ -2786,6 +2845,7 @@
             input.focus();
             function save() {
                 var val = input.value.trim();
+                if (isTitle) val = stripStepTitleCounterSuffix(val);
                 if (isTitle && !val) { input.parentNode.replaceChild(el, input); return; }
                 var body = isTitle ? { title: val } : { deadline: val || null };
                 fetch(API_BASE_URL + '/dreams/' + stepObj.dream_id + '/steps/' + stepObj.id + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -3271,7 +3331,7 @@
                         img.alt = 'Аватар';
                         avatarEl.appendChild(img);
                     })
-                    .catch(function() { alert('Не удалось загрузить фото. Разрешены jpg, png, webp, gif (в т.ч. анимированный) до 2 МБ.'); });
+                    .catch(function() { alert('Не удалось загрузить фото. Разрешены jpg, png, webp, gif (в т.ч. анимированный) до 20 МБ.'); });
                 input.value = '';
             });
         }
@@ -3329,19 +3389,21 @@
             var raw = (iso || '').toString().trim();
             var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (!m) return '';
-            return m[3] + '.' + m[2] + '.' + m[1];
+            return m[3] + '.' + m[2] + '.' + m[1].slice(-2);
         }
         function uiDateToIso(ui) {
             var raw = (ui || '').toString().trim();
             if (!raw) return '';
             var iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (iso) return iso[0];
-            var m = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+            var m = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/);
             if (!m) return null;
             var dd = parseInt(m[1], 10);
             var mm = parseInt(m[2], 10);
-            var yyyy = parseInt(m[3], 10);
-            if (isNaN(dd) || isNaN(mm) || isNaN(yyyy) || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+            var yStr = m[3];
+            var yNum = parseInt(yStr, 10);
+            if (isNaN(dd) || isNaN(mm) || isNaN(yNum) || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+            var yyyy = yStr.length === 4 ? yNum : (yNum < 70 ? 2000 + yNum : 1900 + yNum);
             var dt = new Date(yyyy, mm - 1, dd);
             if (dt.getFullYear() !== yyyy || dt.getMonth() !== (mm - 1) || dt.getDate() !== dd) return null;
             return String(yyyy) + '-' + String(mm).padStart(2, '0') + '-' + String(dd).padStart(2, '0');
@@ -3543,7 +3605,7 @@
                     var editBtn = row.querySelector('.step-edit-inline');
                     if (editBtn) editBtn.addEventListener('click', function(ev) {
                         ev.stopPropagation();
-                        if (s) openEditStepModal({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline, start_time: s.start_time, end_time: s.end_time });
+                        if (s) openEditStepModal({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline, start_time: s.start_time, end_time: s.end_time, series_id: s.series_id, series_index: s.series_index, series_total: s.series_total });
                     });
                     var delBtn = row.querySelector('.step-delete-inline');
                     if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, stepId); });
@@ -3681,7 +3743,7 @@
                     var editBtn = row.querySelector('.step-edit-inline');
                     if (editBtn) editBtn.addEventListener('click', function(ev) {
                         ev.stopPropagation();
-                        if (s) openEditStepModal({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline, start_time: s.start_time, end_time: s.end_time });
+                        if (s) openEditStepModal({ dream_id: dreamId, id: s.id, title: s.title, deadline: s.deadline, start_time: s.start_time, end_time: s.end_time, series_id: s.series_id, series_index: s.series_index, series_total: s.series_total });
                     });
                     var delBtn = row.querySelector('.step-delete-inline');
                     if (delBtn) delBtn.addEventListener('click', function(ev) { ev.stopPropagation(); deleteStepFromAccordion(dreamId, stepId); });
@@ -4047,12 +4109,166 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function refreshAfterDreamChange() {
             if (dreamEditContext.viewerId != null) loadBuddyDreams(); else showProfile();
         }
+        /** Шаги одной мечты для подсчёта «серии»: сначала кэш раздела «Шаги», иначе шаги из загруженных мечт (ЛК / бадди). */
+        function getDreamStepsForSeriesCount(dreamId) {
+            var did = Number(dreamId);
+            if (!did) return [];
+            var fromFlat = stepsFlatCache.filter(function(x) { return x && Number(x.dream_id) === did; });
+            if (fromFlat.length) return fromFlat;
+            var d = (currentUserDreamsCache || []).find(function(x) { return Number(x.id) === did; });
+            if (d && d.steps && d.steps.length) return d.steps;
+            d = (buddyDreamsCache || []).find(function(x) { return Number(x.id) === did; });
+            if (d && d.steps && d.steps.length) return d.steps;
+            return [];
+        }
+        /** «12 шагов» / «3 шага» / «1 шаг» — склонение для подписи к области редактирования серии. */
+        function stepsCountWordRu(n) {
+            var k = Math.floor(Math.abs(Number(n))) || 0;
+            var m100 = k % 100;
+            var m10 = k % 10;
+            var w;
+            if (m100 >= 11 && m100 <= 14) w = 'шагов';
+            else if (m10 === 1) w = 'шаг';
+            else if (m10 >= 2 && m10 <= 4) w = 'шага';
+            else w = 'шагов';
+            return k + ' ' + w;
+        }
+        /** Предпросмотр при редактировании серии: «Будет отредактирован 1 шаг» / «Будет отредактировано N шагов». */
+        function editStepPreviewLineRu(n) {
+            var k = Math.floor(Math.abs(Number(n))) || 0;
+            if (k <= 0) return '';
+            if (k === 1) return 'Будет отредактирован 1 шаг';
+            return 'Будет отредактировано ' + stepsCountWordRu(k);
+        }
+        function getEditModalScope() {
+            var allBtn = document.getElementById('modal-add-step-scope-all');
+            if (allBtn && allBtn.classList.contains('active')) return 'all_series';
+            return 'single';
+        }
+        /** Сколько шагов в одной «серии»: по series_id или (legacy) по совпадению названия в рамках мечты. */
+        function countStepSeriesMembers(stepObj) {
+            if (!stepObj || stepObj.dream_id == null) return 1;
+            var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
+            if (!steps.length) return 1;
+            var active = steps.filter(function(s) { return s && !s.deleted; });
+            if (stepObj.series_id) {
+                var sid = String(stepObj.series_id);
+                var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
+                if (bySer.length > 1) return bySer.length;
+            }
+            var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim());
+            if (!titleKey) return 1;
+            var byTitle = active.filter(function(s) {
+                return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
+            }).length;
+            return byTitle > 1 ? byTitle : 1;
+        }
+        /** Участники серии (тот же критерий, что countStepSeriesMembers), список шагов. */
+        function getSeriesMembersForEdit(stepObj) {
+            if (!stepObj || stepObj.dream_id == null) return [];
+            var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
+            var active = steps.filter(function(s) { return s && !s.deleted; });
+            if (stepObj.series_id) {
+                var sid = String(stepObj.series_id);
+                var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
+                if (bySer.length) return bySer;
+            }
+            var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim());
+            if (!titleKey) return [];
+            return active.filter(function(s) {
+                return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
+            });
+        }
+        /** Шаг из кэша по dreamId + stepId (сохранение серии после редактирования). */
+        function findStepObjForSeriesSave(dreamId, stepId) {
+            var did = parseInt(dreamId, 10);
+            var sid = parseInt(stepId, 10);
+            if (!did || !sid) return null;
+            var steps = getDreamStepsForSeriesCount(did);
+            return steps.find(function(s) { return s && Number(s.id) === sid; }) || null;
+        }
+        /** Список ISO-дат периода в модалке (дата начала … окончания + выбранные дни недели). */
+        function buildModalPeriodIsoDateList(overlay) {
+            if (!overlay) return null;
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            var fromUi = fromIn && fromIn.value ? fromIn.value.trim() : '';
+            var toUi = toIn && toIn.value ? toIn.value.trim() : '';
+            if (!fromUi || !toUi) return null;
+            var fromStr = uiDateToIso(fromUi);
+            var toStr = uiDateToIso(toUi);
+            if (!fromStr || !toStr) return null;
+            var from = isoToDate(fromStr);
+            var to = isoToDate(toStr);
+            if (!from || !to || from > to) return null;
+            var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(b) { return parseInt(b.dataset.day, 10); });
+            if (!checked.length) return null;
+            var dates = [];
+            var d = new Date(from);
+            while (d <= to) {
+                if (checked.indexOf(d.getDay()) !== -1) {
+                    dates.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+                }
+                d.setDate(d.getDate() + 1);
+            }
+            return dates.length ? dates : null;
+        }
+        function getSeriesDateBounds(stepObj) {
+            var members = getSeriesMembersForEdit(stepObj);
+            var isos = members.map(function(s) { return (s.deadline || '').toString().slice(0, 10); }).filter(Boolean).sort();
+            if (!isos.length) return { min: null, max: null };
+            return { min: isos[0], max: isos[isos.length - 1] };
+        }
+        /** Какие дни недели встречаются среди дедлайнов серии — для предвыбора кнопок. */
+        function inferSeriesWeekdaySelection(stepObj) {
+            var members = getSeriesMembersForEdit(stepObj);
+            var days = {};
+            members.forEach(function(s) {
+                var iso = (s.deadline || '').toString().slice(0, 10);
+                if (!iso) return;
+                var d = isoToDate(iso);
+                if (d) days[d.getDay()] = true;
+            });
+            var keys = Object.keys(days);
+            if (!keys.length) return null;
+            return keys.map(function(k) { return parseInt(k, 10); });
+        }
+        /** Пересчёт N для «N шагов» и dataset.seriesTotal по периоду и дням недели (режим edit-series). */
+        function recalcEditSeriesSeriesTotal() {
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay || overlay.dataset.stepModalUi !== 'edit-series') return;
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            var scopeAll = document.getElementById('modal-add-step-scope-all');
+            var fromUi = fromIn && fromIn.value ? fromIn.value.trim() : '';
+            var toUi = toIn && toIn.value ? toIn.value.trim() : '';
+            if (!fromUi || !toUi) return;
+            var fromStr = uiDateToIso(fromUi);
+            var toStr = uiDateToIso(toUi);
+            if (!fromStr || !toStr) return;
+            var from = isoToDate(fromStr);
+            var to = isoToDate(toStr);
+            if (!from || !to || from > to) return;
+            var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(b) { return parseInt(b.dataset.day, 10); });
+            var n = 0;
+            var d = new Date(from);
+            while (d <= to) {
+                if (checked.indexOf(d.getDay()) !== -1) n++;
+                d.setDate(d.getDate() + 1);
+            }
+            if (n < 1) n = 1;
+            overlay.dataset.seriesTotal = String(n);
+            if (scopeAll) scopeAll.textContent = stepsCountWordRu(n);
+        }
         function openAddStepModal(dreamId) {
             var overlay = document.getElementById('modal-add-step');
             if (!overlay) return;
+            overlay.dataset.stepModalUi = 'create';
             overlay.dataset.mode = 'create';
             overlay.dataset.dreamId = String(dreamId);
             delete overlay.dataset.stepId;
+            delete overlay.dataset.isSeriesStep;
+            delete overlay.dataset.seriesTotal;
             var titleIn = document.getElementById('modal-add-step-title-input');
             var dateSingleIn = document.getElementById('modal-add-step-date-single');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
@@ -4062,11 +4278,17 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var timeToIn = document.getElementById('modal-add-step-time-to');
             var modalTitle = document.getElementById('modal-add-step-title');
             var createBtn = document.getElementById('modal-add-step-create');
+            var repeatOnlyWrap = document.getElementById('modal-add-step-repeat-only-wrap');
+            var editScopeBtns = document.getElementById('modal-add-step-edit-scope-btns');
+            var singleDateLbl = document.getElementById('modal-add-step-date-single-label');
+            if (singleDateLbl) singleDateLbl.textContent = 'Выполнить до';
             if (titleIn) titleIn.value = '';
             if (repeatBtn) repeatBtn.classList.remove('active');
             if (repeatBtn) repeatBtn.disabled = false;
             if (modalTitle) modalTitle.textContent = 'Добавить шаг';
             if (createBtn) createBtn.textContent = 'Создать';
+            if (repeatOnlyWrap) repeatOnlyWrap.classList.remove('hidden');
+            if (editScopeBtns) editScopeBtns.classList.add('hidden');
             var today = new Date();
             var todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
             var todayStr = isoToUiDate(todayIso);
@@ -4087,6 +4309,13 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             openAddStepModal(stepObj.dream_id);
             overlay.dataset.mode = 'edit';
             overlay.dataset.stepId = String(stepObj.id);
+            var memberCount = countStepSeriesMembers(stepObj);
+            var seriesTotalRaw = parseInt(stepObj.series_total, 10) || 0;
+            if (seriesTotalRaw <= 1 && memberCount > 1) seriesTotalRaw = memberCount;
+            var isSeriesStep = memberCount > 1;
+            overlay.dataset.isSeriesStep = isSeriesStep ? '1' : '0';
+            overlay.dataset.seriesTotal = String(seriesTotalRaw || 0);
+            overlay.dataset.stepModalUi = isSeriesStep ? 'edit-series' : 'edit-single';
             var modalTitle = document.getElementById('modal-add-step-title');
             var createBtn = document.getElementById('modal-add-step-create');
             var titleIn = document.getElementById('modal-add-step-title-input');
@@ -4094,15 +4323,50 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var timeFromIn = document.getElementById('modal-add-step-time-from');
             var timeToIn = document.getElementById('modal-add-step-time-to');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
+            var repeatOnlyWrap = document.getElementById('modal-add-step-repeat-only-wrap');
+            var editScopeBtns = document.getElementById('modal-add-step-edit-scope-btns');
+            var scopeOne = document.getElementById('modal-add-step-scope-one');
+            var scopeAll = document.getElementById('modal-add-step-scope-all');
+            var singleDateLbl = document.getElementById('modal-add-step-date-single-label');
+            if (singleDateLbl) singleDateLbl.textContent = isSeriesStep ? 'Шаг за' : 'Выполнить до';
             if (modalTitle) modalTitle.textContent = 'Редактировать шаг';
             if (createBtn) createBtn.textContent = 'Сохранить';
-            if (titleIn) titleIn.value = (stepObj.title || '').trim();
+            if (titleIn) titleIn.value = stripStepTitleCounterSuffix((stepObj.title || '').trim());
             if (dateSingleIn) dateSingleIn.value = stepObj.deadline ? formatDeadlineDisplay(String(stepObj.deadline).slice(0, 10)) : '';
             if (timeFromIn) timeFromIn.value = formatTimeHM(stepObj.start_time || '');
             if (timeToIn) timeToIn.value = formatTimeHM(stepObj.end_time || '');
-            if (repeatBtn) {
-                repeatBtn.classList.remove('active');
-                repeatBtn.disabled = true;
+            if (repeatBtn) { repeatBtn.classList.remove('active'); repeatBtn.disabled = !!isSeriesStep; }
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            if (isSeriesStep) {
+                if (repeatOnlyWrap) repeatOnlyWrap.classList.add('hidden');
+                if (editScopeBtns) editScopeBtns.classList.remove('hidden');
+                var bounds = getSeriesDateBounds(stepObj);
+                var endUi = bounds.max ? isoToUiDate(bounds.max) : (dateSingleIn && dateSingleIn.value ? dateSingleIn.value : '');
+                var startUi = bounds.min ? isoToUiDate(bounds.min) : endUi;
+                if (fromIn) fromIn.value = startUi || '';
+                if (toIn) toIn.value = endUi || '';
+                var natF = document.getElementById('modal-add-step-date-from-native');
+                var natT = document.getElementById('modal-add-step-date-to-native');
+                var natS = document.getElementById('modal-add-step-date-single-native');
+                var curStepIso = (stepObj.deadline || '').toString().slice(0, 10);
+                if (bounds.min && natF) natF.value = bounds.min;
+                if (bounds.max && natT) natT.value = bounds.max;
+                if (curStepIso && natS) natS.value = curStepIso;
+                var inferred = inferSeriesWeekdaySelection(stepObj);
+                overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
+                    var day = parseInt(btn.dataset.day, 10);
+                    if (inferred && inferred.length) btn.classList.toggle('selected', inferred.indexOf(day) !== -1);
+                    else btn.classList.add('selected');
+                });
+                var totalLbl = Math.max(1, seriesTotalRaw || 0);
+                if (scopeOne) { scopeOne.textContent = stepsCountWordRu(1); scopeOne.classList.add('active'); }
+                if (scopeAll) { scopeAll.textContent = stepsCountWordRu(totalLbl); scopeAll.classList.remove('active'); }
+            } else {
+                if (repeatOnlyWrap) repeatOnlyWrap.classList.remove('hidden');
+                if (editScopeBtns) editScopeBtns.classList.add('hidden');
+                if (fromIn) fromIn.value = '';
+                if (toIn) toIn.value = '';
             }
             syncAddStepModalRepeatState();
             updateAddStepModalCount();
@@ -4145,17 +4409,21 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (overlay) overlay.classList.add('hidden');
         }
         function syncAddStepModalRepeatState() {
+            var overlay = document.getElementById('modal-add-step');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
             var singleBlock = document.getElementById('modal-add-step-single-block');
             var block = document.getElementById('modal-add-step-repeat-block');
             var dateSingleIn = document.getElementById('modal-add-step-date-single');
             var fromIn = document.getElementById('modal-add-step-date-from');
+            var datesScopeWrap = document.getElementById('modal-add-step-dates-scope-wrap');
             if (!repeatBtn || !block) return;
+            var isEditSeries = overlay && overlay.dataset.stepModalUi === 'edit-series';
             var isRepeat = repeatBtn.classList.contains('active');
-            if (singleBlock) singleBlock.classList.toggle('disabled', isRepeat);
-            if (dateSingleIn) dateSingleIn.disabled = isRepeat;
-            block.classList.toggle('disabled', !isRepeat);
-            block.querySelectorAll('input').forEach(function(el) { el.disabled = !isRepeat; });
+            var showPeriod = isRepeat || isEditSeries;
+            if (singleBlock) singleBlock.classList.toggle('disabled', isRepeat && !isEditSeries);
+            if (dateSingleIn) dateSingleIn.disabled = isRepeat && !isEditSeries;
+            block.classList.toggle('disabled', !showPeriod);
+            if (datesScopeWrap) datesScopeWrap.classList.toggle('hidden', !showPeriod);
             if (isRepeat && fromIn && dateSingleIn && dateSingleIn.value) fromIn.value = dateSingleIn.value;
             syncAddStepModalDaysState();
         }
@@ -4166,7 +4434,9 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var wrap = document.getElementById('modal-add-step-days-wrap');
             var labelEl = document.getElementById('modal-add-step-days-label');
             if (!overlay || !wrap || !labelEl) return;
-            if (!repeatBtn || !repeatBtn.classList.contains('active')) { wrap.classList.add('disabled'); overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) { btn.disabled = true; }); return; }
+            var isEditSeries = overlay.dataset.stepModalUi === 'edit-series';
+            var canPickDays = (repeatBtn && repeatBtn.classList.contains('active')) || isEditSeries;
+            if (!canPickDays) { wrap.classList.add('disabled'); overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) { btn.disabled = true; }); return; }
             var hasEndDate = toIn && (toIn.value || '').trim() !== '';
             wrap.classList.toggle('disabled', !hasEndDate);
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
@@ -4184,6 +4454,17 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var timeToIn = document.getElementById('modal-add-step-time-to');
             var countEl = document.getElementById('modal-add-step-count');
             if (!overlay || !countEl) return;
+            var mode = overlay.dataset.mode || 'create';
+            if (mode === 'edit' && overlay.dataset.isSeriesStep === '1') {
+                syncAddStepModalDaysState();
+                recalcEditSeriesSeriesTotal();
+                var total = parseInt(overlay.dataset.seriesTotal, 10) || 0;
+                if (total < 1) total = 1;
+                var scope = getEditModalScope();
+                var n = scope === 'all_series' ? total : 1;
+                countEl.textContent = editStepPreviewLineRu(n);
+                return;
+            }
             syncAddStepModalDaysState();
             if (!repeatBtn || !repeatBtn.classList.contains('active')) {
                 var ds = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
@@ -4196,10 +4477,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (!fromUi || !toUi) { countEl.textContent = ''; return; }
             var fromStr = uiDateToIso(fromUi);
             var toStr = uiDateToIso(toUi);
-            if (!fromStr || !toStr) { countEl.textContent = 'Формат дат: dd.mm.yyyy'; return; }
+            if (!fromStr || !toStr) { countEl.textContent = 'Формат дат: dd.mm.yy'; return; }
             var from = isoToDate(fromStr);
             var to = isoToDate(toStr);
-            if (!from || !to) { countEl.textContent = 'Формат дат: dd.mm.yyyy'; return; }
+            if (!from || !to) { countEl.textContent = 'Формат дат: dd.mm.yy'; return; }
             if (from > to) { countEl.textContent = 'Укажите период: дата начала ≤ дата окончания'; return; }
             var n = 0;
             var d = new Date(from);
@@ -4222,6 +4503,15 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var createBtn = document.getElementById('modal-add-step-create');
             function update() { updateAddStepModalCount(); }
             if (repeatBtn) repeatBtn.addEventListener('click', function() { repeatBtn.classList.toggle('active'); syncAddStepModalRepeatState(); update(); });
+            var scopeOneBtn = document.getElementById('modal-add-step-scope-one');
+            var scopeAllBtn = document.getElementById('modal-add-step-scope-all');
+            function editScopeClick(isAll) {
+                if (scopeOneBtn) scopeOneBtn.classList.toggle('active', !isAll);
+                if (scopeAllBtn) scopeAllBtn.classList.toggle('active', !!isAll);
+                update();
+            }
+            if (scopeOneBtn) scopeOneBtn.addEventListener('click', function() { editScopeClick(false); });
+            if (scopeAllBtn) scopeAllBtn.addEventListener('click', function() { editScopeClick(true); });
             if (dateSingleIn) { dateSingleIn.addEventListener('input', update); dateSingleIn.addEventListener('change', update); }
             if (fromIn) { fromIn.addEventListener('input', update); fromIn.addEventListener('change', update); }
             if (toIn) { toIn.addEventListener('input', update); toIn.addEventListener('change', update); }
@@ -4245,6 +4535,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!dreamId) return;
                 var mode = overlay.dataset.mode || 'create';
                 var stepId = overlay.dataset.stepId;
+                var isSeriesStep = overlay.dataset.isSeriesStep === '1';
                 var titleIn = document.getElementById('modal-add-step-title-input');
                 var title = (titleIn && titleIn.value) ? titleIn.value.trim() : '';
                 if (!title) { alert('Введите название шага'); return; }
@@ -4253,7 +4544,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     var dateUiEdit = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
                     if (!dateUiEdit) { alert('Укажите дату шага'); return; }
                     var dateStrEdit = uiDateToIso(dateUiEdit);
-                    if (!dateStrEdit) { alert('Неверный формат даты. Используй dd.mm.yyyy'); return; }
+                    if (!dateStrEdit) { alert('Неверный формат даты. Используй dd.mm.yy'); return; }
                     var timeFromRawEdit = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
                     var timeToRawEdit = timeToIn && timeToIn.value ? timeToIn.value.trim() : '';
                     var timeFromEdit = timeFromRawEdit ? normalizeTime24Input(timeFromRawEdit) : '';
@@ -4261,14 +4552,124 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     if (timeFromRawEdit && !timeFromEdit) { alert('Неверный формат времени начала. Используй HH:MM (00:00–23:59)'); return; }
                     if (timeToRawEdit && !timeToEdit) { alert('Неверный формат времени окончания. Используй HH:MM (00:00–23:59)'); return; }
                     if (timeFromEdit && timeToEdit && timeFromEdit > timeToEdit) { alert('Время начала должно быть не позже времени окончания'); return; }
+                    var isRepeatInEdit = repeatBtn && repeatBtn.classList.contains('active');
+                    if (!isSeriesStep && isRepeatInEdit) {
+                        var fromUiEdit = fromIn && fromIn.value ? fromIn.value.trim() : '';
+                        var toUiEdit = toIn && toIn.value ? toIn.value.trim() : '';
+                        if (!fromUiEdit || !toUiEdit) { alert('Укажите дату начала и дату окончания'); return; }
+                        var fromIsoEdit = uiDateToIso(fromUiEdit);
+                        var toIsoEdit = uiDateToIso(toUiEdit);
+                        if (!fromIsoEdit || !toIsoEdit) { alert('Неверный формат дат. Используй dd.mm.yy'); return; }
+                        var fromDateEdit = isoToDate(fromIsoEdit);
+                        var toDateEdit = isoToDate(toIsoEdit);
+                        if (!fromDateEdit || !toDateEdit || fromDateEdit > toDateEdit) { alert('Дата начала должна быть не позже даты окончания'); return; }
+                        var checkedEdit = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(b) { return parseInt(b.dataset.day, 10); });
+                        var allDates = [];
+                        var it = new Date(fromDateEdit);
+                        while (it <= toDateEdit) {
+                            if (checkedEdit.indexOf(it.getDay()) !== -1) allDates.push(it.getFullYear() + '-' + String(it.getMonth() + 1).padStart(2, '0') + '-' + String(it.getDate()).padStart(2, '0'));
+                            it.setDate(it.getDate() + 1);
+                        }
+                        if (allDates.length === 0) { alert('Выберите хотя бы один день недели и проверьте период.'); return; }
+                        var currentIso = dateStrEdit;
+                        var extraDates = allDates.filter(function(d) { return d !== currentIso; });
+                        var seriesId = (window.crypto && typeof window.crypto.randomUUID === 'function') ? window.crypto.randomUUID() : ('series-' + Date.now() + '-' + Math.floor(Math.random() * 100000));
+                        var totalSeries = 1 + extraDates.length;
+                        createBtn.disabled = true;
+                        createBtn.textContent = 'Сохраняем… 0 / ' + totalSeries;
+                        patchStep(dreamId, stepId, {
+                            title: title,
+                            deadline: currentIso,
+                            start_time: timeFromEdit || null,
+                            end_time: timeToEdit || null,
+                            series_id: seriesId,
+                            series_index: 1,
+                            series_total: totalSeries
+                        }).then(function() {
+                            var done = 1;
+                            createBtn.textContent = 'Сохраняем… ' + done + ' / ' + totalSeries;
+                            var promises = extraDates.map(function(dateIso, idx) {
+                                return addStepPromise(dreamId, title, dateIso, timeFromEdit, timeToEdit, seriesId, idx + 2, totalSeries).then(function() {
+                                    done++;
+                                    createBtn.textContent = 'Сохраняем… ' + done + ' / ' + totalSeries;
+                                });
+                            });
+                            return Promise.all(promises);
+                        }).then(function() {
+                            closeAddStepModal();
+                            createBtn.disabled = false;
+                            createBtn.textContent = 'Сохранить';
+                            dreamIdToRestoreAfterRefresh = parseInt(dreamId, 10) || dreamId;
+                            refreshAfterDreamChange();
+                        }).catch(function(err) {
+                            createBtn.disabled = false;
+                            createBtn.textContent = 'Сохранить';
+                            alert(err && err.message ? err.message : 'Ошибка при сохранении шага');
+                        });
+                        return;
+                    }
                     createBtn.disabled = true;
+                    var scopeVal = isSeriesStep ? getEditModalScope() : 'single';
+                    if (isSeriesStep && scopeVal === 'all_series') {
+                        var periodDates = buildModalPeriodIsoDateList(overlay);
+                        if (!periodDates || !periodDates.length) {
+                            createBtn.disabled = false;
+                            alert('Укажи период: дату начала, дату окончания и хотя бы один день недели.');
+                            return;
+                        }
+                        var refStep = findStepObjForSeriesSave(dreamId, stepId);
+                        if (!refStep) {
+                            createBtn.disabled = false;
+                            alert('Не удалось найти шаг в кэше. Обнови страницу и открой редактирование снова.');
+                            return;
+                        }
+                        var members = getSeriesMembersForEdit(refStep).slice().sort(function(a, b) {
+                            var da = (a.deadline || '').toString().slice(0, 10);
+                            var db = (b.deadline || '').toString().slice(0, 10);
+                            if (da !== db) return da.localeCompare(db);
+                            return (Number(a.id) || 0) - (Number(b.id) || 0);
+                        });
+                        if (periodDates.length !== members.length) {
+                            createBtn.disabled = false;
+                            alert('В серии ' + members.length + ' шагов, а в выбранном периоде ' + periodDates.length + ' дат. Подбери дату начала, окончания и дни недели так, чтобы число совпало со счётчиком внизу модалки.');
+                            return;
+                        }
+                        var totalM = members.length;
+                        var doneM = 0;
+                        createBtn.textContent = 'Сохраняем… 0 / ' + totalM;
+                        Promise.all(members.map(function(m, i) {
+                            var oneBody = {
+                                title: title,
+                                deadline: periodDates[i],
+                                scope: 'single',
+                                series_index: i + 1,
+                                series_total: totalM
+                            };
+                            if (timeFromRawEdit) oneBody.start_time = timeFromEdit;
+                            if (timeToRawEdit) oneBody.end_time = timeToEdit;
+                            return patchStep(dreamId, m.id, oneBody).then(function() {
+                                doneM++;
+                                createBtn.textContent = 'Сохраняем… ' + doneM + ' / ' + totalM;
+                            });
+                        })).then(function() {
+                            closeAddStepModal();
+                            createBtn.disabled = false;
+                            createBtn.textContent = 'Сохранить';
+                            dreamIdToRestoreAfterRefresh = parseInt(dreamId, 10) || dreamId;
+                            refreshAfterDreamChange();
+                        }).catch(function(err) {
+                            createBtn.disabled = false;
+                            createBtn.textContent = 'Сохранить';
+                            alert(err && err.message ? err.message : 'Ошибка при сохранении серии');
+                        });
+                        return;
+                    }
                     createBtn.textContent = 'Сохраняем…';
-                    patchStep(dreamId, stepId, {
-                        title: title,
-                        deadline: dateStrEdit,
-                        start_time: timeFromEdit || null,
-                        end_time: timeToEdit || null
-                    }).then(function() {
+                    var patchBody = { title: title, scope: scopeVal };
+                    if (timeFromRawEdit) patchBody.start_time = timeFromEdit;
+                    if (timeToRawEdit) patchBody.end_time = timeToEdit;
+                    if (scopeVal === 'single') patchBody.deadline = dateStrEdit;
+                    patchStep(dreamId, stepId, patchBody).then(function() {
                         closeAddStepModal();
                         createBtn.disabled = false;
                         createBtn.textContent = 'Сохранить';
@@ -4286,7 +4687,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     var dateUi = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
                     if (!dateUi) { alert('Укажите дату шага'); return; }
                     var dateStr = uiDateToIso(dateUi);
-                    if (!dateStr) { alert('Неверный формат даты. Используй dd.mm.yyyy'); return; }
+                    if (!dateStr) { alert('Неверный формат даты. Используй dd.mm.yy'); return; }
                     var timeFromRaw = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
                     var timeToRaw = timeToIn && timeToIn.value ? timeToIn.value.trim() : '';
                     var timeFromStr = timeFromRaw ? normalizeTime24Input(timeFromRaw) : '';
@@ -4314,10 +4715,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!fromUi || !toUi) { alert('Укажите дату начала и дату окончания'); return; }
                 var fromStr = uiDateToIso(fromUi);
                 var toStr = uiDateToIso(toUi);
-                if (!fromStr || !toStr) { alert('Неверный формат дат. Используй dd.mm.yyyy'); return; }
+                if (!fromStr || !toStr) { alert('Неверный формат дат. Используй dd.mm.yy'); return; }
                 var from = isoToDate(fromStr);
                 var to = isoToDate(toStr);
-                if (!from || !to) { alert('Неверный формат дат. Используй dd.mm.yyyy'); return; }
+                if (!from || !to) { alert('Неверный формат дат. Используй dd.mm.yy'); return; }
                 if (from > to) { alert('Дата начала должна быть не позже даты окончания'); return; }
                 var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(b) { return parseInt(b.dataset.day, 10); });
                 var dates = [];
@@ -4335,13 +4736,14 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (repTimeToRaw && !repTimeTo) { alert('Неверный формат времени окончания. Используй HH:MM (00:00–23:59)'); return; }
                 if (repTimeFrom && repTimeTo && repTimeFrom > repTimeTo) { alert('Время начала должно быть не позже времени окончания'); return; }
                 var total = dates.length;
+                var seriesIdCreate = (window.crypto && typeof window.crypto.randomUUID === 'function') ? window.crypto.randomUUID() : ('series-' + Date.now() + '-' + Math.floor(Math.random() * 100000));
                 createBtn.disabled = true;
                 createBtn.dataset.restoreText = 'Создать';
                 createBtn.textContent = 'Создаём… 0 / ' + total;
                 var done = 0;
                 function onOneDone() { done++; createBtn.textContent = 'Создаём… ' + done + ' / ' + total; }
-                var promises = dates.map(function(dateStr) {
-                    return addStepPromise(dreamId, title, dateStr, repTimeFrom, repTimeTo).then(function(data) { onOneDone(); return data; });
+                var promises = dates.map(function(dateStr, idx) {
+                    return addStepPromise(dreamId, title, dateStr, repTimeFrom, repTimeTo, seriesIdCreate, idx + 1, total).then(function(data) { onOneDone(); return data; });
                 });
                 Promise.all(promises).then(function() {
                     closeAddStepModal();
@@ -4356,11 +4758,14 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 });
             });
         }
-        function addStepPromise(dreamId, title, deadline, startTime, endTime) {
+        function addStepPromise(dreamId, title, deadline, startTime, endTime, seriesId, seriesIndex, seriesTotal) {
             var body = { title: title };
             if (deadline) body.deadline = deadline;
             if (startTime) body.start_time = startTime;
             if (endTime) body.end_time = endTime;
+            if (seriesId) body.series_id = seriesId;
+            if (seriesIndex) body.series_index = seriesIndex;
+            if (seriesTotal) body.series_total = seriesTotal;
             return fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?' + dreamApiUserParams(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
                 .then(function(res) { if (!res.ok) return res.json().then(function(e) { throw new Error(e.detail || 'Ошибка'); }); return res.json(); })
                 .catch(function(e) { if (e instanceof Error) throw e; throw new Error('Ошибка сети'); });
@@ -4498,7 +4903,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             } catch (e) { alert('Ошибка сети'); }
         }
         function startEditStepTitle(dreamId, stepId, spanEl) {
-            var oldText = (spanEl.textContent || '').trim();
+            var oldText = stripStepTitleCounterSuffix((spanEl.textContent || '').trim());
             var input = document.createElement('input');
             input.type = 'text';
             input.value = oldText;
@@ -4507,7 +4912,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             spanEl.appendChild(input);
             input.focus();
             function save() {
-                var newText = input.value.trim();
+                var newText = stripStepTitleCounterSuffix(input.value.trim());
                 spanEl.removeChild(input);
                 spanEl.textContent = newText || '—';
                 if (newText !== oldText) {

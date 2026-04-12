@@ -1,0 +1,37 @@
+# Только для локальной песочницы Forge: поднимает Postgres рядом с app.
+# НЕ использовать на проде: `docker compose up` без этого файла поднимает только app.
+#
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# В .env задай DB_PASS (и при необходимости DB_USER, DB_NAME — те же значения, что для контейнера db).
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${DB_USER:-marabot}
+      POSTGRES_PASSWORD: ${DB_PASS:?Задай DB_PASS в .env}
+      POSTGRES_DB: ${DB_NAME:-default_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  app:
+    volumes:
+      - .:/app
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_dev_data:
