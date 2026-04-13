@@ -8,14 +8,14 @@
 
 ## Nginx: загрузка аватара и раздача media
 
-Чтобы загрузка аватара (до 2 МБ) не давала 413, в блок server добавь client_max_body_size. Чтобы аватары отдавались без 403, nginx должен иметь право читать каталог media (часто nginx работает от www-data).
+Чтобы загрузка аватара (до 20 МБ в приложении) не давала 413, в блок server задай `client_max_body_size` не меньше этого лимита (например `25m`). Чтобы аватары отдавались без 403, nginx должен иметь право читать каталог media (часто nginx работает от www-data).
 
 Пример блока server (в /etc/nginx/sites-available/island):
 
     server {
         listen 80;
         server_name 188.225.44.48;
-        client_max_body_size 5M;
+        client_max_body_size 25M;
         location / {
             proxy_pass http://127.0.0.1:8000;
             proxy_set_header Host $host;

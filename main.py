@@ -3,6 +3,7 @@ import time
 import calendar
 from datetime import datetime
 from pathlib import Path
+import re
 import psycopg2
 from psycopg2 import OperationalError
 from psycopg2 import pool
@@ -17,6 +18,14 @@ from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
 # bcrypt принимает пароль не длиннее 72 байт; длинные обрезаем, чтобы не было 500 при входе/регистрации
+def _step_title_series_key(title: Optional[str]) -> str:
+    """Базовое имя шага без суффикса вида « (3/12)» — для группировки серий и mass-update без series_id."""
+    if not title:
+        return ""
+    t = str(title).strip()
+    return re.sub(r"\s*\(\d+/\d+\)\s*$", "", t).strip()
+
+
 def _bcrypt_password(password: str) -> str:
     if not password:
         return password
@@ -47,6 +56,9 @@ EXAMPLES_DIR = BASE_DIR / "examples"
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 if EXAMPLES_DIR.is_dir():
     app.mount("/examples", StaticFiles(directory=str(EXAMPLES_DIR)), name="examples")
+ASSETS_UI_DIR = BASE_DIR / "assets" / "ui"
+if ASSETS_UI_DIR.is_dir():
+    app.mount("/assets/ui", StaticFiles(directory=str(ASSETS_UI_DIR)), name="assets_ui")
 LANDING_DIR = BASE_DIR / "landing"
 if LANDING_DIR.is_dir():
     app.mount("/landing", StaticFiles(directory=str(LANDING_DIR), html=True), name="landing")
@@ -190,6 +202,9 @@ class StepCreate(BaseModel):
     deadline: Optional[str] = None  # YYYY-MM-DD
     start_time: Optional[str] = None  # HH:MM
     end_time: Optional[str] = None    # HH:MM
+    series_id: Optional[str] = None
+    series_index: Optional[int] = None
+    series_total: Optional[int] = None
 
 class FinanceStepsCreate(BaseModel):
     """Тело запроса для создания шагов финцели (анкета «Добавить шаги»)."""
@@ -206,6 +221,10 @@ class StepUpdate(BaseModel):
     deadline: Optional[str] = None  # YYYY-MM-DD
     start_time: Optional[str] = None  # HH:MM
     end_time: Optional[str] = None    # HH:MM
+    series_id: Optional[str] = None
+    series_index: Optional[int] = None
+    series_total: Optional[int] = None
+    scope: Optional[str] = None  # single | all_series
     deleted: Optional[bool] = None  # мягкое удаление / восстановление
     fact_amount: Optional[float] = None  # для шагов финцели — фактический взнос за период
 
@@ -247,55 +266,79 @@ class RoadmapItemUpdate(BaseModel):
     section: Optional[str] = None
     initiator: Optional[str] = None
 
+def _step_row_to_dict(s):
+    """Одна строка dreams_steps -> dict для API (единообразный набор полей)."""
+    dl = s.get("deadline")
+    plan = s.get("plan_amount")
+    fact = s.get("fact_amount")
+    return {
+        "id": s["id"],
+        "title": s["title"],
+        "completed": bool(s["completed"]),
+        "deadline": str(dl) if dl else None,
+        "start_time": str(s.get("start_time"))[:5] if s.get("start_time") else None,
+        "end_time": str(s.get("end_time"))[:5] if s.get("end_time") else None,
+        "series_id": s.get("series_id"),
+        "series_index": s.get("series_index"),
+        "series_total": s.get("series_total"),
+        "deleted": bool(s.get("deleted", False)),
+        "plan_amount": float(plan) if plan is not None else None,
+        "fact_amount": float(fact) if fact is not None else None,
+    }
+
+
 def _load_steps(cur, dream_ids):
-    """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of step dict."""
+    """Загружает шаги по списку dream_id. Возвращает dict dream_id -> list of step dict.
+
+    Раньше при ProgrammingError на «широком» SELECT (нет plan_amount/fact_amount или др.)
+    срабатывал fallback без deadline — в ЛК все шаги без дат. Теперь перебираем запросы
+    с меньшим набором колонок, пока один не выполнится.
+    """
     out = {}
     if not dream_ids:
         return out
+    queries = [
+        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+        "SELECT dream_id, id, title, completed, sort_order, deadline FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+    ]
+    for sql in queries:
+        try:
+            cur.execute(sql, (dream_ids,))
+            for s in cur.fetchall():
+                did = s["dream_id"]
+                if did not in out:
+                    out[did] = []
+                out[did].append(_step_row_to_dict(s))
+            return out
+        except psycopg2.ProgrammingError:
+            try:
+                cur.connection.rollback()
+            except Exception:
+                pass
+            continue
+    # Схема без deadline (крайне старая): только названия
     try:
         cur.execute(
-            "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+            "SELECT dream_id, id, title, completed, sort_order FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
             (dream_ids,),
         )
         for s in cur.fetchall():
             did = s["dream_id"]
             if did not in out:
                 out[did] = []
-            dl = s.get("deadline")
-            plan = s.get("plan_amount")
-            fact = s.get("fact_amount")
             out[did].append({
-                "id": s["id"],
-                "title": s["title"],
-                "completed": bool(s["completed"]),
-                "deadline": str(dl) if dl else None,
-                "start_time": str(s.get("start_time"))[:5] if s.get("start_time") else None,
-                "end_time": str(s.get("end_time"))[:5] if s.get("end_time") else None,
-                "deleted": bool(s.get("deleted", False)),
-                "plan_amount": float(plan) if plan is not None else None,
-                "fact_amount": float(fact) if fact is not None else None,
+                "id": s["id"], "title": s["title"], "completed": bool(s["completed"]),
+                "deadline": None, "start_time": None, "end_time": None, "series_id": None, "series_index": None, "series_total": None, "deleted": False,
+                "plan_amount": None, "fact_amount": None,
             })
     except psycopg2.ProgrammingError:
-        cur.connection.rollback()
         try:
-            cur.execute(
-                "SELECT dream_id, id, title, completed, sort_order FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
-                (dream_ids,),
-            )
-            for s in cur.fetchall():
-                did = s["dream_id"]
-                if did not in out:
-                    out[did] = []
-                out[did].append({
-                    "id": s["id"], "title": s["title"], "completed": bool(s["completed"]),
-                    "deadline": None, "start_time": None, "end_time": None, "deleted": False,
-                    "plan_amount": None, "fact_amount": None,
-                })
-        except psycopg2.ProgrammingError:
-            try:
-                cur.connection.rollback()
-            except Exception:
-                pass
+            cur.connection.rollback()
+        except Exception:
+            pass
     return out
 
 def _load_books(cur, dream_ids):
@@ -465,12 +508,6 @@ def index_page():
     """Личный кабинет (вход и регистрация)"""
     return FileResponse(Path(__file__).parent / "index.html")
 
-
-@app.get("/index2.html", response_class=FileResponse)
-def index2_page():
-    """Вариант интерфейса (архив): заголовок «мечты | шаги», под ним контекстный заголовок (Мои мечты / Витрина / Уведомления)."""
-    return FileResponse(Path(__file__).parent / "archive" / "index2.html")
-
 @app.get("/roadmap.html", response_class=FileResponse)
 def roadmap_page():
     """Roadmap и обратная связь от тестировщиков."""
@@ -584,7 +621,7 @@ def landing_stats():
 
 # --- Эндпоинт: ЗАГРУЗКА АВАТАРА ---
 AVATAR_EXTENSIONS = frozenset((".jpg", ".jpeg", ".png", ".webp", ".gif"))
-AVATAR_MAX_BYTES = 2 * 1024 * 1024  # 2 МБ
+AVATAR_MAX_BYTES = 20 * 1024 * 1024  # 20 МБ
 
 @app.post("/avatar")
 def upload_avatar(
@@ -607,9 +644,10 @@ def upload_avatar(
     content = upload.file.read()
     if len(content) > AVATAR_MAX_BYTES:
         size_mb = round(len(content) / (1024 * 1024), 2)
+        max_mb = AVATAR_MAX_BYTES // (1024 * 1024)
         raise HTTPException(
             status_code=400,
-            detail=f"Файл не более 2 МБ. Получено: {size_mb} МБ.",
+            detail=f"Файл не более {max_mb} МБ. Получено: {size_mb} МБ.",
         )
     # Сохраняем как avatars/{user_id}.{ext}
     safe_ext = ".jpg" if ext == ".jpeg" else ext
@@ -2312,10 +2350,13 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
             deadline = body.deadline if body.deadline else None
             start_time = body.start_time if body.start_time else None
             end_time = body.end_time if body.end_time else None
+            series_id = body.series_id.strip() if body.series_id else None
+            series_index = body.series_index if body.series_index and body.series_index > 0 else None
+            series_total = body.series_total if body.series_total and body.series_total > 0 else None
             try:
                 cur.execute(
-                    "INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deadline, start_time, end_time) VALUES (%s, %s, false, %s, %s, %s, %s) RETURNING id, title, completed, deadline, start_time, end_time",
-                    (dream_id, body.title.strip(), next_order, deadline, start_time, end_time),
+                    "INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total) VALUES (%s, %s, false, %s, %s, %s, %s, %s, %s, %s) RETURNING id, title, completed, deadline, start_time, end_time, series_id, series_index, series_total",
+                    (dream_id, body.title.strip(), next_order, deadline, start_time, end_time, series_id, series_index, series_total),
                 )
             except psycopg2.ProgrammingError:
                 cur.connection.rollback()
@@ -2333,6 +2374,9 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
                 "deadline": str(dl) if dl else None,
                 "start_time": str(row.get("start_time"))[:5] if row.get("start_time") else None,
                 "end_time": str(row.get("end_time"))[:5] if row.get("end_time") else None,
+                "series_id": row.get("series_id"),
+                "series_index": row.get("series_index"),
+                "series_total": row.get("series_total"),
             }
     except HTTPException:
         raise
@@ -2452,6 +2496,9 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            scope = (body.scope or "single").strip().lower()
+            if scope not in ("single", "all_series"):
+                raise HTTPException(status_code=400, detail="scope должен быть single или all_series")
             updates, vals = [], []
             if body.title is not None:
                 updates.append("title = %s")
@@ -2459,7 +2506,8 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             if body.completed is not None:
                 updates.append("completed = %s")
                 vals.append(body.completed)
-            if body.deadline is not None:
+            # При массовом обновлении серии дедлайн не трогаем: у каждого шага своя дата; иначе один PATCH схлопывает все к одной дате.
+            if body.deadline is not None and scope != "all_series":
                 updates.append("deadline = %s")
                 vals.append(body.deadline if body.deadline else None)
             if body.start_time is not None:
@@ -2468,6 +2516,18 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             if body.end_time is not None:
                 updates.append("end_time = %s")
                 vals.append(body.end_time if body.end_time else None)
+            if body.series_id is not None:
+                updates.append("series_id = %s")
+                vals.append(body.series_id.strip() if body.series_id else None)
+            if body.series_index is not None:
+                updates.append("series_index = %s")
+                vals.append(body.series_index if body.series_index and body.series_index > 0 else None)
+            if body.series_total is not None:
+                updates.append("series_total = %s")
+                vals.append(body.series_total if body.series_total and body.series_total > 0 else None)
+            if body.scope is not None:
+                # Поле scope управляет WHERE и не должно апдейтиться как колонка.
+                pass
             if body.deleted is not None:
                 updates.append("deleted = %s")
                 vals.append(body.deleted)
@@ -2476,12 +2536,46 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                 vals.append(body.fact_amount)
             if not updates:
                 return {"ok": True}
-            vals.append(step_id)
-            vals.append(dream_id)
+            cur.execute(
+                "SELECT id, series_id, title FROM dreams_steps WHERE id = %s AND dream_id = %s",
+                (step_id, dream_id),
+            )
+            cur_step = cur.fetchone()
+            if not cur_step:
+                raise HTTPException(status_code=404, detail="Шаг не найден")
+            where_sql = "id = %s AND dream_id = %s"
+            where_vals = [step_id, dream_id]
+            if scope == "all_series":
+                if cur_step.get("series_id"):
+                    where_sql = "dream_id = %s AND series_id = %s AND COALESCE(deleted, false) = false"
+                    where_vals = [dream_id, cur_step.get("series_id")]
+                else:
+                    title_key = _step_title_series_key(cur_step.get("title"))
+                    if title_key:
+                        cur.execute(
+                            """SELECT id, title FROM dreams_steps
+                               WHERE dream_id = %s AND COALESCE(deleted, false) = false""",
+                            (dream_id,),
+                        )
+                        all_rows = cur.fetchall()
+                        match_ids = [
+                            r["id"]
+                            for r in all_rows
+                            if _step_title_series_key(r.get("title")) == title_key
+                        ]
+                        if len(match_ids) > 1:
+                            where_sql = "id = ANY(%s) AND dream_id = %s"
+                            where_vals = [match_ids, dream_id]
+                        else:
+                            where_sql = "id = %s AND dream_id = %s"
+                            where_vals = [step_id, dream_id]
+                    else:
+                        where_sql = "id = %s AND dream_id = %s"
+                        where_vals = [step_id, dream_id]
             try:
                 cur.execute(
-                    "UPDATE dreams_steps SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
-                    vals,
+                    "UPDATE dreams_steps SET " + ", ".join(updates) + " WHERE " + where_sql,
+                    vals + where_vals,
                 )
             except psycopg2.ProgrammingError:
                 cur.connection.rollback()
