@@ -1288,7 +1288,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">126</span>
+                    <span class="app-version" aria-hidden="true">128</span>
                 </div>
             </footer>
         </div>
@@ -2858,8 +2858,9 @@
             var deletedWrap = document.getElementById('steps-deleted-wrap');
             var deletedEmptyEl = document.getElementById('steps-deleted-empty');
             var filters = Array.isArray(activeFilters) ? activeFilters : [activeFilters];
+            var canManage = !isBuddy || !!(currentUser && currentUser.buddy_trust);
 
-            var showDeleted = !isBuddy && filters.indexOf('deleted') !== -1;
+            var showDeleted = canManage && filters.indexOf('deleted') !== -1;
             if (showDeleted) {
                 deletedWrap.classList.remove('hidden');
                 listEl.innerHTML = '';
@@ -2917,13 +2918,13 @@
                 li.dataset.dreamId = s.dream_id;
                 li.dataset.stepId = s.id;
                 var deadlineStr = s.deadline ? formatDeadlineDisplay(s.deadline.toString().slice(0, 10)) : '—';
-                var editBtn = (!isBuddy && !s.isFinStep) ? '<button type="button" class="step-edit" title="Редактировать">✏️</button>' : '';
-                var deleteBtn = isBuddy ? '' : '<button type="button" class="step-delete" title="Удалить">✕</button>';
+                var editBtn = (canManage && !s.isFinStep) ? '<button type="button" class="step-edit" title="Редактировать">✏️</button>' : '';
+                var deleteBtn = canManage ? '<button type="button" class="step-delete" title="Удалить">✕</button>' : '';
                 var displayTitle = stepTitleWithCounter(s, titleCounterMap);
-                li.innerHTML = '<span class="step-check"><input type="checkbox" class="step-checkbox" ' + (s.completed ? 'checked' : '') + (isBuddy ? ' disabled' : '') + '></span><span class="step-title-wrap"><span class="step-title-text">' + escapeHtml(displayTitle) + '</span></span><span class="step-deadline">' + buildStepDateTimeHtml(s, { omitEmptyTimePlaceholder: true }) + '</span>' + editBtn + deleteBtn;
+                li.innerHTML = '<span class="step-check"><input type="checkbox" class="step-checkbox" ' + (s.completed ? 'checked' : '') + (canManage ? '' : ' disabled') + '></span><span class="step-title-wrap"><span class="step-title-text">' + escapeHtml(displayTitle) + '</span></span><span class="step-deadline">' + buildStepDateTimeHtml(s, { omitEmptyTimePlaceholder: true }) + '</span>' + editBtn + deleteBtn;
                 listEl.appendChild(li);
                 var cb = li.querySelector('.step-checkbox');
-                if (cb && !isBuddy) cb.addEventListener('change', function() {
+                if (cb && canManage) cb.addEventListener('change', function() {
                     var checkbox = this;
                     var checked = checkbox.checked;
                     if (s.isFinStep && checked) {
@@ -5086,6 +5087,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var isEditSeries = overlay && overlay.dataset.stepModalUi === 'edit-series';
             var isRepeat = repeatBtn.classList.contains('active');
             var showPeriod = isRepeat || isEditSeries;
+            function forceDisplay(el, visible, displayMode) {
+                if (!el) return;
+                el.style.display = visible ? (displayMode || 'block') : 'none';
+            }
             if (singleBlock) {
                 singleBlock.classList.toggle('disabled', isRepeat && !isEditSeries);
                 singleBlock.classList.toggle('hidden', isEditSeries);
@@ -5101,20 +5106,37 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (timeFromSlot && timeFromGroup && timeFromGroup.parentElement !== timeFromSlot) timeFromSlot.appendChild(timeFromGroup);
                 if (timeToSlot && timeToGroup && timeToGroup.parentElement !== timeToSlot) timeToSlot.appendChild(timeToGroup);
                 if (midColumn) midColumn.classList.add('hidden');
+                // Жёсткая синхронизация для всех контуров (ЛК/бадди):
+                // в edit-series всегда только 4 блока в верхней строке.
+                forceDisplay(singleBlock, false);
+                forceDisplay(midColumn, false);
+                forceDisplay(fromWrap, true, 'flex');
+                forceDisplay(toWrap, true, 'flex');
+                forceDisplay(timeFromWrap, true, 'flex');
+                forceDisplay(timeToWrap, true, 'flex');
             } else {
                 if (timeFromWrap) timeFromWrap.classList.add('hidden');
                 if (timeToWrap) timeToWrap.classList.add('hidden');
                 if (timeInner && timeFromGroup && timeFromGroup.parentElement !== timeInner) timeInner.appendChild(timeFromGroup);
                 if (timeInner && timeToGroup && timeToGroup.parentElement !== timeInner) timeInner.appendChild(timeToGroup);
+                forceDisplay(singleBlock, true, 'flex');
+                forceDisplay(timeFromWrap, false);
+                forceDisplay(timeToWrap, false);
             }
             if (showPeriod && !isEditSeries) {
                 if (datesScopeWrap && editScopeBtns && inlineTimes.parentElement !== datesScopeWrap) {
                     datesScopeWrap.insertBefore(inlineTimes, editScopeBtns);
                 }
                 if (midColumn) midColumn.classList.add('hidden');
+                forceDisplay(midColumn, false);
+                forceDisplay(fromWrap, true, 'flex');
+                forceDisplay(toWrap, true, 'flex');
             } else if (!isEditSeries) {
                 if (inlineTimes.parentElement !== midColumn) midColumn.appendChild(inlineTimes);
                 if (midColumn) midColumn.classList.remove('hidden');
+                forceDisplay(midColumn, true, 'flex');
+                forceDisplay(fromWrap, false);
+                forceDisplay(toWrap, false);
             }
             if (isRepeat && fromIn && dateSingleIn && dateSingleIn.value) fromIn.value = dateSingleIn.value;
             syncAddStepModalDaysState();
