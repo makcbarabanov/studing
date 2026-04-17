@@ -1,7 +1,14 @@
 # Применённые миграции (справочник)
 
 Миграции выполняются через `run_migrate.py`; после успешного выполнения файл из `_sql/` удаляется.  
+Скрипт отправляет в PostgreSQL **один** SQL-оператор за раз: файлы с несколькими операторами после `pg_restore` прогоняйте через `psql` в контейнере `db` (см. п. 105 в [Readme/Readme.md](Readme.md)).  
 Для новых инсталляций или восстановления БД — SQL ниже можно выполнить вручную.
+
+---
+
+## mig_dreams_steps_waived_events_late (шаги: waived, completed_late, дневник)
+
+Файл: `_sql/mig_dreams_steps_waived_events_late.sql` — колонки `dreams_steps.waived`, `dreams_steps.completed_late`, таблица `dreams_steps_events` (полный текст — в репозитории в этом файле).
 
 ---
 

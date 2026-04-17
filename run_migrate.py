@@ -15,9 +15,41 @@ from pathlib import Path
 # Загружаем .env из каталога проекта (рядом с run_migrate.py)
 _project_root = Path(__file__).resolve().parent
 _env_file = _project_root / ".env"
+
+
+def _load_env_simple(path: Path, *, override: bool = False) -> None:
+    """Подстановка переменных из .env без пакета python-dotenv (KEY=VALUE, # комментарии)."""
+    raw = path.read_text(encoding="utf-8", errors="replace")
+    for line in raw.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.startswith("export "):
+            s = s[7:].strip()
+        if "=" not in s:
+            continue
+        key, _, val = s.partition("=")
+        key = key.strip()
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        if not key:
+            continue
+        if override or key not in os.environ:
+            os.environ[key] = val
+
+
 if _env_file.exists():
-    from dotenv import load_dotenv
-    load_dotenv(_env_file)
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(_env_file)
+    except ImportError:
+        print(
+            "Предупреждение: пакет python-dotenv не установлен, читаю .env упрощённо (pip install -r requirements.txt).",
+            file=sys.stderr,
+        )
+        _load_env_simple(_env_file, override=False)
 else:
     print("Предупреждение: .env не найден, используются переменные окружения.", file=sys.stderr)
 
@@ -30,12 +62,15 @@ def main():
 
     conn = None
     try:
-        conn = psycopg2.connect(
+        conn_kw = dict(
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASS"),
             dbname=os.getenv("DB_NAME"),
         )
+        if os.getenv("DB_PORT"):
+            conn_kw["port"] = int(os.getenv("DB_PORT"))
+        conn = psycopg2.connect(**conn_kw)
         conn.autocommit = False
 
         for file_path in sys.argv[1:]:

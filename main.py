@@ -1,7 +1,7 @@
 import os
 import time
 import calendar
-from datetime import datetime
+from datetime import datetime, date, time as dt_time, timedelta, timezone
 from pathlib import Path
 import re
 import psycopg2
@@ -227,6 +227,8 @@ class StepUpdate(BaseModel):
     scope: Optional[str] = None  # single | all_series
     deleted: Optional[bool] = None  # мягкое удаление / восстановление
     fact_amount: Optional[float] = None  # для шагов финцели — фактический взнос за период
+    waived: Optional[bool] = None  # «не выполнен» (минус); только одиночный шаг, не all_series
+    note: Optional[str] = None  # текст в dreams_steps_events (дневник), не колонка шага
 
 class BuddyRequestCreate(BaseModel):
     to_user_id: int
@@ -284,7 +286,77 @@ def _step_row_to_dict(s):
         "deleted": bool(s.get("deleted", False)),
         "plan_amount": float(plan) if plan is not None else None,
         "fact_amount": float(fact) if fact is not None else None,
+        "waived": bool(s.get("waived", False)),
+        "completed_late": bool(s.get("completed_late", False)),
     }
+
+
+def _parse_hhmm_to_time(val) -> Optional[dt_time]:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+    s = s[:5] if len(s) >= 5 else s
+    parts = s.split(":")
+    if len(parts) < 2:
+        return None
+    try:
+        return dt_time(int(parts[0]), int(parts[1]))
+    except (ValueError, TypeError):
+        return None
+
+
+def _step_max_time_of_day(start_time, end_time) -> Optional[dt_time]:
+    st = _parse_hhmm_to_time(start_time)
+    et = _parse_hhmm_to_time(end_time)
+    opts = [t for t in (st, et) if t is not None]
+    if not opts:
+        return None
+    return max(opts)
+
+
+def step_due_boundary_utc(deadline, start_time, end_time) -> Optional[datetime]:
+    """UTC-момент: с него шаг считается просроченным (сравнение: now >= boundary). Без времени — 00:00 UTC следующего дня после deadline."""
+    if not deadline:
+        return None
+    dstr = str(deadline)[:10]
+    try:
+        d = date.fromisoformat(dstr)
+    except ValueError:
+        return None
+    mt = _step_max_time_of_day(start_time, end_time)
+    if mt is None:
+        return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1)
+    return datetime.combine(d, mt, tzinfo=timezone.utc) + timedelta(minutes=1)
+
+
+def step_is_overdue_at(deadline, start_time, end_time, completed: bool, deleted: bool, waived: bool, at_utc: datetime) -> bool:
+    if completed or deleted or waived:
+        return False
+    b = step_due_boundary_utc(deadline, start_time, end_time)
+    if b is None:
+        return False
+    return at_utc >= b
+
+
+def step_should_mark_completed_late(deadline, start_time, end_time, at_utc: datetime) -> bool:
+    """В момент at_utc шаг уже просрочен — для completed_late при отметке выполнено."""
+    return step_is_overdue_at(deadline, start_time, end_time, False, False, False, at_utc)
+
+
+def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, event_type: str, message: Optional[str] = None) -> None:
+    """Запись в дневник; при отсутствии таблицы не ломает транзакцию."""
+    cur.execute("SAVEPOINT sp_step_evt")
+    try:
+        cur.execute(
+            """INSERT INTO dreams_steps_events (step_id, dream_id, user_id, event_type, message)
+               VALUES (%s, %s, %s, %s, %s)""",
+            (step_id, dream_id, editor_id, event_type, message),
+        )
+        cur.execute("RELEASE SAVEPOINT sp_step_evt")
+    except Exception:
+        cur.execute("ROLLBACK TO SAVEPOINT sp_step_evt")
 
 
 def _load_steps(cur, dream_ids):
@@ -298,6 +370,7 @@ def _load_steps(cur, dream_ids):
     if not dream_ids:
         return out
     queries = [
+        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived, completed_late FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
         "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
         "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
         "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
@@ -332,7 +405,7 @@ def _load_steps(cur, dream_ids):
             out[did].append({
                 "id": s["id"], "title": s["title"], "completed": bool(s["completed"]),
                 "deadline": None, "start_time": None, "end_time": None, "series_id": None, "series_index": None, "series_total": None, "deleted": False,
-                "plan_amount": None, "fact_amount": None,
+                "plan_amount": None, "fact_amount": None, "waived": False, "completed_late": False,
             })
     except psycopg2.ProgrammingError:
         try:
@@ -375,28 +448,44 @@ def _load_books(cur, dream_ids):
 def _schedule_items_standard(cur, user_id: int, date_from: str, date_to: str):
     """Пункты расписания из обычных шагов (dreams_steps): дедлайн в диапазоне [date_from, date_to]."""
     items = []
-    try:
-        cur.execute(
-            """SELECT d.id AS dream_id, s.id AS source_id, s.title, s.deadline AS date, s.completed
+    sql_with_waived = (
+        """SELECT d.id AS dream_id, s.id AS source_id, s.title, s.deadline AS date, s.completed
                FROM dreams d
                JOIN dreams_steps s ON s.dream_id = d.id
                WHERE d.user_id = %s AND s.deadline IS NOT NULL
                  AND s.deadline >= %s AND s.deadline <= %s
                  AND COALESCE(s.deleted, false) = false
-               ORDER BY s.deadline, s.id""",
-            (user_id, date_from, date_to),
-        )
-        for r in cur.fetchall():
-            items.append({
-                "dream_id": r["dream_id"],
-                "source_type": "step",
-                "source_id": r["source_id"],
-                "title": r["title"] or "",
-                "date": str(r["date"]),
-                "completed": bool(r["completed"]),
-            })
-    except psycopg2.ProgrammingError:
-        pass
+                 AND COALESCE(s.waived, false) = false
+               ORDER BY s.deadline, s.id"""
+    )
+    sql_no_waived = (
+        """SELECT d.id AS dream_id, s.id AS source_id, s.title, s.deadline AS date, s.completed
+               FROM dreams d
+               JOIN dreams_steps s ON s.dream_id = d.id
+               WHERE d.user_id = %s AND s.deadline IS NOT NULL
+                 AND s.deadline >= %s AND s.deadline <= %s
+                 AND COALESCE(s.deleted, false) = false
+               ORDER BY s.deadline, s.id"""
+    )
+    params = (user_id, date_from, date_to)
+    for sql in (sql_with_waived, sql_no_waived):
+        try:
+            cur.execute(sql, params)
+            for r in cur.fetchall():
+                items.append({
+                    "dream_id": r["dream_id"],
+                    "source_type": "step",
+                    "source_id": r["source_id"],
+                    "title": r["title"] or "",
+                    "date": str(r["date"]),
+                    "completed": bool(r["completed"]),
+                })
+            break
+        except psycopg2.ProgrammingError:
+            try:
+                cur.connection.rollback()
+            except Exception:
+                pass
     return items
 
 def _schedule_items_books(cur, user_id: int, date_from: str, date_to: str):
@@ -512,6 +601,11 @@ def index_page():
 def roadmap_page():
     """Roadmap и обратная связь от тестировщиков."""
     return FileResponse(Path(__file__).parent / "roadmap.html")
+
+@app.get("/temp.html", response_class=FileResponse)
+def temp_page():
+    """Временный визуальный полигон UX (локальный)."""
+    return FileResponse(Path(__file__).parent / "temp.html")
 
 # --- Эндпоинт 1: АВТОРИЗАЦИЯ ---
 @app.post("/login")
@@ -2496,17 +2590,24 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            editor_id = viewer_id if viewer_id is not None else user_id
             scope = (body.scope or "single").strip().lower()
             if scope not in ("single", "all_series"):
                 raise HTTPException(status_code=400, detail="scope должен быть single или all_series")
+            if body.waived is not None and scope == "all_series":
+                raise HTTPException(status_code=400, detail="waived только для одного шага (scope=single)")
+            note_trim = (body.note or "").strip()[:4000] if body.note else None
+            if note_trim == "":
+                note_trim = None
+            patch_fields = set(body.model_dump(exclude_unset=True).keys())
+
             updates, vals = [], []
             if body.title is not None:
                 updates.append("title = %s")
                 vals.append(body.title.strip())
-            if body.completed is not None:
+            if body.completed is not None and body.waived is not True:
                 updates.append("completed = %s")
                 vals.append(body.completed)
-            # При массовом обновлении серии дедлайн не трогаем: у каждого шага своя дата; иначе один PATCH схлопывает все к одной дате.
             if body.deadline is not None and scope != "all_series":
                 updates.append("deadline = %s")
                 vals.append(body.deadline if body.deadline else None)
@@ -2525,24 +2626,41 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             if body.series_total is not None:
                 updates.append("series_total = %s")
                 vals.append(body.series_total if body.series_total and body.series_total > 0 else None)
-            if body.scope is not None:
-                # Поле scope управляет WHERE и не должно апдейтиться как колонка.
-                pass
             if body.deleted is not None:
                 updates.append("deleted = %s")
                 vals.append(body.deleted)
             if body.fact_amount is not None:
                 updates.append("fact_amount = %s")
                 vals.append(body.fact_amount)
-            if not updates:
-                return {"ok": True}
-            cur.execute(
-                "SELECT id, series_id, title FROM dreams_steps WHERE id = %s AND dream_id = %s",
-                (step_id, dream_id),
-            )
-            cur_step = cur.fetchone()
+            if body.waived is True:
+                updates.append("waived = true")
+                updates.append("completed = false")
+                updates.append("completed_late = false")
+            elif body.waived is False:
+                updates.append("waived = false")
+            if body.completed is False:
+                if not any(u.startswith("completed_late") for u in updates):
+                    updates.append("completed_late = false")
+
+            cur_step = None
+            for _sql in (
+                """SELECT id, series_id, title, deadline, start_time, end_time, completed, deleted, waived
+                   FROM dreams_steps WHERE id = %s AND dream_id = %s""",
+                """SELECT id, series_id, title, deadline, start_time, end_time, completed, deleted, false AS waived
+                   FROM dreams_steps WHERE id = %s AND dream_id = %s""",
+            ):
+                try:
+                    cur.execute(_sql, (step_id, dream_id))
+                    cur_step = cur.fetchone()
+                    break
+                except psycopg2.ProgrammingError:
+                    try:
+                        cur.connection.rollback()
+                    except Exception:
+                        pass
             if not cur_step:
                 raise HTTPException(status_code=404, detail="Шаг не найден")
+            old_deadline = cur_step.get("deadline")
             where_sql = "id = %s AND dream_id = %s"
             where_vals = [step_id, dream_id]
             if scope == "all_series":
@@ -2572,6 +2690,52 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                     else:
                         where_sql = "id = %s AND dream_id = %s"
                         where_vals = [step_id, dream_id]
+
+            now_utc = datetime.now(timezone.utc)
+            pending_late: List[tuple] = []
+            if body.completed is True:
+                cur.execute(
+                    f"SELECT id, deadline, start_time, end_time FROM dreams_steps WHERE {where_sql}",
+                    where_vals,
+                )
+                rows_for_late = cur.fetchall()
+                if len(rows_for_late) == 1:
+                    r0 = rows_for_late[0]
+                    dl = body.deadline if body.deadline is not None else r0.get("deadline")
+                    st = body.start_time if body.start_time is not None else r0.get("start_time")
+                    et = body.end_time if body.end_time is not None else r0.get("end_time")
+                    late = step_should_mark_completed_late(dl, st, et, now_utc)
+                    updates.append("completed_late = %s")
+                    vals.append(late)
+                elif len(rows_for_late) > 1:
+                    for r0 in rows_for_late:
+                        dl = r0.get("deadline")
+                        st = r0.get("start_time")
+                        et = r0.get("end_time")
+                        late = step_should_mark_completed_late(dl, st, et, now_utc)
+                        pending_late.append((r0["id"], late))
+
+            if not updates:
+                if note_trim:
+                    _insert_step_event_safe(cur, step_id, dream_id, editor_id, "comment", note_trim)
+                    conn.commit()
+                    try:
+                        cur.execute(
+                            """SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time,
+                               series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived, completed_late
+                               FROM dreams_steps WHERE id = %s AND dream_id = %s""",
+                            (step_id, dream_id),
+                        )
+                        one = cur.fetchone()
+                        if one:
+                            return {"ok": True, "step": _step_row_to_dict(one)}
+                    except psycopg2.ProgrammingError:
+                        pass
+                    return {"ok": True}
+                conn.commit()
+                return {"ok": True}
+
+            multi_row = "ANY(" in where_sql
             try:
                 cur.execute(
                     "UPDATE dreams_steps SET " + ", ".join(updates) + " WHERE " + where_sql,
@@ -2595,13 +2759,116 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                         "UPDATE dreams_steps SET " + ", ".join(updates_old) + " WHERE id = %s AND dream_id = %s",
                         vals_old,
                     )
+            else:
+                for sid, late in pending_late:
+                    try:
+                        cur.execute(
+                            "UPDATE dreams_steps SET completed_late = %s WHERE id = %s AND dream_id = %s",
+                            (late, sid, dream_id),
+                        )
+                    except psycopg2.ProgrammingError:
+                        cur.connection.rollback()
+                        break
+
+            if body.waived is True:
+                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived", note_trim)
+            elif body.waived is False:
+                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived_cleared", note_trim)
+
+            if body.completed is True and not multi_row:
+                dl = body.deadline if body.deadline is not None else cur_step.get("deadline")
+                st = body.start_time if body.start_time is not None else cur_step.get("start_time")
+                et = body.end_time if body.end_time is not None else cur_step.get("end_time")
+                msg = "выполнен с опозданием" if step_should_mark_completed_late(dl, st, et, now_utc) else "выполнен вовремя"
+                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "completed", msg if not note_trim else f"{msg}: {note_trim}")
+            elif body.completed is True and multi_row:
+                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "series_completed", note_trim)
+
+            deadline_touched = any(u.startswith("deadline") for u in updates)
+            if deadline_touched and not multi_row and "deadline" in patch_fields:
+                try:
+                    cur.execute(
+                        "SELECT deadline FROM dreams_steps WHERE id = %s AND dream_id = %s",
+                        (step_id, dream_id),
+                    )
+                    dl_row = cur.fetchone()
+                    new_dl = dl_row.get("deadline") if dl_row else None
+                except Exception:
+                    new_dl = None
+
+                def _dl_key(v):
+                    if v is None:
+                        return None
+                    return str(v)[:10]
+
+                if _dl_key(old_deadline) != _dl_key(new_dl):
+                    old_s = _dl_key(old_deadline) or "—"
+                    new_s = _dl_key(new_dl) or "—"
+                    msg = note_trim if note_trim else f"Перенос: {old_s} → {new_s}"
+                    _insert_step_event_safe(cur, step_id, dream_id, editor_id, "deadline_changed", msg)
+
             conn.commit()
+            if not multi_row:
+                try:
+                    cur.execute(
+                        """SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time,
+                           series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived, completed_late
+                           FROM dreams_steps WHERE id = %s AND dream_id = %s""",
+                        (step_id, dream_id),
+                    )
+                    one = cur.fetchone()
+                    if one:
+                        return {"ok": True, "step": _step_row_to_dict(one)}
+                except psycopg2.ProgrammingError:
+                    pass
             return {"ok": True}
     except HTTPException:
         raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/steps/events")
+def list_step_events(user_id: int, limit: int = 100):
+    """Дневник событий по шагам пользователя (мечты владельца user_id)."""
+    lim = max(1, min(int(limit or 100), 500))
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            try:
+                cur.execute(
+                    """SELECT e.id, e.step_id, e.dream_id, e.event_type, e.message, e.created_at, s.title AS step_title
+                       FROM dreams_steps_events e
+                       JOIN dreams d ON d.id = e.dream_id
+                       JOIN dreams_steps s ON s.id = e.step_id
+                       WHERE d.user_id = %s
+                       ORDER BY e.created_at DESC
+                       LIMIT %s""",
+                    (user_id, lim),
+                )
+                rows = cur.fetchall()
+            except psycopg2.ProgrammingError:
+                return {"events": []}
+            out = []
+            for r in rows:
+                out.append(
+                    {
+                        "id": r["id"],
+                        "step_id": r["step_id"],
+                        "dream_id": r["dream_id"],
+                        "event_type": r["event_type"],
+                        "message": r["message"],
+                        "created_at": r["created_at"].isoformat() if r.get("created_at") else None,
+                        "step_title": (r.get("step_title") or "").strip(),
+                    }
+                )
+            return {"events": out}
+    except Exception:
+        return {"events": []}
     finally:
         _return_conn(conn)
 

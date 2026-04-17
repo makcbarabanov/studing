@@ -92,10 +92,28 @@
 | `series_index` | INT NULL    | Порядковый номер шага внутри серии (1..N). |
 | `series_total` | INT NULL    | Общее число шагов в серии. |
 | `deleted`    | BOOLEAN DEFAULT false | Мягкое удаление: true — шаг скрыт из текущих, показывается в разделе «Шаги» в блоке «Удалённые» с возможностью восстановить. Миграция mig_015. |
+| `waived`     | BOOLEAN NOT NULL DEFAULT false | Пользователь отметил шаг как **намеренно не выполненный** («минус»). Не смешивать с `deleted`: удаление — «как не создавал», waived — фиксация «не сделал» для статистики. Миграция `_sql/mig_dreams_steps_waived_events_late.sql`. |
+| `completed_late` | BOOLEAN NOT NULL DEFAULT false | Имеет смысл при `completed = true`: шаг отмечен выполненным **после** наступления просрочки (правило времени — UTC сервера; см. UI-стандарты). |
 | `plan_amount` | NUMERIC(12,2) NULL | Для шагов финцели: плановая сумма за период (например, 17 000 ₽ в месяц). Округление до «красивых» сумм задаётся в `steps_rules` (например, `plan_round: thousands`). |
 | `fact_amount` | NUMERIC(12,2) NULL | Для шагов финцели: фактически внесённая сумма за период. Редактируется пользователем; колонка «Итог» (профицит/дефицит/по плану) считается по плану и факту. |
 
 Индекс (не таблица): `idx_dreams_steps_dream_id` на столбец `dreams_steps(dream_id)` — для быстрого поиска шагов по мечте (mig_001, имя обновлено в mig_017). Всё, что касается мечт, имеет префикс `dreams_`.
+
+### 4c. `dreams_steps_events`
+
+**Назначение:** дневник событий по шагам (переносы, отметка «не выполнен», выполнение с опозданием и т.д.). Миграция `_sql/mig_dreams_steps_waived_events_late.sql`.
+
+| Колонка     | Тип            | Описание |
+|-------------|----------------|----------|
+| `id`        | BIGSERIAL PK   | |
+| `step_id`   | INT NOT NULL REFERENCES `dreams_steps(id)` ON DELETE CASCADE | Шаг. |
+| `dream_id`  | INT NOT NULL REFERENCES `dreams(id)` ON DELETE CASCADE | Мечта (денормализация для выборок). |
+| `user_id`   | INT NOT NULL REFERENCES `users(id)` ON DELETE CASCADE | Кто совершил действие. |
+| `event_type`| VARCHAR(40) NOT NULL | Например: `waived`, `waived_cleared`, `completed`, `series_completed`, `comment`, `deadline_changed`. |
+| `message`   | TEXT NULL      | Текст для дневника / комментарий. |
+| `created_at`| TIMESTAMPTZ NOT NULL DEFAULT NOW() | |
+
+Индексы: `idx_dreams_steps_events_user_created`, `idx_dreams_steps_events_step`.
 
 ---
 
