@@ -1428,7 +1428,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">139</span>
+                    <span class="app-version" aria-hidden="true">140</span>
                 </div>
             </footer>
         </div>
@@ -2168,7 +2168,23 @@
             } else {
                 if (db) db.classList.remove('dreams-mobile-list-view');
                 if (bb) bb.classList.remove('dreams-mobile-list-view');
-                if (fc) fc.setAttribute('title', 'Нажмите для списка мечт');
+                if (fc) fc.setAttribute('title', (isDreams || isBuddy) ? 'Нажмите для списка мечт' : 'Открыть список мечт');
+            }
+        }
+        function openDreamsListFromFooterCounter() {
+            if (!currentUser) return;
+            dreamsViewMode = 'list';
+            var isBuddyVisible = !document.getElementById('buddy-block').classList.contains('hidden');
+            var isStepsVisible = !document.getElementById('steps-block').classList.contains('hidden');
+            var preferBuddy = isBuddyVisible || (isStepsVisible && stepsViewIsBuddy) || (headerView === 'buddy' && !!(currentUser && currentUser.buddy_id));
+            if (preferBuddy && currentUser && currentUser.buddy_id) {
+                headerView = 'buddy';
+                applyHeaderView();
+                switchMenu('buddy');
+            } else {
+                headerView = 'me';
+                applyHeaderView();
+                switchMenu('dreams');
             }
         }
         function updateCabinetNavActive(section) {
@@ -3661,21 +3677,15 @@
         var footerCounter = document.getElementById('app-footer-counter');
         if (footerCounter) {
             footerCounter.addEventListener('click', function() {
-                var isDreams = !document.getElementById('dreams-block').classList.contains('hidden');
-                var isBuddy = !document.getElementById('buddy-block').classList.contains('hidden');
-                if (isDreams || isBuddy) {
-                    dreamsViewMode = 'list';
-                    applyDreamsViewMode();
-                }
+                openDreamsListFromFooterCounter();
             });
             footerCounter.setAttribute('role', 'button');
             footerCounter.setAttribute('tabindex', '0');
-            footerCounter.setAttribute('title', 'Нажмите, чтобы переключить на список мечт');
+            footerCounter.setAttribute('title', 'Открыть список мечт');
             footerCounter.addEventListener('keydown', function(e) {
-                if ((e.key === 'Enter' || e.key === ' ') && (!document.getElementById('dreams-block').classList.contains('hidden') || !document.getElementById('buddy-block').classList.contains('hidden'))) {
+                if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    dreamsViewMode = 'list';
-                    applyDreamsViewMode();
+                    openDreamsListFromFooterCounter();
                 }
             });
         }
