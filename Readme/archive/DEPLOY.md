@@ -49,6 +49,6 @@ Nginx менять не нужно: всё идёт в `proxy_pass` на uvicorn
 
 ## Безопасность (Production)
 
-- **Uvicorn** должен слушать только **127.0.0.1:8000**, чтобы трафик шёл только через Nginx (proxy). На проде используется **island.service** (см. [Readme/Contex.md](Readme/Contex.md)). В репо — `island.service` с `--host 127.0.0.1`. На сервере после правки: `sudo systemctl daemon-reload && sudo systemctl restart island`.
+- **Uvicorn** должен слушать только **127.0.0.1:8000**, чтобы трафик шёл только через Nginx (proxy). Исторически на проде использовался **island.service** (см. архив [legacy-systemd.md](legacy-systemd.md)). Актуальный пульт — [RUNBOOK.md](../RUNBOOK.md) (Docker).
 - **Секреты:** приложение читает переменные из `.env` в рабочем каталоге (`load_dotenv()` в main.py). Файл `.env` не должен быть в репозитории; на сервере: `chmod 600 /home/makc/Apps/island/.env`.
 - **SSL:** для islanddream.ru типично Certbot (Let's Encrypt) + автопродление (cron или systemd timer). Конфиг Nginx — в `sites-available` с `listen 443 ssl` и путями к сертификатам.
