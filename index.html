@@ -9,6 +9,26 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
     <link href="https://fonts.cdnfonts.com/css/harp" rel="stylesheet">
     <style>
+        /* Фирменные токены (см. Readme/UI-standards.md) */
+        :root {
+            --island-accent: #4CAF50;
+            --island-accent-hover: #43a047;
+            --island-accent-dark: #2e7d32;
+            --island-accent-deep: #1b5e20;
+            --island-accent-soft: #e8f5e9;
+            --island-accent-border: #a5d6a7;
+            --island-text: #333;
+            --island-text-muted: #546e7a;
+            --island-danger: #c62828;
+            --island-danger-hover: #b71c1c;
+            --island-surface: #ffffff;
+            --island-secondary-bg: #f1f5f3;
+            --island-secondary-border: #b0bec5;
+            --island-secondary-hover: #e8f0ea;
+            --island-secondary-text: #37474f;
+            --island-link: #2196F3;
+            --island-cal-accent: #01579b;
+        }
         /* Шрифт ФИО в хедере: положите fonts/KudryashevHeadline.woff2 (или .woff) — тогда раскомментируйте строку ниже и поправьте расширение */
         /* @font-face { font-family: 'kudryashevheadline'; src: url('fonts/KudryashevHeadline.woff2') format('woff2'); font-display: swap; } */
         body { font-family: Arial, sans-serif; margin: 20px; min-height: 100vh; background-color: #e8e4df; background-image: url('examples/breakfast.png'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat; }
@@ -17,7 +37,7 @@
         input[type="tel"], input[type="password"], input[type="text"], button {
             width: 100%; padding: 10px; margin: 8px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
         }
-        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button { background-color: var(--island-accent); color: white; border: none; cursor: pointer; }
         button:hover { opacity: 0.8; }
         .hidden { display: none; }
         .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -109,8 +129,8 @@
         .modal-deadline-hints a:hover { color: #555; text-decoration: underline; }
         .modal input, .modal select, .modal textarea { width: 100%; padding: 8px; box-sizing: border-box; }
         .modal textarea.dream-text { min-height: 6em; resize: vertical; }
-        .modal-actions .btn-danger { background: #c62828; color: #fff; }
-        .modal-actions .btn-danger:hover { background: #b71c1c; }
+        .modal-actions .btn-danger { background: var(--island-danger); color: #fff; border: 1px solid var(--island-danger-hover); }
+        .modal-actions .btn-danger:hover:not(:disabled) { background: var(--island-danger-hover); }
         .dreams-table tr.accordion-row td { background: #f9f9f9; padding: 12px 12px 16px 24px; border-left: 3px solid #4CAF50; vertical-align: top; }
         .dream-new-highlight { animation: dream-highlight 0.4s ease-out; box-shadow: 0 0 0 2px rgba(76,175,80,0.6); }
         .dreams-table tr.dream-new-highlight td { background: rgba(232,245,233,0.9) !important; }
@@ -203,16 +223,49 @@
         .step-row.add-step-form { gap: 10px; }
         .step-row.add-step-form input[type="text"] { flex: 1; min-width: 0; padding: 4px 8px; }
         .step-row.add-step-form button { padding: 6px 12px; width: auto; flex: 0 0 auto; }
-        .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.hidden { display: none; }
-        .modal { background: white; padding: 24px; border-radius: 8px; min-width: 320px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .modal h3 { margin-top: 0; }
+        .modal { background: var(--island-surface); padding: 24px; border-radius: 12px; min-width: 320px; max-width: 90%; box-shadow: 0 8px 32px rgba(46, 83, 60, 0.18); border: 1px solid rgba(165, 214, 167, 0.45); }
+        .modal h3 { margin-top: 0; color: var(--island-accent-deep); font-weight: 600; }
+        .modal-step-series-delete h3 { margin-bottom: 8px; }
+        .modal-step-series-delete .modal-step-series-delete-lead { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--island-secondary-text); }
+        .modal-step-series-delete .modal-step-series-delete-hint { margin: 0 0 14px; color: var(--island-text-muted); font-size: 13px; line-height: 1.45; }
         .modal.modal-add-step { width: 560px; max-width: 92vw; box-sizing: border-box; }
         .modal label { display: block; margin-top: 10px; margin-bottom: 4px; color: #555; }
-        .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
-        .modal-actions button { width: auto; padding: 8px 16px; }
-        .modal-actions button.secondary { background: #888; }
-        .modal-actions button:disabled { opacity: 0.8; cursor: not-allowed; }
+        .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
+        .modal-actions.modal-actions--choice { justify-content: flex-start; }
+        .modal-actions button {
+            width: auto; padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            border: 1px solid transparent; box-sizing: border-box;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+        .modal-actions button:not(.secondary):not(.island-btn-outline):not(.btn-danger) {
+            background: var(--island-accent); color: #fff; border-color: var(--island-accent-dark);
+            box-shadow: 0 1px 3px rgba(46, 125, 50, 0.22);
+        }
+        .modal-actions button:not(.secondary):not(.island-btn-outline):not(.btn-danger):hover:not(:disabled) {
+            background: var(--island-accent-dark); opacity: 1;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.28);
+        }
+        .modal-actions button.secondary {
+            background: var(--island-secondary-bg); color: var(--island-secondary-text);
+            border: 1px solid var(--island-secondary-border);
+        }
+        .modal-actions button.secondary:hover:not(:disabled) {
+            background: var(--island-secondary-hover); border-color: #90a4ae; color: #263238; opacity: 1;
+        }
+        .modal-actions .island-btn-outline {
+            background: var(--island-surface); color: var(--island-accent-dark);
+            border: 1px solid var(--island-accent);
+        }
+        .modal-actions .island-btn-outline:hover:not(:disabled) {
+            background: var(--island-accent-soft); border-color: var(--island-accent-dark);
+            color: var(--island-accent-deep); opacity: 1; box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.12);
+        }
+        .modal-actions .island-btn-outline:disabled {
+            opacity: 0.5; cursor: not-allowed; background: #fafafa; border-color: #e0e0e0; color: #9e9e9e;
+        }
+        .modal-actions button:disabled { opacity: 0.55; cursor: not-allowed; }
         .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
         .add-buddy-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
         .add-buddy-filter-btns { display: flex; gap: 4px; }
@@ -538,10 +591,13 @@
         .step-actions-left, .step-actions-right { display: flex; flex-direction: row; gap: 6px; flex: 0 0 auto; align-items: center; justify-content: flex-start; padding-top: 2px; }
         .step-actions-left { padding-right: 6px; }
         .step-actions-right { padding-left: 6px; border-left: 1px solid #eee; }
-        .step-main-col { flex: 1; min-width: 0; padding: 0 8px; border-left: 1px solid #ccc; }
+        .step-main-col { flex: 1; min-width: 0; padding: 0 8px; border-left: none; }
+        .step-unified-inner .step-title-wrap { border-left: none; padding-left: 0; min-width: 0; }
         .step-time-under { margin-top: 4px; font-size: 12px; color: #667289; line-height: 1.35; }
         .step-time-under .step-time-range { font-weight: 600; color: #455a64; font-variant-numeric: tabular-nums; }
         .step-time-under .step-time-range.placeholder { font-size: 11px; color: #bdbdbd; font-weight: 400; }
+        .step-time-inline { display: inline-block; margin-right: 7px; font-size: 12px; color: #455a64; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .step-time-inline.placeholder { color: #b0bec5; font-weight: 400; }
         .step-unified-inner .step-waived-btn, .step-unified-inner .step-waived-clear, .step-unified-inner .step-edit, .step-unified-inner .step-delete { border: none; border-left: none; border-radius: 4px; background: #f5f5f5; }
         .step-unified-inner .step-edit { color: #2e7d32; }
         .step-unified-inner .step-delete { color: #546e7a; }
@@ -580,6 +636,23 @@
         .step-item-plain .step-title-wrap { min-width: 200px; }
         .step-item-plain .step-title-text { cursor: pointer; }
         .step-item-plain .step-restore { font-size: 12px; color: #2196F3; cursor: pointer; flex: 0 0 auto; width: auto; align-self: center; }
+        .step-series-quality { display: inline-block; margin-right: 6px; font-size: 13px; vertical-align: middle; }
+        .step-series-range { display: inline-block; margin-left: 8px; font-size: 11px; color: #607d8b; background: #edf4fa; border: 1px solid #d8e4ef; border-radius: 12px; padding: 1px 7px; vertical-align: middle; }
+        .step-series-count { display: inline-block; margin-left: 6px; font-size: 11px; color: #546e7a; }
+        /* Компактная серия в мечте: действия справа, текст с левого края без пустой колонки */
+        .step-unified-inner.step-compact-series-inner .step-actions-left { display: none; }
+        .step-unified-inner.step-compact-series-inner .step-main-col { padding-left: 0; border-left: none; }
+        .step-unified-inner.step-compact-series-inner .step-actions-right { border-left: none; padding-left: 0; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .step-unified-inner.step-compact-series-inner .step-title-wrap { min-width: 0; }
+        .step-unified-inner.step-compact-series-inner .step-waived-btn,
+        .step-unified-inner.step-compact-series-inner .step-waived-clear { border-left: none; }
+        .step-unified-inner .step-series-remove {
+            flex: 0 0 auto; width: auto; min-width: 1.75em; max-width: 2.25em; padding: 4px 2px; margin: 0;
+            border: none; border-radius: 4px; background: #f5f5f5; cursor: pointer; font-size: 1.1em; line-height: 1;
+            box-sizing: content-box; text-align: center; color: #c62828; font-weight: 700;
+        }
+        .step-unified-inner .step-series-remove:hover { background: #ffebee; }
+        .step-mobile-action-series-remove { color: #c62828; }
         /* Лендинг: приветственная страница, блок по центру экрана, полупрозрачный фон */
         body.landing-visible .container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; box-shadow: none; backdrop-filter: none; }
         /* Кабинет: убираем backdrop-filter у контейнера, чтобы position:fixed хедера работал на десктопе */
@@ -1101,6 +1174,31 @@
                     </div>
                 </div>
             </div>
+            <!-- Модалка: подтверждение массового действия по серии -->
+            <div id="modal-step-series-confirm" class="modal-overlay hidden">
+                <div class="modal">
+                    <h3>Подтверждение действия</h3>
+                    <p id="step-series-confirm-text" style="margin:0 0 12px;color:#56637b;font-size:14px;">Подтверди действие для серии шагов.</p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="step-series-confirm-cancel">Отмена</button>
+                        <button type="button" id="step-series-confirm-ok">Подтвердить</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Модалка: убрать шаги серии из расписания (объём по дате дедлайна, UTC) -->
+            <div id="modal-step-series-delete" class="modal-overlay hidden">
+                <div class="modal modal-step-series-delete">
+                    <h3>Удаление шагов серии</h3>
+                    <p id="step-series-delete-lead" class="modal-step-series-delete-lead"></p>
+                    <p class="modal-step-series-delete-hint">Что убрать из расписания?</p>
+                    <div class="modal-actions modal-actions--choice">
+                        <button type="button" class="island-btn-outline" id="step-series-delete-all">Все</button>
+                        <button type="button" class="island-btn-outline" id="step-series-delete-past">Прошлые</button>
+                        <button type="button" class="island-btn-outline" id="step-series-delete-future">Будущие</button>
+                        <button type="button" class="secondary" id="step-series-delete-cancel">Отмена</button>
+                    </div>
+                </div>
+            </div>
             <!-- Модальное окно: новая мечта -->
             <div id="modal-new-dream" class="modal-overlay hidden">
                 <div class="modal">
@@ -1428,7 +1526,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">140</span>
+                    <span class="app-version" aria-hidden="true">147</span>
                 </div>
             </footer>
         </div>
@@ -3060,6 +3158,40 @@
             if (ms == null) return false;
             return Date.now() >= ms;
         }
+        /** Для подписей модалок: «11 просроченных шагов» / «1 просроченный шаг» / «3 просроченных шага». */
+        function overdueStepsPhraseRu(n) {
+            var k = Math.floor(Math.abs(Number(n))) || 0;
+            if (k < 1) return '0 просроченных шагов';
+            var m100 = k % 100, m10 = k % 10;
+            if (m100 >= 11 && m100 <= 14) return k + ' просроченных шагов';
+            if (m10 === 1) return '1 просроченный шаг';
+            if (m10 >= 2 && m10 <= 4) return k + ' просроченных шага';
+            return k + ' просроченных шагов';
+        }
+        /** Подсказка ✓ в компактной серии (только просроченные экземпляры). */
+        function overdueSeriesMarkDoneTitleRu(n) {
+            var k = Math.floor(Math.abs(Number(n))) || 0;
+            if (k < 1) return 'Выполнено';
+            var m100 = k % 100, m10 = k % 10;
+            var frag;
+            if (m100 >= 11 && m100 <= 14) frag = k + ' просроченных';
+            else if (m10 === 1) frag = '1 просроченный';
+            else if (m10 >= 2 && m10 <= 4) frag = k + ' просроченных';
+            else frag = k + ' просроченных';
+            return 'Отметить ' + frag + ' как выполненные';
+        }
+        /** Подсказка − в компактной серии. */
+        function overdueSeriesMarkWaiveTitleRu(n) {
+            var k = Math.floor(Math.abs(Number(n))) || 0;
+            if (k < 1) return 'Не выполнен';
+            var m100 = k % 100, m10 = k % 10;
+            var frag;
+            if (m100 >= 11 && m100 <= 14) frag = k + ' просроченных';
+            else if (m10 === 1) frag = '1 просроченный';
+            else if (m10 >= 2 && m10 <= 4) frag = k + ' просроченных';
+            else frag = k + ' просроченных';
+            return 'Отметить ' + frag + ' как не выполненные';
+        }
         var stepWaivedModal = { dreamId: 0, stepId: 0 };
         function updateStepWaivedSaveButtonState() {
             var ta = document.getElementById('step-waived-note-text');
@@ -3289,6 +3421,89 @@
             document.getElementById('modal-step-done-late').classList.add('hidden');
             stepDoneLateModal = { dreamId: 0, stepId: 0, doneBtn: null };
         }
+        var stepSeriesConfirmModal = { onConfirm: null };
+        function openStepSeriesConfirmModal(text, onConfirm) {
+            var txt = document.getElementById('step-series-confirm-text');
+            if (txt) txt.textContent = text || 'Подтверди действие для серии шагов.';
+            stepSeriesConfirmModal.onConfirm = typeof onConfirm === 'function' ? onConfirm : null;
+            var m = document.getElementById('modal-step-series-confirm');
+            if (m) m.classList.remove('hidden');
+        }
+        function closeStepSeriesConfirmModal() {
+            var m = document.getElementById('modal-step-series-confirm');
+            if (m) m.classList.add('hidden');
+            stepSeriesConfirmModal.onConfirm = null;
+        }
+        function confirmStepSeriesConfirmModal() {
+            var fn = stepSeriesConfirmModal.onConfirm;
+            closeStepSeriesConfirmModal();
+            if (typeof fn === 'function') fn();
+        }
+        var stepSeriesDeleteModal = { seriesObj: null, dreamId: 0, onRefresh: null };
+        function utcTodayIsoDate() {
+            var d = new Date();
+            return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+        }
+        function stepDeadlineDateIso(step) {
+            return (step && step.deadline) ? String(step.deadline).slice(0, 10) : '';
+        }
+        /** Серия: шаги для частичного удаления по календарной дате дедлайна (UTC). Прошлые — строго до сегодня; будущие — сегодня и позже. */
+        function compactSeriesStepsForDeleteScope(seriesObj, scope) {
+            var all = (seriesObj && seriesObj.steps) ? seriesObj.steps.slice().filter(function(st) { return st && !st.deleted; }) : [];
+            if (scope === 'all') return all;
+            var today = utcTodayIsoDate();
+            if (scope === 'past')
+                return all.filter(function(st) {
+                    var ds = stepDeadlineDateIso(st);
+                    return /^\d{4}-\d{2}-\d{2}$/.test(ds) && ds < today;
+                });
+            if (scope === 'future')
+                return all.filter(function(st) {
+                    var ds = stepDeadlineDateIso(st);
+                    return /^\d{4}-\d{2}-\d{2}$/.test(ds) && ds >= today;
+                });
+            return all;
+        }
+        function openStepSeriesDeleteModal(seriesObj, dreamId, onRefresh) {
+            stepSeriesDeleteModal.seriesObj = seriesObj;
+            stepSeriesDeleteModal.dreamId = dreamId;
+            stepSeriesDeleteModal.onRefresh = typeof onRefresh === 'function' ? onRefresh : null;
+            var lead = document.getElementById('step-series-delete-lead');
+            if (lead) lead.textContent = 'Серия «' + (seriesObj && seriesObj.title ? seriesObj.title : '') + '».';
+            var nAll = compactSeriesStepsForDeleteScope(seriesObj, 'all').length;
+            var nPast = compactSeriesStepsForDeleteScope(seriesObj, 'past').length;
+            var nFut = compactSeriesStepsForDeleteScope(seriesObj, 'future').length;
+            var bAll = document.getElementById('step-series-delete-all');
+            var bPast = document.getElementById('step-series-delete-past');
+            var bFut = document.getElementById('step-series-delete-future');
+            if (bAll) bAll.disabled = nAll === 0;
+            if (bPast) bPast.disabled = nPast === 0;
+            if (bFut) bFut.disabled = nFut === 0;
+            var m = document.getElementById('modal-step-series-delete');
+            if (m) m.classList.remove('hidden');
+        }
+        function closeStepSeriesDeleteModal() {
+            var m = document.getElementById('modal-step-series-delete');
+            if (m) m.classList.add('hidden');
+            stepSeriesDeleteModal = { seriesObj: null, dreamId: 0, onRefresh: null };
+        }
+        function runStepSeriesDeleteScope(scope) {
+            var ctx = stepSeriesDeleteModal;
+            var g = ctx.seriesObj;
+            var dreamId = ctx.dreamId;
+            var onr = ctx.onRefresh;
+            closeStepSeriesDeleteModal();
+            if (!g) return;
+            var targets = compactSeriesStepsForDeleteScope(g, scope);
+            if (!targets.length) {
+                alert('Нет шагов в выбранной категории');
+                return;
+            }
+            Promise.all(targets.map(function(st) {
+                var did = st.dream_id || g.dream_id || dreamId;
+                return patchStep(did, st.id, { deleted: true }).then(function() { st.deleted = true; });
+            })).then(function() { if (onr) onr(); }).catch(function() { alert('Не удалось сохранить'); });
+        }
         var finStepModalContext = null;
         function openFinStepConfirmModal(stepObj, checkboxEl, doneBtnEl) {
             finStepModalContext = { step: stepObj, checkbox: checkboxEl || null, doneBtn: doneBtnEl || null };
@@ -3448,7 +3663,7 @@
                     accTr.className = 'accordion-row hidden';
                     accTr.id = 'buddy-accordion-' + dreamId;
                     accTr.dataset.dreamId = dreamId;
-                    var stepsHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, { canManage: false, isReadOnly: true }) + '</div>';
+                    var stepsHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: false, isReadOnly: true, compactSeries: true }) + '</div>';
                     accTr.innerHTML = '<td colspan="6">' + stepsHtml + '</td>';
                     tbodyEl.appendChild(accTr);
                 }
@@ -3508,7 +3723,7 @@
                 accTr.dataset.dreamId = dreamId;
                 var steps = sortStepsByDeadline((d.steps || []).filter(function(s) { return !s.deleted; }));
                 var titleCounterMap = buildStepTitleCounterMap(steps);
-                var stepsHtml = buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false });
+                var stepsHtml = buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false, compactSeries: true });
                 var addRowBuddy = '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>';
                 accTr.innerHTML = '<td colspan="6">' + addRowBuddy + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div>' + addRowBuddy + '</td>';
                 tbodyEl.appendChild(accTr);
@@ -3517,7 +3732,7 @@
                     btn.addEventListener('click', function(ev) { ev.stopPropagation(); if (ENABLE_SPECIAL_STEPS_BOOKS_FINANCE && isFinCatBuddy) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                 });
                 var listRootBuddy = accTr.querySelector('.steps-list');
-                wireDreamStepsList(listRootBuddy, dreamId, steps, {
+                wireDreamStepsCompact(listRootBuddy, dreamId, steps, {
                     canManage: true,
                     isReadOnly: false,
                     useAccordionDelete: true,
@@ -3555,7 +3770,7 @@
                 var price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
                 var steps = sortStepsByDeadline((d.steps || []).filter(function(s) { return !s.deleted; }));
                 var titleCounterMap = buildStepTitleCounterMap(steps);
-                var stepsHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, { canManage: false, isReadOnly: true }) + '</div>';
+                var stepsHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: false, isReadOnly: true, compactSeries: true }) + '</div>';
                 var card = document.createElement('div');
                 card.className = 'dreams-mobile-card';
                 card.dataset.dreamId = dreamId;
@@ -3563,10 +3778,10 @@
                     var statusId = d.status_id != null ? d.status_id : 1;
                     var isPublic = d.is_public !== false;
                     var eyeIcon = isPublic ? '👁️' : '🙈';
-                    var stepsEditableHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false }) + '</div>';
+                    var stepsEditableHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false, compactSeries: true }) + '</div>';
                     var cardOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
                     var addRowBuddyCard = '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>';
-                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div>' + addRowBuddyCard + stepsEditableHtml + addRowBuddyCard + '</div>';
+                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + addRowBuddyCard + stepsEditableHtml + addRowBuddyCard + '</div>';
                     card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                     card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.preventDefault(); ev.stopPropagation(); var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1', oid ? parseInt(oid, 10) : undefined); });
                     var picker = card.querySelector('.status-picker');
@@ -3583,7 +3798,7 @@
                         btn.addEventListener('click', function(ev) { ev.stopPropagation(); if (ENABLE_SPECIAL_STEPS_BOOKS_FINANCE && isFinCatCard) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                     });
                     var buddySwipeList = card.querySelector('.steps-list');
-                    wireDreamStepsList(buddySwipeList, dreamId, steps, {
+                    wireDreamStepsCompact(buddySwipeList, dreamId, steps, {
                         canManage: true,
                         isReadOnly: false,
                         useAccordionDelete: true,
@@ -3593,7 +3808,7 @@
                         }
                     });
                 } else {
-                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span></div><div class="card-steps"><div class="card-steps-title">Шаги</div>' + stepsHtml + '</div>';
+                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + stepsHtml + '</div>';
                 }
                 track.appendChild(card);
             });
@@ -3824,6 +4039,16 @@
         });
         var modalStepDoneLate = document.getElementById('modal-step-done-late');
         if (modalStepDoneLate) modalStepDoneLate.addEventListener('click', function(e) { if (e.target === modalStepDoneLate) closeStepDoneLateModal(); });
+        document.getElementById('step-series-confirm-cancel') && document.getElementById('step-series-confirm-cancel').addEventListener('click', closeStepSeriesConfirmModal);
+        document.getElementById('step-series-confirm-ok') && document.getElementById('step-series-confirm-ok').addEventListener('click', confirmStepSeriesConfirmModal);
+        document.getElementById('step-series-delete-cancel') && document.getElementById('step-series-delete-cancel').addEventListener('click', closeStepSeriesDeleteModal);
+        document.getElementById('step-series-delete-all') && document.getElementById('step-series-delete-all').addEventListener('click', function() { runStepSeriesDeleteScope('all'); });
+        document.getElementById('step-series-delete-past') && document.getElementById('step-series-delete-past').addEventListener('click', function() { runStepSeriesDeleteScope('past'); });
+        document.getElementById('step-series-delete-future') && document.getElementById('step-series-delete-future').addEventListener('click', function() { runStepSeriesDeleteScope('future'); });
+        var modalStepSeriesConfirm = document.getElementById('modal-step-series-confirm');
+        if (modalStepSeriesConfirm) modalStepSeriesConfirm.addEventListener('click', function(e) { if (e.target === modalStepSeriesConfirm) closeStepSeriesConfirmModal(); });
+        var modalStepSeriesDelete = document.getElementById('modal-step-series-delete');
+        if (modalStepSeriesDelete) modalStepSeriesDelete.addEventListener('click', function(e) { if (e.target === modalStepSeriesDelete) closeStepSeriesDeleteModal(); });
         var showcaseBackLink = document.getElementById('showcase-back-link');
         if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         var headerBell = document.getElementById('header-bell');
@@ -4358,6 +4583,161 @@
             }
             return '<div class="step-time-under"><span class="step-time-range' + (isPlaceholder ? ' placeholder' : '') + timeKindClass + '">' + escapeHtml(timeLabel) + '</span></div>';
         }
+        function buildStepTimeInlineHtml(stepObj) {
+            var from = formatTimeHM(stepObj && stepObj.start_time ? stepObj.start_time : '');
+            var to = formatTimeHM(stepObj && stepObj.end_time ? stepObj.end_time : '');
+            var timeLabel = '';
+            var cls = '';
+            if (from && to) timeLabel = from + '–' + to;
+            else if (from) timeLabel = from;
+            else if (to) timeLabel = to;
+            else return '';
+            return '<span class="step-time-inline' + cls + '">' + escapeHtml(timeLabel) + '</span>';
+        }
+        function formatSeriesRangeRu(fromIso, toIso) {
+            function toDm(iso) {
+                var m = (iso || '').toString().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!m) return '';
+                return m[3] + '.' + m[2];
+            }
+            var a = toDm(fromIso), b = toDm(toIso);
+            if (a && b) return a + ' по ' + b;
+            return a || b || 'без даты';
+        }
+        function compactSeriesKeyForStep(stepObj) {
+            if (stepObj && stepObj.series_id) return 'sid:' + String(stepObj.series_id);
+            var t = ((stepObj && stepObj.title) || '').toString().trim().toLowerCase();
+            var st = ((stepObj && stepObj.start_time) || '').toString().slice(0, 5);
+            var et = ((stepObj && stepObj.end_time) || '').toString().slice(0, 5);
+            return 'f:' + t + '|' + st + '|' + et;
+        }
+        function buildDreamCompactSeriesData(sortedSteps, dreamId) {
+            var map = {};
+            var list = [];
+            (sortedSteps || []).forEach(function(s) {
+                if (!s || s.deleted) return;
+                normalizeStepForUi(s);
+                var key = compactSeriesKeyForStep(s);
+                var g = map[key];
+                if (!g) {
+                    g = {
+                        key: key,
+                        title: (s.title || '').toString().trim(),
+                        start_time: s.start_time || null,
+                        end_time: s.end_time || null,
+                        dream_id: s.dream_id || dreamId || null,
+                        series_id: s.series_id || null,
+                        firstStep: s,
+                        steps: [],
+                        minDate: null,
+                        maxDate: null,
+                        total: 0,
+                        completedCount: 0,
+                        waivedCount: 0,
+                        overdueCount: 0
+                    };
+                    map[key] = g;
+                    list.push(g);
+                }
+                g.steps.push(s);
+                g.total += 1;
+                if (s.completed) g.completedCount += 1;
+                if (s.waived) g.waivedCount += 1;
+                if (stepIsOverdueUtc(s) && !s.completed && !s.waived) g.overdueCount += 1;
+                var d = (s.deadline || '').toString().slice(0, 10);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                    if (!g.minDate || d < g.minDate) g.minDate = d;
+                    if (!g.maxDate || d > g.maxDate) g.maxDate = d;
+                }
+            });
+            list.forEach(function(g) {
+                var icon = '◻';
+                if (g.waivedCount === g.total) icon = '−';
+                else if (g.completedCount === g.total) icon = '✓';
+                else if (g.overdueCount > 0) icon = '⏰';
+                g.qualityIcon = icon;
+                g.rangeLabel = formatSeriesRangeRu(g.minDate, g.maxDate);
+            });
+            list.sort(function(a, b) {
+                var ad = a.minDate || '9999-12-31';
+                var bd = b.minDate || '9999-12-31';
+                if (ad !== bd) return ad.localeCompare(bd);
+                return String(a.title || '').localeCompare(String(b.title || ''), 'ru');
+            });
+            return list;
+        }
+        function buildCompactSeriesStepView(seriesObj) {
+            return {
+                id: seriesObj.firstStep && seriesObj.firstStep.id,
+                dream_id: seriesObj.dream_id,
+                title: seriesObj.title || 'Шаг',
+                completed: seriesObj.completedCount === seriesObj.total,
+                waived: seriesObj.waivedCount === seriesObj.total,
+                completed_late: false,
+                start_time: seriesObj.start_time || null,
+                end_time: seriesObj.end_time || null,
+                deadline: seriesObj.maxDate || null,
+                series_range_label: seriesObj.rangeLabel,
+                series_quality_icon: seriesObj.qualityIcon,
+                series_count_label: String(seriesObj.total),
+                series_overdue_count: seriesObj.overdueCount
+            };
+        }
+        function compactSeriesBulkTargetSteps(seriesObj, action) {
+            var all = (seriesObj && seriesObj.steps) ? seriesObj.steps.slice() : [];
+            if (action === 'done_on' || action === 'waive_on') {
+                return all.filter(function(st) {
+                    normalizeStepForUi(st);
+                    return stepIsOverdueUtc(st) && !st.completed && !st.waived;
+                });
+            }
+            return all;
+        }
+        function doCompactSeriesBulkAction(seriesObj, action, dreamId) {
+            if (!seriesObj || !seriesObj.steps || !seriesObj.steps.length) return Promise.resolve();
+            var steps = (action === 'done_on' || action === 'waive_on')
+                ? compactSeriesBulkTargetSteps(seriesObj, action)
+                : seriesObj.steps.slice();
+            if ((action === 'done_on' || action === 'waive_on') && !steps.length) return Promise.resolve();
+            if (action === 'done_on' || action === 'done_off') {
+                return Promise.all(steps.map(function(st) {
+                    var did = st.dream_id || seriesObj.dream_id || dreamId;
+                    return saveStepCompleted(did, st.id, action === 'done_on').then(function() {
+                        st.completed = action === 'done_on';
+                        if (action === 'done_on') st.waived = false;
+                    });
+                }));
+            }
+            if (action === 'waive_on' || action === 'waive_off') {
+                return Promise.all(steps.map(function(st) {
+                    var did = st.dream_id || seriesObj.dream_id || dreamId;
+                    return patchStep(did, st.id, { waived: action === 'waive_on' }).then(function() {
+                        st.waived = action === 'waive_on';
+                        if (action === 'waive_on') st.completed = false;
+                    });
+                }));
+            }
+            if (action === 'delete_on') {
+                return Promise.all(steps.map(function(st) {
+                    var did = st.dream_id || seriesObj.dream_id || dreamId;
+                    return patchStep(did, st.id, { deleted: true }).then(function() {
+                        st.deleted = true;
+                    });
+                }));
+            }
+            return Promise.resolve();
+        }
+        function buildDreamStepsCompactHtml(dreamId, sortedSteps, titleCounterMap, opts) {
+            var series = buildDreamCompactSeriesData(sortedSteps || [], dreamId);
+            if (!series.length) return '';
+            var html = '';
+            series.forEach(function(g) {
+                var v = buildCompactSeriesStepView(g);
+                var rowClass = 'step-item-plain step-unified-line step-compact-series-row';
+                html += '<div class="' + rowClass + '" data-dream-id="' + dreamId + '" data-series-key="' + escapeAttr(g.key) + '" data-step-id="' + v.id + '">' + buildUnifiedStepRowHtml(dreamId, v, {}, opts) + '</div>';
+            });
+            return html;
+        }
         /**
          * Единая разметка строки шага (эталон temp). opts: canManage, isReadOnly, useAccordionDelete, omitRight (buddy view).
          */
@@ -4366,54 +4746,115 @@
             var canManage = !!opts.canManage;
             var isReadOnly = !!opts.isReadOnly;
             var omitRight = !!opts.omitRight;
+            var compactSeries = !!opts.compactSeries;
+            var seriesOd = (compactSeries && typeof s.series_overdue_count === 'number') ? s.series_overdue_count : null;
+            var hideSeriesBulkDoneWaive = compactSeries && seriesOd !== null && seriesOd === 0 && !s.completed && !s.waived;
             var fin = !!s.isFinStep;
             var displayTitle = stepTitleWithCounter(s, titleCounterMap || {});
             var overdue = stepIsOverdueUtc(s);
             var badges = '';
-            if (overdue && !s.completed && !s.waived) badges += '<span class="step-badge step-badge-overdue">просрочен</span>';
+            if (compactSeries && typeof s.series_overdue_count === 'number' && s.series_overdue_count > 0) {
+                badges += '<span class="step-badge step-badge-overdue">просрочено ' + escapeHtml(String(s.series_overdue_count)) + '</span>';
+            } else if (!compactSeries && overdue && !s.completed && !s.waived) {
+                badges += '<span class="step-badge step-badge-overdue">просрочен</span>';
+            }
             if (s.waived) badges += '<span class="step-badge step-badge-waived">не выполнен</span>';
             if (s.completed && s.completed_late) badges += '<span class="step-badge step-badge-late">с опозданием</span>';
+            var seriesPrefix = s.series_quality_icon ? '<span class="step-series-quality" title="Состояние серии">' + escapeHtml(s.series_quality_icon) + '</span>' : '';
+            var seriesRange = s.series_range_label ? '<span class="step-series-range" title="Интервал серии">' + escapeHtml(s.series_range_label) + '</span>' : '';
+            var seriesCount = s.series_count_label ? '<span class="step-series-count" title="Количество шагов в серии">(' + escapeHtml(String(s.series_count_label)) + ')</span>' : '';
             var left = '';
             var right = '';
             var mobileItems = [];
+            var innerExtraClass = '';
             if (!isReadOnly && canManage) {
-                var doneOn = s.completed ? ' step-done-on' : '';
-                var doneDis = (!fin && s.waived) ? ' disabled' : '';
-                left += '<button type="button" class="step-done-btn' + doneOn + '" title="Выполнено"' + doneDis + '>✓</button>';
-                mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"><span class="step-mobile-action-icon">✓</span><span>Выполнил</span></button>');
-                if (!fin) {
-                    if (!s.completed && !s.waived)
-                        left += '<button type="button" class="step-waived-btn" title="Не выполнен">−</button>';
-                    else if (s.waived)
-                        left += '<button type="button" class="step-waived-clear" title="Снять отметку «не выполнен»">↩</button>';
-                    else
-                        left += '<span class="step-waived-spacer" style="display:inline-block;width:1.75em;height:1px;"></span>';
-                    if (!s.completed && !s.waived)
-                        left += '<button type="button" class="step-comment-btn" title="Комментарий в дневник">💬</button>';
-                    else
-                        left += '<span class="step-comment-spacer" style="display:inline-block;width:1.75em;height:1px;"></span>';
+                if (compactSeries && !omitRight && !fin) {
+                    innerExtraClass = ' step-compact-series-inner';
+                    var doneOnC = s.completed ? ' step-done-on' : '';
+                    var doneDisC = s.waived ? ' disabled' : '';
+                    var doneTitleC = 'Выполнено';
+                    if (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived)
+                        doneTitleC = overdueSeriesMarkDoneTitleRu(seriesOd);
+                    if (!hideSeriesBulkDoneWaive || s.completed) {
+                        right += '<button type="button" class="step-done-btn' + doneOnC + '" title="' + escapeAttr(doneTitleC) + '"' + doneDisC + '>✓</button>';
+                        var doneML = (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Выполнить просроченные' : 'Выполнил';
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneML) + '</span></button>');
+                    }
                     if (!s.completed && !s.waived) {
-                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived"><span class="step-mobile-action-icon">−</span><span>Не выполнил</span></button>');
+                        if (!hideSeriesBulkDoneWaive) {
+                            var wtitleC = (seriesOd !== null && seriesOd > 0) ? overdueSeriesMarkWaiveTitleRu(seriesOd) : 'Не выполнен';
+                            right += '<button type="button" class="step-waived-btn" title="' + escapeAttr(wtitleC) + '">−</button>';
+                        }
+                        right += '<button type="button" class="step-comment-btn" title="Комментарий в дневник">💬</button>';
+                        if (!hideSeriesBulkDoneWaive) {
+                            var wML = (seriesOd !== null && seriesOd > 0) ? 'Не выполнил просроченные' : 'Не выполнил';
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived"><span class="step-mobile-action-icon">−</span><span>' + escapeHtml(wML) + '</span></button>');
+                        }
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                     } else if (s.waived) {
+                        right += '<button type="button" class="step-waived-clear" title="Снять отметку «не выполнен»">↩</button>';
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived-clear" data-action="waived-clear"><span class="step-mobile-action-icon">↩</span><span>Снять «не выполнил»</span></button>');
                     }
-                }
-                if (!omitRight && !fin) {
-                    right += '<button type="button" class="step-move-btn" title="Перенос даты">⇢</button>';
                     right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
-                    right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
-                    mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
+                    right += '<button type="button" class="step-series-remove" title="Убрать шаги серии из расписания">✕</button>';
                     mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
-                    mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
-                } else if (!omitRight && fin) {
-                    right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
-                    right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
-                    mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
-                    mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
+                    mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-series-remove" data-action="series-remove"><span class="step-mobile-action-icon">✕</span><span>Убрать из расписания…</span></button>');
+                } else {
+                    var doneOn = s.completed ? ' step-done-on' : '';
+                    var doneDis = (!fin && s.waived) ? ' disabled' : '';
+                    var doneTitle = 'Выполнено';
+                    if (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived)
+                        doneTitle = overdueSeriesMarkDoneTitleRu(seriesOd);
+                    if (!hideSeriesBulkDoneWaive || s.completed) {
+                        left += '<button type="button" class="step-done-btn' + doneOn + '" title="' + escapeAttr(doneTitle) + '"' + doneDis + '>✓</button>';
+                        var doneMobileLabel = (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Выполнить просроченные' : 'Выполнил';
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneMobileLabel) + '</span></button>');
+                    } else {
+                        left += '<span class="step-waived-spacer" aria-hidden="true" style="display:inline-block;width:1.75em;height:1px;"></span>';
+                    }
+                    if (!fin) {
+                        if (!s.completed && !s.waived) {
+                            if (!hideSeriesBulkDoneWaive) {
+                                var wtitle = (compactSeries && seriesOd !== null && seriesOd > 0) ? overdueSeriesMarkWaiveTitleRu(seriesOd) : 'Не выполнен';
+                                left += '<button type="button" class="step-waived-btn" title="' + escapeAttr(wtitle) + '">−</button>';
+                            } else {
+                                left += '<span class="step-waived-spacer" aria-hidden="true" style="display:inline-block;width:1.75em;height:1px;"></span>';
+                            }
+                        } else if (s.waived)
+                            left += '<button type="button" class="step-waived-clear" title="Снять отметку «не выполнен»">↩</button>';
+                        else
+                            left += '<span class="step-waived-spacer" style="display:inline-block;width:1.75em;height:1px;"></span>';
+                        if (!s.completed && !s.waived)
+                            left += '<button type="button" class="step-comment-btn" title="Комментарий в дневник">💬</button>';
+                        else
+                            left += '<span class="step-comment-spacer" style="display:inline-block;width:1.75em;height:1px;"></span>';
+                        if (!s.completed && !s.waived) {
+                            if (!hideSeriesBulkDoneWaive) {
+                                var waiveMobileLabel = (compactSeries && seriesOd !== null && seriesOd > 0) ? 'Не выполнил просроченные' : 'Не выполнил';
+                                mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived"><span class="step-mobile-action-icon">−</span><span>' + escapeHtml(waiveMobileLabel) + '</span></button>');
+                            }
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
+                        } else if (s.waived) {
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived-clear" data-action="waived-clear"><span class="step-mobile-action-icon">↩</span><span>Снять «не выполнил»</span></button>');
+                        }
+                    }
+                    if (!omitRight && !fin) {
+                        if (!compactSeries) right += '<button type="button" class="step-move-btn" title="Перенос даты">⇢</button>';
+                        right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
+                        right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
+                        if (!compactSeries) mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
+                    } else if (!omitRight && fin) {
+                        right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
+                        right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
+                    }
                 }
             }
-            var main = '<span class="step-title-wrap"><span class="step-title-text">' + escapeHtml(displayTitle) + '</span>' + badges + '</span>' + buildStepTimeUnderTitleHtml(s);
+            var inlineTime = buildStepTimeInlineHtml(s);
+            var main = '<span class="step-title-wrap">' + inlineTime + seriesPrefix + '<span class="step-title-text">' + escapeHtml(displayTitle) + '</span>' + seriesCount + badges + seriesRange + '</span>';
             var mobileMenu = '';
             if (!isReadOnly && canManage && mobileItems.length) {
                 mobileMenu = '<div class="step-mobile-menu-wrap">' +
@@ -4421,7 +4862,7 @@
                     '<div class="step-mobile-menu">' + mobileItems.join('') + '</div>' +
                     '</div>';
             }
-            return '<div class="step-unified-inner">' +
+            return '<div class="step-unified-inner' + innerExtraClass + '">' +
                 '<div class="step-actions-left">' + left + '</div>' +
                 '<div class="step-main-col">' + main + '</div>' +
                 '<div class="step-actions-right">' + right + '</div>' +
@@ -4567,6 +5008,109 @@
                 if (inner) wireUnifiedStepRow(inner, dreamId, s, opts);
             });
         }
+        function wireDreamStepsCompact(listRoot, dreamId, stepsArray, opts) {
+            if (!listRoot) return;
+            opts = opts || {};
+            var canManage = !!opts.canManage;
+            var isReadOnly = !!opts.isReadOnly;
+            var onRefresh = opts.onRefresh || function() {};
+            if (isReadOnly || !canManage) return;
+            if (!window._stepMobileMenuGlobalBind) {
+                window._stepMobileMenuGlobalBind = true;
+                document.addEventListener('click', function(ev) {
+                    if (ev.target.closest('.step-mobile-menu-wrap')) return;
+                    document.querySelectorAll('.step-unified-inner.step-mobile-menu-open').forEach(function(openEl) {
+                        openEl.classList.remove('step-mobile-menu-open');
+                        var t = openEl.querySelector('.step-mobile-menu-toggle');
+                        if (t) t.setAttribute('aria-expanded', 'false');
+                    });
+                });
+            }
+            var series = buildDreamCompactSeriesData(stepsArray || [], dreamId);
+            var byKey = {};
+            series.forEach(function(g) { byKey[g.key] = g; });
+            listRoot.querySelectorAll('.step-compact-series-row').forEach(function(row) {
+                var key = row.dataset.seriesKey || '';
+                var g = byKey[key];
+                if (!g) return;
+                var viewStep = buildCompactSeriesStepView(g);
+                var inner = row.querySelector('.step-unified-inner');
+                if (!inner) return;
+                var confirmRun = function(text, action) {
+                    openStepSeriesConfirmModal(text, function() {
+                        doCompactSeriesBulkAction(g, action, dreamId).then(function() { onRefresh(); }).catch(function() { alert('Не удалось сохранить серию'); });
+                    });
+                };
+                var doneBtn = inner.querySelector('.step-done-btn');
+                if (doneBtn) doneBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (viewStep.completed) confirmRun('Снять отметку выполнения со всей серии «' + (g.title || '') + '»?', 'done_off');
+                    else if (g.overdueCount > 0) confirmRun('Отметить выполненными ' + overdueStepsPhraseRu(g.overdueCount) + ' серии «' + (g.title || '') + '»?', 'done_on');
+                });
+                var wbtn = inner.querySelector('.step-waived-btn');
+                if (wbtn) wbtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (g.overdueCount > 0) confirmRun('Отметить ' + overdueStepsPhraseRu(g.overdueCount) + ' серии «' + (g.title || '') + '» как не выполненные?', 'waive_on');
+                });
+                var wclr = inner.querySelector('.step-waived-clear');
+                if (wclr) wclr.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    confirmRun('Снять отметку «не выполнен» со всей серии «' + (g.title || '') + '»?', 'waive_off');
+                });
+                var cbtn = inner.querySelector('.step-comment-btn');
+                if (cbtn) cbtn.addEventListener('click', function(e) { e.preventDefault(); openStepCommentModal(dreamId, g.firstStep.id); });
+                var ebtn = inner.querySelector('.step-edit');
+                if (ebtn) ebtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var st = g.firstStep;
+                    openEditStepModal({ dream_id: dreamId, id: st.id, title: st.title, deadline: st.deadline, start_time: st.start_time, end_time: st.end_time, series_id: st.series_id, series_index: st.series_index, series_total: st.series_total });
+                });
+                var xbtn = inner.querySelector('.step-series-remove');
+                if (xbtn) xbtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openStepSeriesDeleteModal(g, dreamId, onRefresh);
+                });
+                inner.querySelectorAll('.step-mobile-action-done').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) { e.preventDefault(); doneBtn && doneBtn.click(); });
+                });
+                inner.querySelectorAll('.step-mobile-action-waived').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) { e.preventDefault(); wbtn && wbtn.click(); });
+                });
+                inner.querySelectorAll('.step-mobile-action-waived-clear').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) { e.preventDefault(); wclr && wclr.click(); });
+                });
+                inner.querySelectorAll('.step-mobile-action-comment').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) { e.preventDefault(); cbtn && cbtn.click(); });
+                });
+                inner.querySelectorAll('.step-mobile-action-edit').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) { e.preventDefault(); ebtn && ebtn.click(); });
+                });
+                inner.querySelectorAll('.step-mobile-action-series-remove').forEach(function(btn) {
+                    btn.addEventListener('click', function(e) { e.preventDefault(); xbtn && xbtn.click(); });
+                });
+                var toggle = inner.querySelector('.step-mobile-menu-toggle');
+                if (toggle) {
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var wasOpen = inner.classList.contains('step-mobile-menu-open');
+                        document.querySelectorAll('.step-unified-inner.step-mobile-menu-open').forEach(function(openEl) {
+                            openEl.classList.remove('step-mobile-menu-open');
+                            var openToggle = openEl.querySelector('.step-mobile-menu-toggle');
+                            if (openToggle) openToggle.setAttribute('aria-expanded', 'false');
+                        });
+                        if (!wasOpen) {
+                            inner.classList.add('step-mobile-menu-open');
+                            toggle.setAttribute('aria-expanded', 'true');
+                        } else {
+                            toggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
+            });
+        }
         function formatMoney(n) {
             if (n == null || isNaN(n)) return '—';
             return Math.round(Number(n)).toLocaleString('ru-RU');
@@ -4685,7 +5229,7 @@
                     });
                     stepsContent = '<table class="fin-steps-table"><thead><tr><th class="fin-month-col">Месяц</th><th colspan="2" class="fin-group-header">ВЗНОС</th><th colspan="2" class="fin-group-header">СУММА</th><th>Итог</th></tr><tr><th class="fin-month-col"></th><th class="fin-subheader">План</th><th class="fin-subheader">Факт</th><th class="fin-subheader">План</th><th class="fin-subheader">Факт</th><th></th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
                 } else {
-                    stepsContent = buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false });
+                    stepsContent = buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false, compactSeries: true });
                 }
                 var addStepRowHtml = showAddStepBtn ? '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>' : '';
                 accTr.innerHTML = '<td colspan="7">' + addStepRowHtml + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsContent + '</div>' + addStepRowHtml + '</td>';
@@ -4699,7 +5243,7 @@
                     });
                     if (!isFinGoal) {
                         var listRootDream = accTr.querySelector('.steps-list');
-                        wireDreamStepsList(listRootDream, dreamId, steps, {
+                        wireDreamStepsCompact(listRootDream, dreamId, steps, {
                             canManage: true,
                             isReadOnly: false,
                             useAccordionDelete: true,
@@ -4792,13 +5336,13 @@
                 var eyeIcon = isPublic ? '👁️' : '🙈';
                 var steps = sortStepsByDeadline((d.steps || []).filter(function(s) { return !s.deleted; }));
                 var titleCounterMap = buildStepTitleCounterMap(steps);
-                var stepsHtml = buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false });
+                var stepsHtml = buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false, compactSeries: true });
                 var card = document.createElement('div');
                 card.className = 'dreams-mobile-card';
                 card.dataset.dreamId = dreamId;
                 var mobileOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
                 var addRowDreamSwipe = '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>';
-                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Шаги</div>' + addRowDreamSwipe + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div>' + addRowDreamSwipe + '</div>';
+                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + addRowDreamSwipe + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div>' + addRowDreamSwipe + '</div>';
                 track.appendChild(card);
                 card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = card.querySelector('.dream-eye');
@@ -4828,7 +5372,7 @@
                     btn.addEventListener('click', function(ev) { ev.stopPropagation(); if (ENABLE_SPECIAL_STEPS_BOOKS_FINANCE && isFinCatMobile) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                 });
                 var swipeListRoot = card.querySelector('.steps-list');
-                wireDreamStepsList(swipeListRoot, dreamId, steps, {
+                wireDreamStepsCompact(swipeListRoot, dreamId, steps, {
                     canManage: true,
                     isReadOnly: false,
                     useAccordionDelete: true,
@@ -4887,8 +5431,8 @@
                 var steps = sortStepsByDeadline((d.steps || []).filter(function(s) { return !s.deleted; }));
                 var titleCounterMap = buildStepTitleCounterMap(steps);
                 var stepsCount = steps.length;
-                var listOpts = { canManage: !!canEdit, isReadOnly: !canEdit };
-                var stepsBody = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsListGroupedHtml(dreamId, steps, titleCounterMap, listOpts) + '</div>';
+                var listOptsCompact = { canManage: !!canEdit, isReadOnly: !canEdit, compactSeries: true };
+                var stepsBody = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, listOptsCompact) + '</div>';
                 var addStepRowTop = canEdit ? '<div class="add-step-accordion-row add-step-accordion-row--top" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>' : '';
                 var addStepRowBot = canEdit ? '<div class="add-step-accordion-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>' : '';
                 var accordionContent = addStepRowTop + stepsBody + addStepRowBot;
@@ -4905,7 +5449,7 @@
                         addStepBtn.addEventListener('click', function(ev) { ev.stopPropagation(); if (ENABLE_SPECIAL_STEPS_BOOKS_FINANCE && isFinCat) openAddStepFinanceModal(dreamId, d); else openAddStepModal(dreamId); });
                     });
                     var listRootMobile = card.querySelector('.card-accordion .steps-list');
-                    wireDreamStepsList(listRootMobile, dreamId, steps, {
+                    wireDreamStepsCompact(listRootMobile, dreamId, steps, {
                         canManage: true,
                         isReadOnly: false,
                         useAccordionDelete: true,
@@ -6377,6 +6921,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (mStepMove && !mStepMove.classList.contains('hidden')) { closeStepMoveModal(); ev.preventDefault(); return; }
             var mStepDoneLate = document.getElementById('modal-step-done-late');
             if (mStepDoneLate && !mStepDoneLate.classList.contains('hidden')) { closeStepDoneLateModal(); ev.preventDefault(); return; }
+            var mStepSeriesConfirm = document.getElementById('modal-step-series-confirm');
+            if (mStepSeriesConfirm && !mStepSeriesConfirm.classList.contains('hidden')) { closeStepSeriesConfirmModal(); ev.preventDefault(); return; }
+            var mStepSeriesDel = document.getElementById('modal-step-series-delete');
+            if (mStepSeriesDel && !mStepSeriesDel.classList.contains('hidden')) { closeStepSeriesDeleteModal(); ev.preventDefault(); return; }
             if (mAddStep && !mAddStep.classList.contains('hidden')) { closeAddStepModal(); ev.preventDefault(); }
         });
         initAddStepModal();
