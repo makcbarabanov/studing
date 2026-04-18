@@ -226,6 +226,8 @@
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.hidden { display: none; }
         .modal { background: var(--island-surface); padding: 24px; border-radius: 12px; min-width: 320px; max-width: 90%; box-shadow: 0 8px 32px rgba(46, 83, 60, 0.18); border: 1px solid rgba(165, 214, 167, 0.45); }
+        /* Перенос шага — компактное окно: не растягивать на пол-экрана. */
+        #modal-step-move .modal { width: 430px; max-width: 92vw; min-width: min(320px, 92vw); box-sizing: border-box; }
         .modal h3 { margin-top: 0; color: var(--island-accent-deep); font-weight: 600; }
         .modal-step-series-delete h3 { margin-bottom: 8px; }
         .modal-step-series-delete .modal-step-series-delete-lead { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--island-secondary-text); }
@@ -585,6 +587,7 @@
         .step-badge-overdue { background: #fff3e0; color: #e65100; }
         .step-badge-waived { background: #efebe9; color: #5d4037; }
         .step-badge-late { background: #fce4ec; color: #c2185b; }
+        .step-badge-completed { background: #e8f5e9; color: #2e7d32; }
         /* Единая строка шага: слева ✓ − 💬, центр название + время, справа ⇢ ✏️ 🗑️ */
         .step-item-plain.step-unified-line { display: block; }
         .step-unified-inner { display: flex; align-items: flex-start; gap: 0; width: 100%; min-width: 0; position: relative; }
@@ -630,6 +633,10 @@
         .step-done-btn:hover, .step-comment-btn:hover, .step-move-btn:hover { background: #eee; }
         .step-done-btn:disabled, .step-comment-btn:disabled, .step-move-btn:disabled { opacity: 0.45; cursor: not-allowed; }
         .step-done-btn.step-done-on { background: #e8f5e9; font-weight: 700; }
+        .step-done-btn.step-done-locked { background: #eceff1; color: #90a4ae; cursor: default; border: 1px solid #d7dee3; }
+        .step-done-btn.step-done-locked:hover { background: #eceff1; }
+        .step-done-btn.step-done-locked:disabled { opacity: 1; cursor: default; }
+        .step-mobile-action.step-mobile-action-done:disabled { opacity: 0.55; cursor: default; }
         .step-comment-btn { color: #1565c0; }
         .step-move-btn { color: #1565c0; font-size: 1.1em; }
         .step-item-plain .step-delete, .step-item-plain .step-edit { flex: 0 0 auto; width: auto; min-width: 1.75em; max-width: 2.25em; }
@@ -1408,11 +1415,11 @@
                                 <div class="modal-add-step-time-bordered-inner">
                                     <div class="modal-add-step-time-group" id="modal-add-step-time-from-group">
                                         <label for="modal-add-step-time-from">Время с</label>
-                                        <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="08:15" maxlength="5">
+                                        <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="00:00" maxlength="5">
                                     </div>
                                     <div class="modal-add-step-time-group" id="modal-add-step-time-to-group">
                                         <label for="modal-add-step-time-to">Время по</label>
-                                        <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="08:30" maxlength="5">
+                                        <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="00:00" maxlength="5">
                                     </div>
                                 </div>
                             </div>
@@ -1526,7 +1533,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">147</span>
+                    <span class="app-version" aria-hidden="true">154</span>
                 </div>
             </footer>
         </div>
@@ -2147,21 +2154,49 @@
         function stripStepTitleCounterSuffix(t) {
             return (t || '').toString().trim().replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
         }
-        function buildStepTitleCounterMap(steps) {
-            var byTitle = {};
-            (steps || []).forEach(function(s) {
+        function stepSeriesCounterKey(stepObj) {
+            var did = Number((stepObj && stepObj.dream_id) || 0);
+            if (stepObj && stepObj.series_id) return 'd:' + did + '|sid:' + String(stepObj.series_id);
+            var t = stripStepTitleCounterSuffix(((stepObj && stepObj.title) || '').toString().trim()).toLowerCase();
+            var st = ((stepObj && stepObj.start_time) || '').toString().slice(0, 5);
+            var et = ((stepObj && stepObj.end_time) || '').toString().slice(0, 5);
+            return 'd:' + did + '|f:' + t + '|' + st + '|' + et;
+        }
+        /** Карта заголовков с прогрессом серии: исторический N (series_index), знаменатель — фактический размер серии (неудалённые шаги). */
+        function buildStepTitleCounterMap(steps, sourceSteps) {
+            var shown = (steps || []).filter(function(s) { return !!s; });
+            var source = (sourceSteps && sourceSteps.length ? sourceSteps : shown).filter(function(s) { return s && !s.deleted; });
+            var byKey = {};
+            source.forEach(function(s) {
                 var t = stripStepTitleCounterSuffix(((s && s.title) || '').trim());
                 if (!t) return;
-                if (!byTitle[t]) byTitle[t] = [];
-                byTitle[t].push(s);
+                var key = stepSeriesCounterKey(s);
+                if (!byKey[key]) byKey[key] = { title: t, arr: [] };
+                byKey[key].arr.push(s);
             });
             var out = {};
-            Object.keys(byTitle).forEach(function(t) {
-                var arr = byTitle[t];
+            Object.keys(byKey).forEach(function(key) {
+                var pack = byKey[key];
+                var arr = (pack.arr || []).slice();
                 var total = arr.length;
                 if (total <= 1) return;
+                arr.sort(function(a, b) {
+                    var ai = parseInt(a.series_index, 10);
+                    var bi = parseInt(b.series_index, 10);
+                    var ah = Number.isFinite(ai) && ai > 0;
+                    var bh = Number.isFinite(bi) && bi > 0;
+                    if (ah && bh && ai !== bi) return ai - bi;
+                    if (ah && !bh) return -1;
+                    if (!ah && bh) return 1;
+                    var ad = (a.deadline || '').toString().slice(0, 10);
+                    var bd = (b.deadline || '').toString().slice(0, 10);
+                    if (ad !== bd) return ad.localeCompare(bd);
+                    return (Number(a.id) || 0) - (Number(b.id) || 0);
+                });
                 arr.forEach(function(s, idx) {
-                    out[String(s.id)] = t + ' (' + (idx + 1) + '/' + total + ')';
+                    var n = parseInt(s.series_index, 10);
+                    if (!Number.isFinite(n) || n < 1) n = idx + 1;
+                    out[String(s.id)] = pack.title + ' (' + n + '/' + total + ')';
                 });
             });
             return out;
@@ -3283,7 +3318,7 @@
                 if (filters.indexOf('completed') !== -1 && isCompleted) return true;
                 return false;
             }));
-            var titleCounterMap = buildStepTitleCounterMap(list);
+            var titleCounterMap = buildStepTitleCounterMap(list, stepsFlatCache.filter(function(s) { return s && !s.deleted; }));
             listEl.innerHTML = '';
             if (list.length === 0) {
                 emptyEl.classList.remove('hidden');
@@ -4606,7 +4641,7 @@
         }
         function compactSeriesKeyForStep(stepObj) {
             if (stepObj && stepObj.series_id) return 'sid:' + String(stepObj.series_id);
-            var t = ((stepObj && stepObj.title) || '').toString().trim().toLowerCase();
+            var t = stripStepTitleCounterSuffix(((stepObj && stepObj.title) || '').toString().trim()).toLowerCase();
             var st = ((stepObj && stepObj.start_time) || '').toString().slice(0, 5);
             var et = ((stepObj && stepObj.end_time) || '').toString().slice(0, 5);
             return 'f:' + t + '|' + st + '|' + et;
@@ -4747,6 +4782,7 @@
             var isReadOnly = !!opts.isReadOnly;
             var omitRight = !!opts.omitRight;
             var compactSeries = !!opts.compactSeries;
+            var isDreamStepsContext = !!opts.useAccordionDelete || compactSeries;
             var seriesOd = (compactSeries && typeof s.series_overdue_count === 'number') ? s.series_overdue_count : null;
             var hideSeriesBulkDoneWaive = compactSeries && seriesOd !== null && seriesOd === 0 && !s.completed && !s.waived;
             var fin = !!s.isFinStep;
@@ -4758,6 +4794,7 @@
             } else if (!compactSeries && overdue && !s.completed && !s.waived) {
                 badges += '<span class="step-badge step-badge-overdue">просрочен</span>';
             }
+            if (isDreamStepsContext && s.completed) badges += '<span class="step-badge step-badge-completed">выполнено</span>';
             if (s.waived) badges += '<span class="step-badge step-badge-waived">не выполнен</span>';
             if (s.completed && s.completed_late) badges += '<span class="step-badge step-badge-late">с опозданием</span>';
             var seriesPrefix = s.series_quality_icon ? '<span class="step-series-quality" title="Состояние серии">' + escapeHtml(s.series_quality_icon) + '</span>' : '';
@@ -4771,14 +4808,18 @@
                 if (compactSeries && !omitRight && !fin) {
                     innerExtraClass = ' step-compact-series-inner';
                     var doneOnC = s.completed ? ' step-done-on' : '';
+                    if (s.completed) doneOnC += ' step-done-locked';
                     var doneDisC = s.waived ? ' disabled' : '';
+                    if (s.completed) doneDisC = ' disabled';
                     var doneTitleC = 'Выполнено';
                     if (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived)
                         doneTitleC = overdueSeriesMarkDoneTitleRu(seriesOd);
+                    if (s.completed) doneTitleC = 'Серия шагов уже выполнена';
                     if (!hideSeriesBulkDoneWaive || s.completed) {
                         right += '<button type="button" class="step-done-btn' + doneOnC + '" title="' + escapeAttr(doneTitleC) + '"' + doneDisC + '>✓</button>';
                         var doneML = (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Выполнить просроченные' : 'Выполнил';
-                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneML) + '</span></button>');
+                        if (s.completed) doneML = 'Серия уже выполнена';
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"' + (s.completed ? ' disabled title="' + escapeAttr('Серия шагов уже выполнена') + '"' : '') + '><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneML) + '</span></button>');
                     }
                     if (!s.completed && !s.waived) {
                         if (!hideSeriesBulkDoneWaive) {
@@ -4801,14 +4842,18 @@
                     mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-series-remove" data-action="series-remove"><span class="step-mobile-action-icon">✕</span><span>Убрать из расписания…</span></button>');
                 } else {
                     var doneOn = s.completed ? ' step-done-on' : '';
+                    if (isDreamStepsContext && s.completed) doneOn += ' step-done-locked';
                     var doneDis = (!fin && s.waived) ? ' disabled' : '';
+                    if (isDreamStepsContext && s.completed && !fin) doneDis = ' disabled';
                     var doneTitle = 'Выполнено';
                     if (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived)
                         doneTitle = overdueSeriesMarkDoneTitleRu(seriesOd);
+                    if (isDreamStepsContext && s.completed) doneTitle = 'Шаг уже выполнен';
                     if (!hideSeriesBulkDoneWaive || s.completed) {
                         left += '<button type="button" class="step-done-btn' + doneOn + '" title="' + escapeAttr(doneTitle) + '"' + doneDis + '>✓</button>';
                         var doneMobileLabel = (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Выполнить просроченные' : 'Выполнил';
-                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneMobileLabel) + '</span></button>');
+                        if (isDreamStepsContext && s.completed) doneMobileLabel = 'Шаг уже выполнен';
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"' + (isDreamStepsContext && s.completed && !fin ? ' disabled title="' + escapeAttr('Шаг уже выполнен') + '"' : '') + '><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneMobileLabel) + '</span></button>');
                     } else {
                         left += '<span class="step-waived-spacer" aria-hidden="true" style="display:inline-block;width:1.75em;height:1px;"></span>';
                     }
@@ -4922,6 +4967,8 @@
             };
             bindStepAction('.step-done-btn, .step-mobile-action-done', function(e) {
                     e.preventDefault();
+                    if (this.disabled) return;
+                    if (useAccordionDelete && !fin && s.completed) return;
                     if (fin) {
                         if (!s.completed) openFinStepConfirmModal(s, null, doneBtn);
                         else {
@@ -5042,10 +5089,9 @@
                     });
                 };
                 var doneBtn = inner.querySelector('.step-done-btn');
-                if (doneBtn) doneBtn.addEventListener('click', function(e) {
+                if (doneBtn && !viewStep.completed) doneBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    if (viewStep.completed) confirmRun('Снять отметку выполнения со всей серии «' + (g.title || '') + '»?', 'done_off');
-                    else if (g.overdueCount > 0) confirmRun('Отметить выполненными ' + overdueStepsPhraseRu(g.overdueCount) + ' серии «' + (g.title || '') + '»?', 'done_on');
+                    if (g.overdueCount > 0) confirmRun('Отметить выполненными ' + overdueStepsPhraseRu(g.overdueCount) + ' серии «' + (g.title || '') + '»?', 'done_on');
                 });
                 var wbtn = inner.querySelector('.step-waived-btn');
                 if (wbtn) wbtn.addEventListener('click', function(e) {
@@ -5064,7 +5110,8 @@
                     e.preventDefault();
                     e.stopPropagation();
                     var st = g.firstStep;
-                    openEditStepModal({ dream_id: dreamId, id: st.id, title: st.title, deadline: st.deadline, start_time: st.start_time, end_time: st.end_time, series_id: st.series_id, series_index: st.series_index, series_total: st.series_total });
+                    var did = st.dream_id != null ? st.dream_id : (g.dream_id != null ? g.dream_id : dreamId);
+                    openEditStepModal(Object.assign({}, st, { dream_id: did, _seriesSteps: g.steps }));
                 });
                 var xbtn = inner.querySelector('.step-series-remove');
                 if (xbtn) xbtn.addEventListener('click', function(e) {
@@ -5073,7 +5120,11 @@
                     openStepSeriesDeleteModal(g, dreamId, onRefresh);
                 });
                 inner.querySelectorAll('.step-mobile-action-done').forEach(function(btn) {
-                    btn.addEventListener('click', function(e) { e.preventDefault(); doneBtn && doneBtn.click(); });
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (btn.disabled) return;
+                        if (doneBtn && !doneBtn.disabled) doneBtn.click();
+                    });
                 });
                 inner.querySelectorAll('.step-mobile-action-waived').forEach(function(btn) {
                     btn.addEventListener('click', function(e) { e.preventDefault(); wbtn && wbtn.click(); });
@@ -5836,6 +5887,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         /** Сколько шагов в одной «серии»: по series_id или (legacy) по совпадению названия в рамках мечты. */
         function countStepSeriesMembers(stepObj) {
             if (!stepObj || stepObj.dream_id == null) return 1;
+            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
+                var only = stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
+                return only.length > 1 ? only.length : 1;
+            }
             var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
             if (!steps.length) return 1;
             var active = steps.filter(function(s) { return s && !s.deleted; });
@@ -5854,6 +5909,41 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         /** Участники серии для редактирования: текущий и последующие, без удалённых и выполненных. */
         function getSeriesMembersForEdit(stepObj) {
             if (!stepObj || stepObj.dream_id == null) return [];
+            var base;
+            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
+                base = stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
+            } else {
+                var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
+                var active = steps.filter(function(s) { return s && !s.deleted; });
+                base = [];
+                if (stepObj.series_id) {
+                    var sid = String(stepObj.series_id);
+                    var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
+                    if (bySer.length) base = bySer;
+                }
+                if (!base.length) {
+                    var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim());
+                    if (!titleKey) return [];
+                    base = active.filter(function(s) {
+                        return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
+                    });
+                }
+            }
+            var cutoff = (stepObj.deadline || '').toString().slice(0, 10);
+            return base.filter(function(s) {
+                if (!s || s.completed || s.deleted) return false;
+                var d = (s.deadline || '').toString().slice(0, 10);
+                if (!d) return false;
+                if (cutoff && d < cutoff) return false;
+                return true;
+            });
+        }
+        /** Участники серии для «Начало»/«Конец» и дней недели в модалке: все неудалённые (включая выполненные), без среза по дате открытого шага. При открытии из компактной строки мечты — опционально `_seriesSteps` с тем же составом, что в группировке. */
+        function getSeriesMembersForCalendarBounds(stepObj) {
+            if (!stepObj || stepObj.dream_id == null) return [];
+            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
+                return stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
+            }
             var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
             var active = steps.filter(function(s) { return s && !s.deleted; });
             var base = [];
@@ -5869,14 +5959,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
                 });
             }
-            var cutoff = (stepObj.deadline || '').toString().slice(0, 10);
-            return base.filter(function(s) {
-                if (!s || s.completed || s.deleted) return false;
-                var d = (s.deadline || '').toString().slice(0, 10);
-                if (!d) return false;
-                if (cutoff && d < cutoff) return false;
-                return true;
-            });
+            return base;
         }
         /** Шаг из кэша по dreamId + stepId (сохранение серии после редактирования). */
         function findStepObjForSeriesSave(dreamId, stepId) {
@@ -5885,6 +5968,22 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (!did || !sid) return null;
             var steps = getDreamStepsForSeriesCount(did);
             return steps.find(function(s) { return s && Number(s.id) === sid; }) || null;
+        }
+        /** Ссылка на открытый шаг + `_seriesSteps` с оверлея (после открытия из компактной мечты), чтобы серия не терялась из‑за неполного `stepsFlatCache`. */
+        function getSeriesModalRefStep(overlay) {
+            if (!overlay) return null;
+            var dreamId = parseInt(overlay.dataset.dreamId, 10);
+            var stepId = parseInt(overlay.dataset.stepId, 10);
+            if (!dreamId || !stepId) return null;
+            var ref = findStepObjForSeriesSave(dreamId, stepId);
+            var pack = overlay._seriesStepsForEdit;
+            if (pack && pack.length) {
+                var local = pack.find(function(s) { return s && Number(s.id) === stepId; });
+                var base = local || ref || pack[0];
+                if (!base) return ref;
+                return Object.assign({}, ref || {}, base, { dream_id: dreamId, id: stepId, _seriesSteps: pack });
+            }
+            return ref;
         }
         /** Список ISO-дат периода в модалке (дата начала … окончания + выбранные дни недели). */
         function buildModalPeriodIsoDateList(overlay) {
@@ -5913,7 +6012,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             return dates.length ? dates : null;
         }
         function getSeriesDateBounds(stepObj) {
-            var members = getSeriesMembersForEdit(stepObj);
+            var members = getSeriesMembersForCalendarBounds(stepObj);
             var isos = members.map(function(s) { return (s.deadline || '').toString().slice(0, 10); }).filter(Boolean).sort();
             if (!isos.length) return { min: null, max: null };
             return { min: isos[0], max: isos[isos.length - 1] };
@@ -5930,7 +6029,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var scope = getEditModalScope();
             var singleUi = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
             if (scope === 'single') {
-                if (fromIn) fromIn.value = singleUi || (minStored ? (isoToUiDate(minStored) || '') : '');
+                if (fromIn) fromIn.value = (minStored ? (isoToUiDate(minStored) || '') : '') || singleUi || '';
                 if (toIn) toIn.value = maxStored ? (isoToUiDate(maxStored) || '') : (singleUi || '');
                 return;
             }
@@ -5942,7 +6041,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var dreamId = parseInt(overlay.dataset.dreamId, 10);
             var stepId = parseInt(overlay.dataset.stepId, 10);
             if (!dreamId || !stepId) return;
-            var ref = findStepObjForSeriesSave(dreamId, stepId);
+            var ref = getSeriesModalRefStep(overlay);
             if (!ref) return;
             var bounds = getSeriesDateBounds(ref);
             var endUi = bounds.max ? isoToUiDate(bounds.max) : (dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '');
@@ -5952,7 +6051,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         }
         /** Какие дни недели встречаются среди дедлайнов серии — для предвыбора кнопок. */
         function inferSeriesWeekdaySelection(stepObj) {
-            var members = getSeriesMembersForEdit(stepObj);
+            var members = getSeriesMembersForCalendarBounds(stepObj);
             var days = {};
             members.forEach(function(s) {
                 var iso = (s.deadline || '').toString().slice(0, 10);
@@ -5984,7 +6083,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var dreamId = parseInt(overlay.dataset.dreamId, 10);
             var stepId = parseInt(overlay.dataset.stepId, 10);
             if (!dreamId || !stepId) return;
-            var ref = findStepObjForSeriesSave(dreamId, stepId);
+            var ref = getSeriesModalRefStep(overlay);
             if (!ref) return;
             var members = getSeriesMembersForEdit(ref);
             var n = members.filter(function(m) {
@@ -6012,6 +6111,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             delete overlay.dataset.seriesMemberCount;
             delete overlay.dataset.seriesBoundsMinIso;
             delete overlay.dataset.seriesBoundsMaxIso;
+            delete overlay._seriesStepsForEdit;
             var titleIn = document.getElementById('modal-add-step-title-input');
             var dateSingleIn = document.getElementById('modal-add-step-date-single');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
@@ -6050,6 +6150,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var overlay = document.getElementById('modal-add-step');
             if (!overlay || !stepObj) return;
             openAddStepModal(stepObj.dream_id);
+            delete overlay._seriesStepsForEdit;
+            if (stepObj._seriesSteps && stepObj._seriesSteps.length) overlay._seriesStepsForEdit = stepObj._seriesSteps;
             overlay.dataset.mode = 'edit';
             overlay.dataset.stepId = String(stepObj.id);
             var memberCount = countStepSeriesMembers(stepObj);
@@ -6086,8 +6188,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (repeatOnlyWrap) repeatOnlyWrap.classList.add('hidden');
                 if (editScopeBtns) editScopeBtns.classList.remove('hidden');
                 var bounds = getSeriesDateBounds(stepObj);
-                var endUi = bounds.max ? isoToUiDate(bounds.max) : (dateSingleIn && dateSingleIn.value ? dateSingleIn.value : '');
-                var startUi = (dateSingleIn && dateSingleIn.value ? dateSingleIn.value : '') || (bounds.min ? isoToUiDate(bounds.min) : endUi);
+                var endUi = bounds.max ? isoToUiDate(bounds.max) : (dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '');
+                var startUi = (bounds.min ? isoToUiDate(bounds.min) : '') || (dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '') || endUi;
                 if (fromIn) fromIn.value = startUi || '';
                 if (toIn) toIn.value = endUi || '';
                 var inferred = inferSeriesWeekdaySelection(stepObj);
@@ -6096,7 +6198,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     if (inferred && inferred.length) btn.classList.toggle('selected', inferred.indexOf(day) !== -1);
                     else btn.classList.add('selected');
                 });
-                var editableTotal = getSeriesMembersForEdit(stepObj).length;
+                var modalRef = Object.assign({}, stepObj, overlay._seriesStepsForEdit && overlay._seriesStepsForEdit.length ? { _seriesSteps: overlay._seriesStepsForEdit } : {});
+                var editableTotal = getSeriesMembersForEdit(modalRef).length;
                 var totalLbl = Math.max(1, editableTotal || seriesTotalRaw || 0);
                 if (scopeOne) { scopeOne.textContent = stepsCountWordRu(1); scopeOne.classList.add('active'); }
                 if (scopeAll) { scopeAll.textContent = stepsCountWordRu(totalLbl); scopeAll.classList.remove('active'); }
@@ -6171,7 +6274,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function closeAddStepModal() {
             islandCalClose();
             var overlay = document.getElementById('modal-add-step');
-            if (overlay) overlay.classList.add('hidden');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                delete overlay._seriesStepsForEdit;
+            }
             var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
             if (bulkOv) bulkOv.classList.add('hidden');
             bulkEndConfirmState = null;
@@ -6182,7 +6288,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var dreamId = parseInt(overlay.dataset.dreamId, 10);
             var stepId = parseInt(overlay.dataset.stepId, 10);
             if (!dreamId || !stepId) return;
-            var ref = findStepObjForSeriesSave(dreamId, stepId);
+            var ref = getSeriesModalRefStep(overlay);
             if (!ref) {
                 alert('Не удалось найти шаг в кэше. Обнови страницу и открой редактирование снова.');
                 return;
@@ -6545,7 +6651,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                             alert('Укажи период: дату начала, дату окончания и хотя бы один день недели.');
                             return;
                         }
-                        var refStep = findStepObjForSeriesSave(dreamId, stepId);
+                        var refStep = getSeriesModalRefStep(overlay);
                         if (!refStep) {
                             createBtn.disabled = false;
                             alert('Не удалось найти шаг в кэше. Обнови страницу и открой редактирование снова.');
