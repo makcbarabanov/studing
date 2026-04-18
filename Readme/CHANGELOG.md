@@ -2,6 +2,11 @@
 
 Старые пункты могут ссылаться на прежний монолитный `Readme/Readme.md`; актуальная структура — корневой [README.md](../README.md), [PROJECT.md](PROJECT.md), [RUNBOOK.md](RUNBOOK.md).
 
+## 2026-04-19 — State Reconciliation: SQL в репозитории
+
+- Закоммичены `_sql/mig_ensure_idx_dreams_steps_series_id.sql` (восстановление индекса `idx_dreams_steps_series_id`) и `_sql/seed_system_reference_data_idempotent.sql` (идемпотентные справочники `dreams_statuses`, `dreams_categories`, `steps_rules`).
+- [Readme/migrations_applied.md](migrations_applied.md) обновлён описанием этих скриптов. Версия **156**.
+
 ## 2026-04-18 — Рефакторинг документации (Hub and Spoke)
 
 - В корне репозитория: [README.md](../README.md) (входная точка).
@@ -15,7 +20,7 @@
 
 ## Что сделано (23.02.2025)
 
-**Для Атласа (и для онбординга):** **Техстек:** backend — Python 3.12+, FastAPI, psycopg2-binary, dotenv; frontend — статический HTML/JS/CSS, Fetch API; БД — PostgreSQL 14+; прод — Ubuntu, systemd unit `island` (uvicorn), Nginx, SSL (Let's Encrypt). Детали окружения и security — [archive/legacy-systemd.md](atlas-status-report.md) (islanddream.ru, 188.225.44.48).
+**Для Атласа (и для онбординга):** **Техстек:** backend — Python 3.12+, FastAPI, psycopg2-binary, dotenv; frontend — статический HTML/JS/CSS, Fetch API; БД — PostgreSQL 14+; прод — Ubuntu, systemd unit `island` (uvicorn), Nginx, SSL (Let's Encrypt). Детали окружения и security — [archive/legacy-systemd.md](archive/legacy-systemd.md) (islanddream.ru, 188.225.44.48).
 
 **Изменения за день:**
 

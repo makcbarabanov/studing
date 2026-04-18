@@ -108,3 +108,13 @@ ALTER TABLE dreams_steps
 
 CREATE INDEX IF NOT EXISTS idx_dreams_steps_series_id ON dreams_steps(series_id);
 ```
+
+## mig_ensure_idx_dreams_steps_series_id (восстановление индекса серии)
+
+Файл: `_sql/mig_ensure_idx_dreams_steps_series_id.sql` — одна команда `CREATE INDEX IF NOT EXISTS idx_dreams_steps_series_id ON dreams_steps(series_id);`  
+Назначение: если индекс из `mig_dreams_steps_time_and_series_columns` не был создан (частичное применение, восстановление дампа). Additive, без DROP.
+
+## seed_system_reference_data_idempotent (справочники: статусы, категории, правила)
+
+Файл: `_sql/seed_system_reference_data_idempotent.sql` — идемпотентные `INSERT … ON CONFLICT DO NOTHING` для `dreams_statuses` (по `code`), `dreams_categories` (по `code`), `steps_rules` (по паре `category_code`, `rule_code`).  
+Не трогает пользовательские таблицы. Удобно для выравнивания прода со справочниками песочницы без переноса пользовательских данных. При необходимости выполнять через `psql` целиком (несколько операторов), а не через `run_migrate.py` построчно.
