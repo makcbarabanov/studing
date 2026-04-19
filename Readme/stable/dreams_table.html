@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Снимок: таблица мечт (Остров) — Readme/stable</title>
+  <style>
+    /* Синхронизировать с Readme/UI-standards.md § 1.1 и .dreams-table в index.html */
+    .dreams-table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+    .dreams-table th, .dreams-table td { border: 1px solid #ddd; text-align: left; box-sizing: border-box; }
+    .dreams-table th { background: #f5f5f5; padding: 8px 10px; }
+    .dreams-table td { padding: 6px 10px; }
+    .dreams-col--num { width: 1.6em; }
+    .dreams-col--steps { width: 6.5ch; }
+    .dreams-col--dream { min-width: 0; }
+    .dreams-col--deadline { width: 10ch; }
+    .dreams-col--price { width: 13ch; }
+    .dreams-col--status { width: 8.5em; }
+    .dream-num-td, .dream-steps-td { text-align: center; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dream-num-td { background: #fafafa; padding: 5px 3px; }
+    .dream-steps-td { font-variant-numeric: tabular-nums; padding: 5px 3px; }
+    .dream-text { min-width: 0; word-break: break-word; }
+    .dream-deadline, .dream-price { font-size: calc(1em - 2px); white-space: nowrap; text-align: center; font-variant-numeric: tabular-nums; padding: 6px 6px; }
+  </style>
+</head>
+<body>
+  <p style="font:14px system-ui; color:#666;">Снимок для вставки/сверки. Эталон — UI-standards § 1.1; согласовано с <strong>app-version 161</strong> (кол. «Статус» 8.5em).</p>
+  <table class="dreams-table" id="dreams-table">
+    <colgroup>
+      <col class="dreams-col dreams-col--num" />
+      <col class="dreams-col dreams-col--steps" />
+      <col class="dreams-col dreams-col--dream" />
+      <col class="dreams-col dreams-col--deadline" />
+      <col class="dreams-col dreams-col--price" />
+      <col class="dreams-col dreams-col--status" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th title="Выполнено шагов из неудалённых">Шаги</th>
+        <th>Мечта</th>
+        <th>Дедлайн</th>
+        <th>Цена</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="dream-row">
+        <td class="dream-num-td">1</td>
+        <td class="dream-steps-td" style="background: linear-gradient(90deg, #dbeafe 0%, #dbeafe 0%, #f1f5f9 0%, #f1f5f9 100%);" title="Пример: 0 из 2">0/2</td>
+        <td class="dream-text">Создать соцсеть …</td>
+        <td class="dream-deadline">30.12.26</td>
+        <td class="dream-price">—</td>
+        <td class="dream-status-cell">👁 ☭ ✏</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

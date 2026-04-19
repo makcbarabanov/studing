@@ -31,9 +31,11 @@
 | **[Readme/tables.md](Readme/tables.md)** | Схема БД |
 | **[Readme/rules.md](Readme/rules.md)** | Правила по типам мечт / `steps_rules` |
 | **[Readme/structure.md](Readme/structure.md)** | ЛК, вёрстка, логика экранов |
+| **[Readme/stable/README.md](Readme/stable/README.md)** | Снимки одобренной разметки (бэкап-якорь вне Git-археологии) |
+| **[Readme/STABLE_BASELINE.md](Readme/STABLE_BASELINE.md)** | Стабильная baseline, тег, счётчик версии |
 
 Дополнительно: `migrations_applied.md`, `help_flow_spec.md`, `steps-editing-rfc.md`, `delete_users.md`, `archive-special-rules.md`, `Forge.md`. Архив наследия: **[Readme/archive/](Readme/archive/)**.
 
 ---
 
-*Счётчик сборки в UI: элемент `.app-version` в `index.html`.*
+*Счётчик сборки в UI: элемент `.app-version` в `index.html` (текущая **стабильная веха** — [Readme/STABLE_BASELINE.md](Readme/STABLE_BASELINE.md)).*

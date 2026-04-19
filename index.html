@@ -75,18 +75,33 @@
         .dream-card .step-item { font-size: 12px; margin: 4px 0; display: flex; align-items: center; gap: 6px; }
         .dream-card .step-item input { width: 14px; height: 14px; }
         .dream-card .dream-status { font-size: 11px; color: #888; margin-top: 6px; }
-        .dreams-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .dreams-table th, .dreams-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-        .dreams-table th { background: #f5f5f5; }
+        /* Таблица мечт: макет по <colgroup> — Readme/UI-standards.md § 1.1, снимок Readme/stable/dreams_table.html */
+        .dreams-table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        .dreams-table th, .dreams-table td { border: 1px solid #ddd; text-align: left; box-sizing: border-box; }
+        .dreams-table th { background: #f5f5f5; padding: 8px 10px; }
+        .dreams-table td { padding: 6px 10px; }
+        .dreams-col--num { width: 1.6em; }
+        .dreams-col--steps { width: 6.5ch; }
+        .dreams-col--dream { min-width: 0; }
+        .dreams-col--deadline { width: 10ch; }
+        .dreams-col--price { width: 13ch; }
+        .dreams-col--status { width: 8.5em; }
+        .dreams-table .dream-status-cell { box-sizing: border-box; }
+        .dreams-table thead th:nth-child(1), .dreams-table thead th:nth-child(2) { text-align: center; }
+        .dreams-table thead th:nth-child(4), .dreams-table thead th:nth-child(5), .dreams-table thead th:nth-child(6) { text-align: center; }
         .dreams-table tbody tr.dream-row { cursor: pointer; background: transparent; }
         .dreams-table tbody tr.dream-row:nth-child(4n+1),
         .dreams-table tbody tr.dream-row:nth-child(4n+2) { background: transparent; }
-        .dreams-table .dream-text { min-width: 200px; }
-        .dreams-table .dream-category { cursor: help; font-size: 1.2em; text-align: center; }
+        .dreams-table .dream-num-td, .dreams-table .dream-steps-td { text-align: center; vertical-align: middle; padding: 5px 3px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dreams-table .dream-num-td { background: #fafafa; }
+        .dreams-table .dream-steps-td { font-variant-numeric: tabular-nums; }
+        .dreams-table .dream-text { min-width: 0; word-break: break-word; }
+        .dreams-table .dream-deadline, .dreams-table .dream-price { font-size: calc(1em - 2px); white-space: nowrap; text-align: center; font-variant-numeric: tabular-nums; padding: 6px 6px; }
+        .dream-step-inline { display: block; text-align: center; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 4px 6px; border-radius: 4px; box-sizing: border-box; }
+        .dreams-mobile-list-card .card-progress { margin: 6px 0 2px; }
+        .dreams-mobile-card .card-progress { margin: 6px 0 4px; }
         .dreams-table .dream-privacy { text-align: center; vertical-align: middle; }
         .dreams-table .dream-privacy input[type=checkbox] { cursor: pointer; }
-        .dreams-table .dream-deadline { font-size: calc(1em - 2px); white-space: nowrap; }
-        .dreams-table .dream-price { font-size: calc(1em - 2px); white-space: nowrap; }
         .modal-deadline-hints { margin-top: 4px; font-size: 11px; font-style: italic; color: #888; }
         .modal-field-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
         .modal-field-row label { flex:0 0 auto; }
@@ -295,6 +310,8 @@
         /* Одна строка: блоки даты и времени одинаковой высоты (stretch), содержимое не вылезает за рамку */
         .modal-add-step-mode-row.modal-add-step-row-exec { align-items: stretch; }
         .modal-add-step-row-exec { flex-wrap: wrap; align-items: stretch; }
+        /* Один эталонный ряд: 4 блока без переноса (таблица мечт / расписание — одна модалка) */
+        .modal-add-step-mode-row.modal-add-step-row-exec { flex-wrap: nowrap; }
         .modal-add-step-row-exec .modal-add-step-single-block.modal-add-step-bordered-block { display: flex; flex-direction: column; align-self: stretch; min-width: 0; box-sizing: border-box; }
         .modal-add-step-row-exec .modal-add-step-mid-column .modal-add-step-inline-times,
         .modal-add-step-dates-scope-wrap > .modal-add-step-inline-times { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; align-self: stretch; box-sizing: border-box; }
@@ -309,19 +326,23 @@
         .modal-add-step-row-exec .modal-add-step-single-block .modal-add-step-date { width: 13ch; min-width: 9.75rem; max-width: 100%; box-sizing: border-box; }
         .modal-add-step-row-exec .modal-add-step-mid-column .modal-add-step-time,
         .modal-add-step-dates-scope-wrap > .modal-add-step-inline-times .modal-add-step-time { width: 100%; max-width: 6.5em; flex-shrink: 0; box-sizing: border-box; }
-        /* Редактирование: колонка «Повторять» скрыта */
-        #modal-add-step[data-step-modal-ui="edit-single"] .modal-add-step-repeat-btn-block,
-        #modal-add-step[data-step-modal-ui="edit-series"] .modal-add-step-repeat-btn-block { display: none !important; }
-        /* edit-series: в верхнем ряду только 4 блока (Начало/Конец/Время с/Время по) */
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-single-block { display: none !important; }
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-mid-column { display: none !important; }
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-date-from-wrap,
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-date-to-wrap,
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-time-from-wrap,
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-time-to-wrap { display: flex !important; }
+        /* create + edit-series: в верхнем ряду только 4 блока (Начало/Конец/Время с/Время по) */
+        /* #modal-add-step — одна модалка: всегда «Начало | Конец | Время с | Время по» (как в расписании); колонка «Выполнить до» + mid-column не используются */
+        #modal-add-step #modal-add-step-single-block,
+        #modal-add-step #modal-add-step-mid-column { display: none !important; }
+        #modal-add-step #modal-add-step-date-from-wrap,
+        #modal-add-step #modal-add-step-date-to-wrap,
+        #modal-add-step #modal-add-step-time-from-wrap,
+        #modal-add-step #modal-add-step-time-to-wrap { display: flex !important; }
         .modal-add-step-dates-scope-wrap { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 8px; }
+        /* «1 шаг / N шагов»: только редактирование серии; иначе .hidden не работает из‑за display:flex выше */
+        #modal-add-step-dates-scope-wrap.hidden,
+        #modal-add-step[data-step-modal-ui="create"] #modal-add-step-dates-scope-wrap,
+        #modal-add-step[data-step-modal-ui="edit-single"] #modal-add-step-dates-scope-wrap { display: none !important; }
+        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-dates-scope-wrap:not(.hidden) { display: flex !important; }
         .modal-add-step-dates-scope-wrap > .modal-add-step-inline-times { flex: 1 1 100%; min-width: 0; width: 100%; max-width: 100%; box-sizing: border-box; }
         .modal-add-step-dates-scope-wrap .modal-add-step-edit-scope-btns { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+        .modal-add-step-edit-scope-btns.hidden { display: none !important; }
         .modal-add-step-row-exec .modal-add-step-mid-column { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; align-self: stretch; justify-content: flex-end; gap: 8px; }
         /* Одна строка: «Шаг за» | «Начало» | «Конец» (+ при необходимости «Повторять») */
         .modal-add-step-row-exec > #modal-add-step-single-block,
@@ -336,6 +357,8 @@
         .modal-add-step-period-cell { border-color: #90caf9; background: #f3f9ff; }
         .modal-add-step-time-cell { border-color: #a5d6a7; background: #f3fbf4; }
         .modal-add-step .modal-add-step-time-hint { margin-top: 6px; font-size: 12px; color: #888; }
+        .modal-add-step-repeat-row { margin-top: 10px; }
+        .modal-add-step-repeat-row .modal-add-step-repeat-btn { width: 10.5em; }
         .modal-add-step .modal-add-step-days-wrap { margin-top: 12px; }
         .modal-add-step .modal-add-step-days-wrap.disabled { opacity: 0.5; pointer-events: none; }
         .modal-add-step-mode-row { margin-top: 12px; display: flex; flex-direction: row; justify-content: flex-start; align-items: flex-start; gap: 12px; flex-wrap: nowrap; }
@@ -354,6 +377,7 @@
         .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row { display: flex; gap: 8px; align-items: stretch; height: 38px; min-height: 38px; }
         .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row .modal-add-step-repeat-btn { flex: 1 1 0; min-width: 0; width: auto; }
         .modal-add-step-finish-all-btn { margin-top: 10px; width: 100%; padding: 8px 12px; font-size: 13px; border-radius: 4px; border: 1px solid #c62828; background: #fff; color: #b71c1c; cursor: pointer; font-weight: 500; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .modal-add-step-finish-all-btn.hidden--step-ui { display: none !important; }
         .modal-add-step-finish-all-btn:hover { background: #ffebee; border-color: #b71c1c; }
         .modal-add-step-finish-all-btn__icon { flex-shrink: 0; width: 23px; height: 20px; object-fit: contain; display: block; }
         #modal-add-step-bulk-end-confirm { z-index: 110; }
@@ -362,10 +386,8 @@
         .modal-add-step-repeat-btn { margin: 0; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #2e7d32; cursor: pointer; font-size: 14px; width: 10.5em; height: 38px; min-height: 38px; box-sizing: border-box; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; }
         .modal-add-step-repeat-btn:hover { background: #f5f5f5; border-color: #999; }
         .modal-add-step-repeat-btn.active { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; font-weight: 600; }
-        /* Редактирование серии: скрыть «Повторять» (дублирует data-step-modal-ui в JS) */
-        #modal-add-step[data-step-modal-ui="edit-series"] #modal-add-step-repeat-only-wrap { display: none !important; }
-        /* edit-single: «Повторять» скрыт целиком через .repeat-btn-block; обёртка ниже на всякий случай */
-        #modal-add-step[data-step-modal-ui="edit-single"] #modal-add-step-repeat-only-wrap { display: none !important; }
+        #modal-add-step[data-step-modal-ui="edit-series"] .modal-add-step-repeat-row,
+        #modal-add-step[data-step-modal-ui="edit-single"] .modal-add-step-repeat-row { display: none !important; }
         .modal-add-step-repeat-block { margin-top: 12px; padding: 12px; background: #f0f0f0; border-radius: 6px; transition: opacity 0.2s, background 0.2s; min-height: 96px; }
         .modal-add-step-repeat-block.disabled { opacity: 0.5; pointer-events: none; background: #e8e8e8; }
         .modal-add-step .modal-add-step-days-label { margin-bottom: 6px; }
@@ -386,7 +408,6 @@
         .add-buddy-invite { flex-shrink: 0; width: 100px; padding: 6px 12px; font-size: 13px; min-height: 36px; background: transparent; border: 1px solid #4CAF50; color: #2e7d32; font-weight: 600; border-radius: 4px; cursor: pointer; }
         .add-buddy-invite:hover { background: rgba(76, 175, 80, 0.08); }
         .add-buddy-invite.waiting { border-color: #888; color: #666; background: #f5f5f5; cursor: default; }
-        .dreams-table .dream-status-cell { max-width: 120px; }
         .status-picker { position: relative; display: inline-flex; align-items: center; }
         .status-picker-current { cursor: pointer; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-size: 1.2em; min-width: 2em; min-height: 1.8em; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
         .status-picker-current:hover { background: #f5f5f5; }
@@ -762,10 +783,8 @@
             .app-menu { display: none !important; }
             .app-header-divider { margin-bottom: 6px; }
             .app-content { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -12px; padding: 0 12px; }
-            .dreams-table { font-size: 13px; display: block; }
+            .dreams-table { font-size: 13px; display: table; width: 100%; }
             .dreams-table th, .dreams-table td { padding: 8px 6px; }
-            .dreams-table .dream-text { min-width: 120px; max-width: 180px; }
-            .dreams-table .dream-status-cell { max-width: 90px; }
             .modal { max-width: 100%; margin: 10px; padding: 16px; max-height: 85vh; }
             .modal-actions { flex-wrap: wrap; }
             .modal-actions button { min-height: 44px; }
@@ -850,7 +869,6 @@
         @media (max-width: 480px) {
             body { margin: 6px; }
             .container { padding: 10px; }
-            .dreams-table .dream-text { max-width: 140px; }
         }
     </style>
 </head>
@@ -1025,7 +1043,15 @@
                 <div id="dreams-block">
                     <div class="dreams-table-wrap">
                         <table id="dreams-table" class="dreams-table">
-                            <thead><tr><th>№</th><th title="Категория">Кат.</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
+                            <colgroup>
+                                <col class="dreams-col dreams-col--num" />
+                                <col class="dreams-col dreams-col--steps" />
+                                <col class="dreams-col dreams-col--dream" />
+                                <col class="dreams-col dreams-col--deadline" />
+                                <col class="dreams-col dreams-col--price" />
+                                <col class="dreams-col dreams-col--status" />
+                            </colgroup>
+                            <thead><tr><th>№</th><th title="Выполнено шагов из неудалённых">Шаги</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
                             <tbody id="dreams-tbody"></tbody>
                         </table>
                         <p id="dreams-empty" class="hidden" style="color:#666;">Пока нет записанных мечт.</p>
@@ -1045,7 +1071,15 @@
                     <p id="buddy-title" class="buddy-title" style="margin-bottom:10px;font-size:13px;font-weight:600;color:#333;"></p>
                     <div class="buddy-table-wrap">
                         <table id="buddy-dreams-table" class="dreams-table">
-                            <thead><tr><th>№</th><th title="Категория">Кат.</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
+                            <colgroup>
+                                <col class="dreams-col dreams-col--num" />
+                                <col class="dreams-col dreams-col--steps" />
+                                <col class="dreams-col dreams-col--dream" />
+                                <col class="dreams-col dreams-col--deadline" />
+                                <col class="dreams-col dreams-col--price" />
+                                <col class="dreams-col dreams-col--status" />
+                            </colgroup>
+                            <thead><tr><th>№</th><th title="Выполнено шагов из неудалённых">Шаги</th><th>Мечта</th><th>Дедлайн</th><th>Цена</th><th>Статус</th></tr></thead>
                             <tbody id="buddy-dreams-tbody"></tbody>
                         </table>
                         <p id="buddy-dreams-empty" class="hidden" style="color:#666;">У бадди пока нет записанных мечт.</p>
@@ -1371,7 +1405,7 @@
             <!-- Модальное окно: добавить шаг(и) -->
             <div id="modal-add-step" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-title" data-step-modal-ui="create">
                 <div class="modal modal-add-step">
-                    <h3 id="modal-add-step-title">Добавить шаг</h3>
+                    <h3 id="modal-add-step-title">Добавление шага</h3>
                     <textarea id="modal-add-step-title-input" placeholder="напр. урок английского" class="modal-add-step-title-input" rows="2"></textarea>
                     <div class="modal-add-step-mode-row modal-add-step-row-exec">
                         <div class="modal-add-step-single-block modal-add-step-bordered-block" id="modal-add-step-single-block">
@@ -1382,7 +1416,7 @@
                                 <input type="text" id="modal-add-step-date-single" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                             </div>
                         </div>
-                        <div id="modal-add-step-date-from-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell hidden" aria-label="Начало периода">
+                        <div id="modal-add-step-date-from-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell" aria-label="Начало периода">
                             <div class="modal-add-step-date-block-head">
                                 <label for="modal-add-step-date-from" class="modal-add-step-field-label">Начало</label>
                             </div>
@@ -1390,7 +1424,7 @@
                                 <input type="text" id="modal-add-step-date-from" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                             </div>
                         </div>
-                        <div id="modal-add-step-date-to-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell hidden" aria-label="Конец периода">
+                        <div id="modal-add-step-date-to-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell" aria-label="Конец периода">
                             <div class="modal-add-step-date-block-head">
                                 <label for="modal-add-step-date-to" class="modal-add-step-field-label">Конец</label>
                             </div>
@@ -1398,13 +1432,13 @@
                                 <input type="text" id="modal-add-step-date-to" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                             </div>
                         </div>
-                        <div id="modal-add-step-time-from-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell hidden" aria-label="Время начала">
+                        <div id="modal-add-step-time-from-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell" aria-label="Время начала">
                             <div class="modal-add-step-date-block-head">
                                 <label for="modal-add-step-time-from" class="modal-add-step-field-label">Время с</label>
                             </div>
                             <div class="modal-add-step-time-slot" id="modal-add-step-time-from-slot"></div>
                         </div>
-                        <div id="modal-add-step-time-to-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell hidden" aria-label="Время окончания">
+                        <div id="modal-add-step-time-to-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell" aria-label="Время окончания">
                             <div class="modal-add-step-date-block-head">
                                 <label for="modal-add-step-time-to" class="modal-add-step-field-label">Время по</label>
                             </div>
@@ -1424,22 +1458,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="modal-add-step-repeat-btn-block">
-                            <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Выполнить до</span>
-                            <div class="modal-add-step-repeat-btn-wrap" id="modal-add-step-repeat-only-wrap">
-                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-repeat">Повторять</button>
-                            </div>
-                        </div>
                     </div>
                     <div class="modal-add-step-time-hint">Время необязательно, формат HH:MM (24 часа)</div>
-                    <div id="modal-add-step-dates-scope-wrap" class="modal-add-step-dates-scope-wrap hidden">
-                        <div class="modal-add-step-edit-scope-btns hidden" id="modal-add-step-edit-scope-btns">
-                            <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Область</span>
-                            <div class="modal-add-step-scope-btn-row">
-                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-one" data-scope="single">1 шаг</button>
-                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-all" data-scope="all_series">12 шагов</button>
-                            </div>
-                            <button type="button" class="modal-add-step-finish-all-btn" id="modal-add-step-finish-all-series" title="Удалить все шаги серии с даты открытого шага включительно"><img src="/assets/ui/step-finish-all-calendar.png" alt="" class="modal-add-step-finish-all-btn__icon" width="23" height="20" decoding="async" aria-hidden="true"><span>Завершить все</span></button>
+                    <div class="modal-add-step-repeat-row" id="modal-add-step-repeat-row">
+                        <div class="modal-add-step-repeat-btn-wrap" id="modal-add-step-repeat-only-wrap">
+                            <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-repeat">Повторять</button>
                         </div>
                     </div>
                     <div class="modal-add-step-repeat-block" id="modal-add-step-repeat-block">
@@ -1454,6 +1477,16 @@
                                 <button type="button" class="modal-add-step-day-btn selected" data-day="6">СБ</button>
                                 <button type="button" class="modal-add-step-day-btn selected" data-day="0">ВС</button>
                             </div>
+                        </div>
+                    </div>
+                    <div id="modal-add-step-dates-scope-wrap" class="modal-add-step-dates-scope-wrap hidden">
+                        <div class="modal-add-step-edit-scope-btns hidden" id="modal-add-step-edit-scope-btns">
+                            <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Область</span>
+                            <div class="modal-add-step-scope-btn-row">
+                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-one" data-scope="single">1 шаг</button>
+                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-all" data-scope="all_series">12 шагов</button>
+                            </div>
+                            <button type="button" class="modal-add-step-finish-all-btn hidden hidden--step-ui" id="modal-add-step-finish-all-series" title="Удалить все шаги серии с даты открытого шага включительно" aria-hidden="true" hidden><img src="/assets/ui/step-finish-all-calendar.png" alt="" class="modal-add-step-finish-all-btn__icon" width="23" height="20" decoding="async" aria-hidden="true"><span>Завершить все</span></button>
                         </div>
                     </div>
                     <div class="modal-add-step-footer-meta">
@@ -1533,7 +1566,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">158</span>
+                    <span class="app-version" aria-hidden="true">165</span>
                 </div>
             </footer>
         </div>
@@ -1899,6 +1932,7 @@
                 }
 
                 currentUser = await response.json();
+                if (currentUser) lastStepsForDiary = { userId: currentUser.id, isBuddy: false };
                 if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '') + '?t=' + Date.now();
                 if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
                 // Сохраняем данные пользователя
@@ -2394,6 +2428,7 @@
             }
             if (section === 'dreams') {
                 lastCabinetSection = 'dreams';
+                if (currentUser) lastStepsForDiary = { userId: currentUser.id, isBuddy: false };
                 dreamEditContext.ownerId = currentUser ? currentUser.id : 0;
                 dreamEditContext.viewerId = null;
                 document.getElementById('dreams-block').classList.remove('hidden');
@@ -2404,6 +2439,7 @@
                 refreshDreamsDisplay();
             } else if (section === 'buddy') {
                 lastCabinetSection = 'buddy';
+                if (currentUser && currentUser.buddy_id) lastStepsForDiary = { userId: currentUser.buddy_id, isBuddy: true };
                 dreamEditContext.ownerId = currentUser ? currentUser.buddy_id : 0;
                 dreamEditContext.viewerId = currentUser ? currentUser.id : null;
                 document.getElementById('buddy-block').classList.remove('hidden');
@@ -3054,6 +3090,8 @@
 
         var stepsFlatCache = [];
         var stepsViewUserId = null;
+        /** Чьи шаги сейчас в фокусе: для дневника (GET /steps/events) тот же владелец, что и мечты. */
+        var lastStepsForDiary = { userId: 0, isBuddy: false };
         async function loadSteps(userId, isBuddy) {
             var listEl = document.getElementById('steps-list');
             var emptyEl = document.getElementById('steps-empty');
@@ -3070,6 +3108,7 @@
             var uid = userId == null ? 0 : Number(userId);
             stepsViewUserId = uid;
             if (!uid) {
+                lastStepsForDiary = { userId: 0, isBuddy: false };
                 stepsFlatCache = [];
                 if (titleEl) titleEl.textContent = isBuddy ? 'Шаги бадди' : 'Все шаги';
                 renderStepsList(getStepsFilterActive(), isBuddy);
@@ -3149,6 +3188,7 @@
                     });
                     }
                 });
+                lastStepsForDiary = { userId: uid, isBuddy: !!isBuddy };
                 renderStepsList(getStepsFilterActive(), isBuddy);
             } catch (e) {
                 console.error('loadSteps', e);
@@ -3254,11 +3294,16 @@
             var empty = document.getElementById('diary-events-empty');
             var err = document.getElementById('diary-events-error');
             if (!list || !currentUser) return;
+            var l = (typeof lastStepsForDiary !== 'undefined' && lastStepsForDiary) ? lastStepsForDiary : { userId: 0, isBuddy: false };
+            var isBuddyD = l.isBuddy && l.userId > 0 && currentUser.buddy_id;
+            var eventsUserId = isBuddyD ? l.userId : currentUser.id;
+            var qs = 'user_id=' + encodeURIComponent(eventsUserId) + '&limit=200';
+            if (isBuddyD) qs += '&viewer_id=' + encodeURIComponent(currentUser.id);
             list.innerHTML = '';
             if (empty) empty.classList.add('hidden');
             if (err) { err.classList.add('hidden'); err.textContent = ''; }
             try {
-                var res = await fetch(API_BASE_URL + '/steps/events?user_id=' + encodeURIComponent(currentUser.id) + '&limit=200', { cache: 'no-store' });
+                var res = await fetch(API_BASE_URL + '/steps/events?' + qs, { cache: 'no-store' });
                 if (!res.ok) throw new Error('bad');
                 var data = await res.json();
                 var ev = data.events || [];
@@ -3677,10 +3722,6 @@
                 var statusId = d.status_id != null ? d.status_id : 1;
                 var deadline = formatDeadlineDisplay((d.deadline || '').toString().slice(0, 10) || '');
                 var dreamId = d.id;
-                var categoryIcon = (d.category_obj && (d.category_obj.icon || '').trim()) || '';
-                var categoryLabel = (d.category_obj && (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '';
-                var categoryDisplay = categoryIcon || categoryLabel || '—';
-                var categoryTitle = categoryLabel || 'Категория';
                 var price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
                 var statusList = getStatusList();
                 var statusObj = statusList.find(function(o) { return o.id === statusId; }) || statusList[0];
@@ -3689,7 +3730,7 @@
                 var tr = document.createElement('tr');
                 tr.className = 'dream-row buddy-dream-row';
                 tr.dataset.dreamId = dreamId;
-                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" title="' + escapeAttr(statusTitle) + '">' + escapeHtml(statusIconOnly) + '</td>';
+                tr.innerHTML = '<td class="dream-num-td">' + (i + 1) + '</td><td class="dream-steps-td" style="' + buildDreamStepsCellStyle(d) + '" title="' + escapeAttr(buildDreamStepsCellTitle(d)) + '">' + buildDreamStepsLabel(d) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" title="' + escapeAttr(statusTitle) + '">' + escapeHtml(statusIconOnly) + '</td>';
                 tbodyEl.appendChild(tr);
                 var steps = sortStepsByDeadline((d.steps || []).filter(function(s) { return !s.deleted; }));
                 var titleCounterMap = buildStepTitleCounterMap(steps);
@@ -3717,10 +3758,6 @@
                 var statusId = d.status_id != null ? d.status_id : 1;
                 var deadline = formatDeadlineDisplay((d.deadline || '').toString().slice(0, 10) || '');
                 var dreamId = d.id;
-                var categoryIcon = (d.category_obj && (d.category_obj.icon || '').trim()) || '';
-                var categoryLabel = (d.category_obj && (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '';
-                var categoryDisplay = categoryIcon || categoryLabel || '—';
-                var categoryTitle = categoryLabel || 'Категория';
                 var price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
                 var isPublic = d.is_public !== false;
                 var eyeIcon = isPublic ? '👁️' : '🙈';
@@ -3729,7 +3766,7 @@
                 tr.className = 'dream-row buddy-dream-row';
                 tr.dataset.dreamId = dreamId;
                 var ownerIdBuddy = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id);
-                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + (ownerIdBuddy || '') + '" title="' + escapeAttr(eyeTitle) + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
+                tr.innerHTML = '<td class="dream-num-td">' + (i + 1) + '</td><td class="dream-steps-td" style="' + buildDreamStepsCellStyle(d) + '" title="' + escapeAttr(buildDreamStepsCellTitle(d)) + '">' + buildDreamStepsLabel(d) + '</td><td class="dream-text">' + escapeHtml(text) + '</td><td class="dream-deadline">' + escapeHtml(deadline) + '</td><td class="dream-price">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + (ownerIdBuddy || '') + '" title="' + escapeAttr(eyeTitle) + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
                 tbodyEl.appendChild(tr);
                 tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = tr.querySelector('.dream-eye');
@@ -3816,7 +3853,8 @@
                     var stepsEditableHtml = '<div class="steps-list" data-dream-id="' + dreamId + '">' + buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false, compactSeries: true }) + '</div>';
                     var cardOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
                     var addRowBuddyCard = '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>';
-                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + addRowBuddyCard + stepsEditableHtml + addRowBuddyCard + '</div>';
+                    var prBuddyC = buildDreamStepProgressInlineHtml(d);
+                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-progress">' + prBuddyC + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + cardOwnerId + '">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + addRowBuddyCard + stepsEditableHtml + addRowBuddyCard + '</div>';
                     card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                     card.querySelector('.dream-eye').addEventListener('click', function(ev) { ev.preventDefault(); ev.stopPropagation(); var oid = this.getAttribute('data-owner-id'); saveDreamPrivacy(dreamId, this.getAttribute('data-public') !== '1', oid ? parseInt(oid, 10) : undefined); });
                     var picker = card.querySelector('.status-picker');
@@ -3843,7 +3881,8 @@
                         }
                     });
                 } else {
-                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + stepsHtml + '</div>';
+                    var prBuddyR = buildDreamStepProgressInlineHtml(d);
+                    card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-progress">' + prBuddyR + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + stepsHtml + '</div>';
                 }
                 track.appendChild(card);
             });
@@ -5195,6 +5234,29 @@
             if (cumFact > cumPlan) return 'Профицит ' + Math.round((cumFact - cumPlan) / 1000) + ' т.р.';
             return 'По плану';
         }
+        function dreamStepProgressMeta(d) {
+            var steps = (d && d.steps) ? d.steps.filter(function(s) { return s && !s.deleted; }) : [];
+            var total = steps.length;
+            var done = steps.filter(function(s) { return s.completed; }).length;
+            var pct = total > 0 ? Math.min(100, (done / total) * 100) : 0;
+            return { done: done, total: total, pct: pct };
+        }
+        function buildDreamStepsLabel(d) {
+            var m = dreamStepProgressMeta(d);
+            return m.total > 0 ? (m.done + '/' + m.total) : '0';
+        }
+        function buildDreamStepsCellTitle(d) {
+            var m = dreamStepProgressMeta(d);
+            return 'Выполнено шагов: ' + m.done + (m.total > 0 ? (' из ' + m.total) : ' (шаги не заданы)');
+        }
+        function buildDreamStepsCellStyle(d) {
+            var m = dreamStepProgressMeta(d);
+            return 'background: linear-gradient(90deg, #dbeafe 0%, #dbeafe ' + m.pct + '%, #f1f5f9 ' + m.pct + '%, #f1f5f9 100%)';
+        }
+        function buildDreamStepProgressInlineHtml(d) {
+            var t = buildDreamStepsCellTitle(d);
+            return '<div class="dream-step-inline" style="' + buildDreamStepsCellStyle(d) + '" title="' + escapeAttr(t) + '">' + buildDreamStepsLabel(d) + '</div>';
+        }
         function renderDreamsTable(dreams) {
             const tbodyEl = document.getElementById('dreams-tbody');
             if (!tbodyEl) return;
@@ -5204,10 +5266,6 @@
                 const statusId = d.status_id != null ? d.status_id : (d.status_obj && d.status_obj.id) || 1;
                 const deadline = formatDeadlineDisplay((d.deadline || '').toString().slice(0, 10) || '');
                 const dreamId = d.id;
-                var categoryIcon = (d.category_obj && (d.category_obj.icon || '').trim()) || '';
-                var categoryLabel = (d.category_obj && (d.category_obj.label_ru || d.category_obj.code || '').trim()) || '';
-                var categoryDisplay = categoryIcon || categoryLabel || '—';
-                var categoryTitle = categoryLabel || 'Категория';
                 const price = d.price != null && d.price !== '' ? (Math.round(Number(d.price))).toLocaleString('ru-RU') : '—';
                 const tr = document.createElement('tr');
                 tr.className = 'dream-row';
@@ -5216,7 +5274,7 @@
                 var eyeIcon = isPublic ? '👁️' : '🙈';
                 var eyeTitle = isPublic ? 'Открытая (в витрине). Клик — сделать приватной' : 'Приватная (анонимно). Клик — открыть';
                 var ownerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id);
-                tr.innerHTML = '<td>' + (i + 1) + '</td><td class="dream-category" data-dream-id="' + dreamId + '" title="' + escapeAttr(categoryTitle) + '">' + escapeHtml(categoryDisplay) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + (ownerId || '') + '" title="' + escapeAttr(eyeTitle) + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
+                tr.innerHTML = '<td class="dream-num-td">' + (i + 1) + '</td><td class="dream-steps-td" style="' + buildDreamStepsCellStyle(d) + '" title="' + escapeAttr(buildDreamStepsCellTitle(d)) + '">' + buildDreamStepsLabel(d) + '</td><td class="dream-text" data-dream-id="' + dreamId + '">' + escapeHtml(text) + '</td><td class="dream-deadline" data-dream-id="' + dreamId + '">' + escapeHtml(deadline) + '</td><td class="dream-price" data-dream-id="' + dreamId + '">' + escapeHtml(price) + '</td><td class="dream-status-cell" data-dream-id="' + dreamId + '"><div class="dream-status-cell-inner"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + (ownerId || '') + '" title="' + escapeAttr(eyeTitle) + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></td>';
                 tbodyEl.appendChild(tr);
                 tr.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = tr.querySelector('.dream-eye');
@@ -5283,7 +5341,7 @@
                     stepsContent = buildDreamStepsCompactHtml(dreamId, steps, titleCounterMap, { canManage: true, isReadOnly: false, compactSeries: true });
                 }
                 var addStepRowHtml = showAddStepBtn ? '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>' : '';
-                accTr.innerHTML = '<td colspan="7">' + addStepRowHtml + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsContent + '</div>' + addStepRowHtml + '</td>';
+                accTr.innerHTML = '<td colspan="6">' + addStepRowHtml + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsContent + '</div>' + addStepRowHtml + '</td>';
                 tbodyEl.appendChild(accTr);
                 if (showAddStepBtn) {
                     accTr.querySelectorAll('.add-step-btn').forEach(function(btn) {
@@ -5393,7 +5451,8 @@
                 card.dataset.dreamId = dreamId;
                 var mobileOwnerId = (dreamEditContext.ownerId != null && dreamEditContext.ownerId !== 0) ? dreamEditContext.ownerId : (currentUser && currentUser.id) || '';
                 var addRowDreamSwipe = '<div class="add-step-row" data-dream-id="' + dreamId + '"><button type="button" class="link add-step-btn">+ Добавить шаг</button></div>';
-                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + addRowDreamSwipe + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div>' + addRowDreamSwipe + '</div>';
+                var prSwipe = buildDreamStepProgressInlineHtml(d);
+                card.innerHTML = '<div class="card-dream-text">' + escapeHtml(text) + '</div><div class="card-progress">' + prSwipe + '</div><div class="card-row2"><span class="card-deadline">' + escapeHtml(deadline) + '</span><span class="card-sep">|</span><span class="card-price">' + escapeHtml(price) + ' руб.</span><span class="card-sep">|</span><div class="card-actions"><button type="button" class="dream-eye" data-dream-id="' + dreamId + '" data-public="' + (isPublic ? '1' : '0') + '" data-owner-id="' + mobileOwnerId + '" aria-label="Приватность">' + eyeIcon + '</button>' + buildStatusPickerHtml(dreamId, statusId) + '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button></div></div><div class="card-steps"><div class="card-steps-title">Серии шагов</div>' + addRowDreamSwipe + '<div class="steps-list" data-dream-id="' + dreamId + '">' + stepsHtml + '</div>' + addRowDreamSwipe + '</div>';
                 track.appendChild(card);
                 card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
                 var eyeBtn = card.querySelector('.dream-eye');
@@ -5490,7 +5549,8 @@
                 var card = document.createElement('div');
                 card.className = 'dreams-mobile-list-card';
                 card.dataset.dreamId = dreamId;
-                card.innerHTML = '<div class="card-row"><div class="card-num-wrap"><span class="card-num-bg" aria-hidden="true">' + escapeHtml(categoryDisplay) + '</span><span class="card-num">' + (i + 1) + '</span></div><span class="card-text">' + escapeHtml(text) + '</span></div><div class="card-meta"><span class="card-meta-left">' + escapeHtml(deadline) + '</span><span class="card-meta-center"><span class="card-steps-trigger" data-dream-id="' + dreamId + '">' + stepsCount + ' шаг' + (stepsCount === 1 ? '' : (stepsCount >= 2 && stepsCount <= 4 ? 'а' : 'ов')) + '</span></span><div class="card-meta-right">' + (canEdit ? '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button><button type="button" class="dream-delete-btn" title="Удалить">✕</button>' : '') + '</div></div><div class="card-accordion hidden" id="list-accordion-' + dreamId + '" data-dream-id="' + dreamId + '">' + accordionContent + '</div>';
+                var progressBarM = buildDreamStepProgressInlineHtml(d);
+                card.innerHTML = '<div class="card-row"><div class="card-num-wrap"><span class="card-num-bg" aria-hidden="true">' + escapeHtml(categoryDisplay) + '</span><span class="card-num">' + (i + 1) + '</span></div><span class="card-text">' + escapeHtml(text) + '</span></div><div class="card-progress">' + progressBarM + '</div><div class="card-meta"><span class="card-meta-left">' + escapeHtml(deadline) + '</span><span class="card-meta-center"><span class="card-steps-trigger" data-dream-id="' + dreamId + '">' + stepsCount + ' шаг' + (stepsCount === 1 ? '' : (stepsCount >= 2 && stepsCount <= 4 ? 'а' : 'ов')) + '</span></span><div class="card-meta-right">' + (canEdit ? '<button type="button" class="dream-edit-btn" title="Редактирование">✏️</button><button type="button" class="dream-delete-btn" title="Удалить">✕</button>' : '') + '</div></div><div class="card-accordion hidden" id="list-accordion-' + dreamId + '" data-dream-id="' + dreamId + '">' + accordionContent + '</div>';
                 listEl.appendChild(card);
                 if (canEdit) {
                     card.querySelector('.dream-edit-btn').addEventListener('click', function(ev) { ev.stopPropagation(); openEditDreamModal(d); });
@@ -6129,7 +6189,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (titleIn) titleIn.value = '';
             if (repeatBtn) repeatBtn.classList.remove('active');
             if (repeatBtn) repeatBtn.disabled = false;
-            if (modalTitle) modalTitle.textContent = 'Добавить шаг';
+            if (modalTitle) modalTitle.textContent = 'Добавление шага';
             if (createBtn) createBtn.textContent = 'Создать';
             if (repeatOnlyWrap) repeatOnlyWrap.classList.remove('hidden');
             if (editScopeBtns) editScopeBtns.classList.add('hidden');
@@ -6138,7 +6198,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var todayStr = isoToUiDate(todayIso);
             if (dateSingleIn) dateSingleIn.value = todayStr;
             if (fromIn) fromIn.value = todayStr;
-            if (toIn) toIn.value = '';
+            if (toIn) toIn.value = todayStr;
             if (timeFromIn) timeFromIn.value = '';
             if (timeToIn) timeToIn.value = '';
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) { btn.classList.add('selected'); });
@@ -6233,8 +6293,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             } else {
                 if (repeatOnlyWrap) repeatOnlyWrap.classList.add('hidden');
                 if (editScopeBtns) editScopeBtns.classList.add('hidden');
-                if (fromIn) fromIn.value = '';
-                if (toIn) toIn.value = '';
+                if (fromIn) fromIn.value = editDateUi;
+                if (toIn) toIn.value = editDateUi;
             }
             syncAddStepModalRepeatState();
             updateAddStepModalCount();
@@ -6379,71 +6439,33 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var timeToSlot = document.getElementById('modal-add-step-time-to-slot');
             var timeFromGroup = document.getElementById('modal-add-step-time-from-group');
             var timeToGroup = document.getElementById('modal-add-step-time-to-group');
-            var timeInner = document.querySelector('#modal-add-step-inline-times .modal-add-step-time-bordered-inner');
             var inlineTimes = document.getElementById('modal-add-step-inline-times');
-            var editScopeBtns = document.getElementById('modal-add-step-edit-scope-btns');
             if (!repeatBtn || !block || !midColumn || !inlineTimes) return;
-            var isEditSeries = overlay && overlay.dataset.stepModalUi === 'edit-series';
+            var stepModalUi = overlay && overlay.dataset.stepModalUi;
+            var isCreate = stepModalUi === 'create';
+            var isEditSeries = stepModalUi === 'edit-series';
             var isRepeat = repeatBtn.classList.contains('active');
             var showPeriod = isRepeat || isEditSeries;
             function forceDisplay(el, visible, displayMode) {
                 if (!el) return;
                 el.style.display = visible ? (displayMode || 'block') : 'none';
             }
-            if (singleBlock) {
-                singleBlock.classList.toggle('disabled', isRepeat && !isEditSeries);
-                singleBlock.classList.toggle('hidden', isEditSeries);
-            }
-            if (dateSingleIn) dateSingleIn.disabled = (isRepeat && !isEditSeries) || isEditSeries;
+            if (singleBlock) singleBlock.classList.remove('disabled');
+            if (dateSingleIn) dateSingleIn.disabled = true;
             block.classList.toggle('disabled', !showPeriod);
-            if (datesScopeWrap) datesScopeWrap.classList.toggle('hidden', !showPeriod);
-            if (fromWrap) fromWrap.classList.toggle('hidden', !showPeriod);
-            if (toWrap) toWrap.classList.toggle('hidden', !showPeriod);
-            if (isEditSeries) {
-                // После «Добавить шаг» с «Повторять» inlineTimes оказывается в datesScopeWrap.
-                // В edit-series поля времени переносятся в timeFromSlot/timeToSlot строки row-exec;
-                // если inlineTimes оставить в видимом datesScopeWrap — дубли и наслоение (аккордеон мечты).
-                if (inlineTimes && midColumn && inlineTimes.parentElement !== midColumn) {
-                    midColumn.appendChild(inlineTimes);
-                }
-                if (timeFromWrap) timeFromWrap.classList.remove('hidden');
-                if (timeToWrap) timeToWrap.classList.remove('hidden');
-                if (timeFromSlot && timeFromGroup && timeFromGroup.parentElement !== timeFromSlot) timeFromSlot.appendChild(timeFromGroup);
-                if (timeToSlot && timeToGroup && timeToGroup.parentElement !== timeToSlot) timeToSlot.appendChild(timeToGroup);
-                if (midColumn) midColumn.classList.add('hidden');
-                // Жёсткая синхронизация для всех контуров (ЛК/бадди):
-                // в edit-series всегда только 4 блока в верхней строке.
-                forceDisplay(singleBlock, false);
-                forceDisplay(midColumn, false);
-                forceDisplay(fromWrap, true, 'flex');
-                forceDisplay(toWrap, true, 'flex');
-                forceDisplay(timeFromWrap, true, 'flex');
-                forceDisplay(timeToWrap, true, 'flex');
-            } else {
-                if (timeFromWrap) timeFromWrap.classList.add('hidden');
-                if (timeToWrap) timeToWrap.classList.add('hidden');
-                if (timeInner && timeFromGroup && timeFromGroup.parentElement !== timeInner) timeInner.appendChild(timeFromGroup);
-                if (timeInner && timeToGroup && timeToGroup.parentElement !== timeInner) timeInner.appendChild(timeToGroup);
-                forceDisplay(singleBlock, true, 'flex');
-                forceDisplay(timeFromWrap, false);
-                forceDisplay(timeToWrap, false);
-            }
-            if (showPeriod && !isEditSeries) {
-                if (datesScopeWrap && editScopeBtns && inlineTimes.parentElement !== datesScopeWrap) {
-                    datesScopeWrap.insertBefore(inlineTimes, editScopeBtns);
-                }
-                if (midColumn) midColumn.classList.add('hidden');
-                forceDisplay(midColumn, false);
-                forceDisplay(fromWrap, true, 'flex');
-                forceDisplay(toWrap, true, 'flex');
-            } else if (!isEditSeries) {
-                if (inlineTimes.parentElement !== midColumn) midColumn.appendChild(inlineTimes);
-                if (midColumn) midColumn.classList.remove('hidden');
-                forceDisplay(midColumn, true, 'flex');
-                forceDisplay(fromWrap, false);
-                forceDisplay(toWrap, false);
-            }
-            if (isRepeat && fromIn && dateSingleIn && dateSingleIn.value) fromIn.value = dateSingleIn.value;
+            if (datesScopeWrap) datesScopeWrap.classList.toggle('hidden', !isEditSeries);
+            if (timeFromWrap) timeFromWrap.classList.remove('hidden');
+            if (timeToWrap) timeToWrap.classList.remove('hidden');
+            if (timeFromSlot && timeFromGroup && timeFromGroup.parentElement !== timeFromSlot) timeFromSlot.appendChild(timeFromGroup);
+            if (timeToSlot && timeToGroup && timeToGroup.parentElement !== timeToSlot) timeToSlot.appendChild(timeToGroup);
+            if (midColumn) midColumn.classList.add('hidden');
+            forceDisplay(singleBlock, false);
+            forceDisplay(midColumn, false);
+            forceDisplay(fromWrap, true, 'flex');
+            forceDisplay(toWrap, true, 'flex');
+            forceDisplay(timeFromWrap, true, 'flex');
+            forceDisplay(timeToWrap, true, 'flex');
+            if (isRepeat && !isCreate && fromIn && dateSingleIn && dateSingleIn.value) fromIn.value = dateSingleIn.value;
             syncAddStepModalDaysState();
         }
         function syncAddStepModalDaysState() {
@@ -6496,12 +6518,13 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             syncAddStepModalDaysState();
             if (mode === 'edit') {
-                var dsEdit = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
+                var dsEdit = fromIn && fromIn.value ? fromIn.value.trim() : '';
                 countEl.textContent = dsEdit ? editStepPreviewLineRu(1) : '';
                 return;
             }
             if (!repeatBtn || !repeatBtn.classList.contains('active')) {
-                var ds = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
+                var fromForOne = document.getElementById('modal-add-step-date-from');
+                var ds = fromForOne && fromForOne.value ? fromForOne.value.trim() : '';
                 countEl.textContent = ds ? 'Будет создан 1 шаг' : '';
                 return;
             }
@@ -6563,7 +6586,17 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (bulkEndYes) bulkEndYes.addEventListener('click', function(ev) { ev.stopPropagation(); executeFinishAllSeriesDeletes(); });
             if (bulkEndOv) bulkEndOv.addEventListener('click', function(ev) { if (ev.target === bulkEndOv) closeFinishAllSeriesConfirm(); });
             if (dateSingleIn) { dateSingleIn.addEventListener('input', update); dateSingleIn.addEventListener('change', update); }
-            if (fromIn) { fromIn.addEventListener('input', update); fromIn.addEventListener('change', update); }
+            if (fromIn) {
+                fromIn.addEventListener('input', function() {
+                    var ov = document.getElementById('modal-add-step');
+                    var rb = document.getElementById('modal-add-step-repeat');
+                    var toRef = document.getElementById('modal-add-step-date-to');
+                    var editOne = ov && ov.dataset.mode === 'edit' && ov.dataset.isSeriesStep !== '1';
+                    if (ov && (ov.dataset.stepModalUi === 'create' || editOne) && rb && !rb.classList.contains('active') && toRef) toRef.value = fromIn.value;
+                    update();
+                });
+                fromIn.addEventListener('change', update);
+            }
             if (toIn) { toIn.addEventListener('input', update); toIn.addEventListener('change', update); }
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
@@ -6585,8 +6618,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!title) { alert('Введите название шага'); return; }
                 if (mode === 'edit') {
                     if (!stepId) return;
-                    var dateUiEdit = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
-                    if (!dateUiEdit) { alert('Укажите дату шага'); return; }
+                    var fromUiEd = fromIn && fromIn.value ? fromIn.value.trim() : '';
+                    var toUiEd = toIn && toIn.value ? toIn.value.trim() : '';
+                    if (!fromUiEd) { alert('Укажите дату (Начало)'); return; }
+                    if (toUiEd && toUiEd !== fromUiEd && !isSeriesStep) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
+                    var dateUiEdit = fromUiEd;
                     var dateStrEdit = uiDateToIso(dateUiEdit);
                     if (!dateStrEdit) { alert('Неверный формат даты. Используй дд.мм.гг'); return; }
                     var timeFromRawEdit = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
@@ -6728,8 +6764,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 }
                 var isRepeat = repeatBtn && repeatBtn.classList.contains('active');
                 if (!isRepeat) {
-                    var dateUi = dateSingleIn && dateSingleIn.value ? dateSingleIn.value.trim() : '';
-                    if (!dateUi) { alert('Укажите дату шага'); return; }
+                    var fromUiOne = fromIn && fromIn.value ? fromIn.value.trim() : '';
+                    var toUiOne = toIn && toIn.value ? toIn.value.trim() : '';
+                    if (!fromUiOne) { alert('Укажите дату (Начало)'); return; }
+                    if (toUiOne && toUiOne !== fromUiOne) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
+                    var dateUi = fromUiOne;
                     var dateStr = uiDateToIso(dateUi);
                     if (!dateStr) { alert('Неверный формат даты. Используй дд.мм.гг'); return; }
                     var timeFromRaw = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
