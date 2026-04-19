@@ -2,6 +2,15 @@
 
 Старые пункты могут ссылаться на прежний монолитный `Readme/Readme.md`; актуальная структура — корневой [README.md](../README.md), [PROJECT.md](PROJECT.md), [RUNBOOK.md](RUNBOOK.md).
 
+## 2026-04-18 — Раздел «Шаги»: серия в модалке редактирования
+
+- **Баг:** из списка шагов открывался `edit-single`, хотя шаги принадлежали одной серии: `getDreamStepsForSeriesCount` брал только `stepsFlatCache` (без слияния с шагами мечты из ЛК) и сопоставление шло по заголовку без ключа `stepSeriesCounterKey` / регистра.
+- **Исправление:** объединение шагов по `dream_id` из flat + кэша мечт; `getStepSeriesSiblingPool` — тот же смысл группы, что `series_id` / fingerprint / заголовок; в оверлей пишется `_seriesStepsForEdit` при `pool.length > 1`. Версия **168**.
+
+## 2026-04-18 — Модалка шага (edit-series): «1 шаг» / «N шагов»
+
+- **UI:** блок выбора области (`#modal-add-step-dates-scope-wrap`) перенесён **выше** ряда «Повторять» и дней недели, чтобы кнопки не уезжали вниз на мобильном. После `syncAddStepModalRepeatState` при открытии серии явно снимается `hidden` с обёртки и `#modal-add-step-edit-scope-btns`. **§3** в [Readme/UI-standards.md](UI-standards.md). Версия **167**.
+
 ## 2026-04-18 — Дневник: события в режиме бадди
 
 - **Баг:** в «Шаги бадди» комментарий к просроченному шагу сохранялся в `dreams_steps_events` для мечт **владельца**, а `GET /steps/events` вызывался с `user_id=текущий пользователь` — дневник оставался пустым.

@@ -1475,6 +1475,17 @@
                         </div>
                     </div>
                     <div class="modal-add-step-time-hint">Время необязательно, формат HH:MM (24 часа)</div>
+                    <!-- Редактирование серии: «1 шаг / N шагов» сразу под подсказкой по времени (до «Повторять» и дней), чтобы не терялось на мобилке -->
+                    <div id="modal-add-step-dates-scope-wrap" class="modal-add-step-dates-scope-wrap hidden">
+                        <div class="modal-add-step-edit-scope-btns hidden" id="modal-add-step-edit-scope-btns">
+                            <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Область</span>
+                            <div class="modal-add-step-scope-btn-row">
+                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-one" data-scope="single">1 шаг</button>
+                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-all" data-scope="all_series">12 шагов</button>
+                            </div>
+                            <button type="button" class="modal-add-step-finish-all-btn hidden hidden--step-ui" id="modal-add-step-finish-all-series" title="Удалить все шаги серии с даты открытого шага включительно" aria-hidden="true" hidden><img src="/assets/ui/step-finish-all-calendar.png" alt="" class="modal-add-step-finish-all-btn__icon" width="23" height="20" decoding="async" aria-hidden="true"><span>Завершить все</span></button>
+                        </div>
+                    </div>
                     <div class="modal-add-step-repeat-row" id="modal-add-step-repeat-row">
                         <div class="modal-add-step-repeat-btn-wrap" id="modal-add-step-repeat-only-wrap">
                             <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-repeat">Повторять</button>
@@ -1492,16 +1503,6 @@
                                 <button type="button" class="modal-add-step-day-btn selected" data-day="6">СБ</button>
                                 <button type="button" class="modal-add-step-day-btn selected" data-day="0">ВС</button>
                             </div>
-                        </div>
-                    </div>
-                    <div id="modal-add-step-dates-scope-wrap" class="modal-add-step-dates-scope-wrap hidden">
-                        <div class="modal-add-step-edit-scope-btns hidden" id="modal-add-step-edit-scope-btns">
-                            <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Область</span>
-                            <div class="modal-add-step-scope-btn-row">
-                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-one" data-scope="single">1 шаг</button>
-                                <button type="button" class="modal-add-step-repeat-btn" id="modal-add-step-scope-all" data-scope="all_series">12 шагов</button>
-                            </div>
-                            <button type="button" class="modal-add-step-finish-all-btn hidden hidden--step-ui" id="modal-add-step-finish-all-series" title="Удалить все шаги серии с даты открытого шага включительно" aria-hidden="true" hidden><img src="/assets/ui/step-finish-all-calendar.png" alt="" class="modal-add-step-finish-all-btn__icon" width="23" height="20" decoding="async" aria-hidden="true"><span>Завершить все</span></button>
                         </div>
                     </div>
                     <div class="modal-add-step-footer-meta">
@@ -1581,7 +1582,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">166</span>
+                    <span class="app-version" aria-hidden="true">168</span>
                 </div>
             </footer>
         </div>
@@ -5918,16 +5919,75 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (section) switchMenu(section);
             });
         }
-        /** Шаги одной мечты для подсчёта «серии»: сначала кэш раздела «Шаги», иначе шаги из загруженных мечт (ЛК / бадди). */
+        /** Шаги одной мечты для подсчёта «серии»: объединение плоского кэша «Шаги» и шагов из загруженных мечт (чтобы не терять series_id / соседей при устаревшем flat). */
         function getDreamStepsForSeriesCount(dreamId) {
             var did = Number(dreamId);
             if (!did) return [];
             var fromFlat = stepsFlatCache.filter(function(x) { return x && Number(x.dream_id) === did; });
-            if (fromFlat.length) return fromFlat;
+            var fromDream = [];
             var d = (currentUserDreamsCache || []).find(function(x) { return Number(x.id) === did; });
-            if (d && d.steps && d.steps.length) return d.steps;
-            d = (buddyDreamsCache || []).find(function(x) { return Number(x.id) === did; });
-            if (d && d.steps && d.steps.length) return d.steps;
+            if (d && d.steps && d.steps.length) fromDream = d.steps;
+            if (!fromDream.length) {
+                d = (buddyDreamsCache || []).find(function(x) { return Number(x.id) === did; });
+                if (d && d.steps && d.steps.length) fromDream = d.steps;
+            }
+            if (!fromDream.length) return fromFlat;
+            if (!fromFlat.length) return fromDream.slice();
+            var byId = {};
+            fromDream.forEach(function(s) {
+                if (!s || s.id == null) return;
+                var id = Number(s.id);
+                byId[id] = Object.assign({}, s, { dream_id: s.dream_id != null ? s.dream_id : did });
+            });
+            fromFlat.forEach(function(s) {
+                if (!s || s.id == null) return;
+                var id = Number(s.id);
+                if (!byId[id]) {
+                    byId[id] = s;
+                    return;
+                }
+                var t = byId[id];
+                if (s.series_id && !t.series_id) {
+                    t.series_id = s.series_id;
+                    t.series_index = s.series_index;
+                    t.series_total = s.series_total;
+                }
+            });
+            return Object.keys(byId).map(function(k) { return byId[k]; });
+        }
+        /**
+         * Все неудалённые шаги той же серии, что stepObj: явный _seriesSteps, иначе series_id (несколько),
+         * иначе stepSeriesCounterKey (как в компактной группе), иначе совпадение заголовка без суффикса (без учёта регистра).
+         * Для одногоочкового шага возвращает массив из одного элемента, если он единственный носитель series_id / ключа / заголовка.
+         */
+        function getStepSeriesSiblingPool(stepObj) {
+            if (!stepObj || stepObj.dream_id == null) return [];
+            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
+                return stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
+            }
+            var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
+            var active = (steps || []).filter(function(s) { return s && !s.deleted; });
+            if (!active.length) return [];
+            if (stepObj.series_id) {
+                var sid = String(stepObj.series_id);
+                var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
+                if (bySer.length > 1) return bySer;
+            }
+            var fpKey = stepSeriesCounterKey(stepObj);
+            var byFp = active.filter(function(s) { return stepSeriesCounterKey(s) === fpKey; });
+            if (byFp.length > 1) return byFp;
+            var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim()).toLowerCase();
+            var byTitle = titleKey ? active.filter(function(s) {
+                return stripStepTitleCounterSuffix((s.title || '').trim()).toLowerCase() === titleKey;
+            }) : [];
+            if (byTitle.length > 1) return byTitle;
+            if (stepObj.series_id) {
+                var sidOne = String(stepObj.series_id);
+                var oneSer = active.filter(function(s) { return String(s.series_id || '') === sidOne; });
+                if (oneSer.length === 1) return oneSer;
+            }
+            if (byFp.length === 1) return byFp;
+            if (byTitle.length === 1) return byTitle;
             return [];
         }
         /** «12 шагов» / «3 шага» / «1 шаг» — склонение для подписи к области редактирования серии. */
@@ -5959,51 +6019,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (allBtn && allBtn.classList.contains('active')) return 'all_series';
             return 'single';
         }
-        /** Сколько шагов в одной «серии»: по series_id или (legacy) по совпадению названия в рамках мечты. */
-        function countStepSeriesMembers(stepObj) {
-            if (!stepObj || stepObj.dream_id == null) return 1;
-            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
-                var only = stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
-                return only.length > 1 ? only.length : 1;
-            }
-            var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
-            if (!steps.length) return 1;
-            var active = steps.filter(function(s) { return s && !s.deleted; });
-            if (stepObj.series_id) {
-                var sid = String(stepObj.series_id);
-                var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
-                if (bySer.length > 1) return bySer.length;
-            }
-            var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim());
-            if (!titleKey) return 1;
-            var byTitle = active.filter(function(s) {
-                return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
-            }).length;
-            return byTitle > 1 ? byTitle : 1;
-        }
         /** Участники серии для редактирования: текущий и последующие, без удалённых и выполненных. */
         function getSeriesMembersForEdit(stepObj) {
             if (!stepObj || stepObj.dream_id == null) return [];
-            var base;
-            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
-                base = stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
-            } else {
-                var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
-                var active = steps.filter(function(s) { return s && !s.deleted; });
-                base = [];
-                if (stepObj.series_id) {
-                    var sid = String(stepObj.series_id);
-                    var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
-                    if (bySer.length) base = bySer;
-                }
-                if (!base.length) {
-                    var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim());
-                    if (!titleKey) return [];
-                    base = active.filter(function(s) {
-                        return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
-                    });
-                }
-            }
+            var base = getStepSeriesSiblingPool(stepObj);
+            if (!base.length) return [];
             var cutoff = (stepObj.deadline || '').toString().slice(0, 10);
             return base.filter(function(s) {
                 if (!s || s.completed || s.deleted) return false;
@@ -6013,28 +6033,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 return true;
             });
         }
-        /** Участники серии для «Начало»/«Конец» и дней недели в модалке: все неудалённые (включая выполненные), без среза по дате открытого шага. При открытии из компактной строки мечты — опционально `_seriesSteps` с тем же составом, что в группировке. */
+        /** Участники серии для «Начало»/«Конец» и дней недели в модалке: все неудалённые (включая выполненные), без среза по дате открытого шага. */
         function getSeriesMembersForCalendarBounds(stepObj) {
             if (!stepObj || stepObj.dream_id == null) return [];
-            if (stepObj._seriesSteps && stepObj._seriesSteps.length) {
-                return stepObj._seriesSteps.filter(function(s) { return s && !s.deleted; });
-            }
-            var steps = getDreamStepsForSeriesCount(stepObj.dream_id);
-            var active = steps.filter(function(s) { return s && !s.deleted; });
-            var base = [];
-            if (stepObj.series_id) {
-                var sid = String(stepObj.series_id);
-                var bySer = active.filter(function(s) { return String(s.series_id || '') === sid; });
-                if (bySer.length) base = bySer;
-            }
-            if (!base.length) {
-                var titleKey = stripStepTitleCounterSuffix((stepObj.title || '').trim());
-                if (!titleKey) return [];
-                base = active.filter(function(s) {
-                    return stripStepTitleCounterSuffix((s.title || '').trim()) === titleKey;
-                });
-            }
-            return base;
+            return getStepSeriesSiblingPool(stepObj);
         }
         /** Шаг из кэша по dreamId + stepId (сохранение серии после редактирования). */
         function findStepObjForSeriesSave(dreamId, stepId) {
@@ -6229,10 +6231,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (!overlay || !stepObj) return;
             openAddStepModal(stepObj.dream_id, { prepareForEdit: true });
             delete overlay._seriesStepsForEdit;
-            if (stepObj._seriesSteps && stepObj._seriesSteps.length) overlay._seriesStepsForEdit = stepObj._seriesSteps;
+            var pool = getStepSeriesSiblingPool(stepObj);
+            if (pool.length > 1) overlay._seriesStepsForEdit = pool;
             overlay.dataset.mode = 'edit';
             overlay.dataset.stepId = String(stepObj.id);
-            var memberCount = countStepSeriesMembers(stepObj);
+            var memberCount = pool.length > 1 ? pool.length : 1;
             var seriesTotalRaw = parseInt(stepObj.series_total, 10) || 0;
             if (seriesTotalRaw <= 1 && memberCount > 1) seriesTotalRaw = memberCount;
             var isSeriesStep = memberCount > 1;
@@ -6313,6 +6316,12 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             syncAddStepModalRepeatState();
             updateAddStepModalCount();
+            if (overlay.dataset.isSeriesStep === '1') {
+                var dsw = document.getElementById('modal-add-step-dates-scope-wrap');
+                var esb = document.getElementById('modal-add-step-edit-scope-btns');
+                if (dsw) dsw.classList.remove('hidden');
+                if (esb) esb.classList.remove('hidden');
+            }
             overlay.classList.remove('hidden');
             if (titleIn) titleIn.focus();
         }
