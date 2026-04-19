@@ -2832,13 +2832,18 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
 
 
 @app.get("/steps/events")
-def list_step_events(user_id: int, limit: int = 100):
-    """Дневник событий по шагам пользователя (мечты владельца user_id)."""
+def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = None):
+    """Дневник событий по шагам (мечты владельца user_id). viewer_id: кто смотрит, если это бадди (как GET /dreams)."""
     lim = max(1, min(int(limit or 100), 500))
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if viewer_id is not None and viewer_id != user_id:
+                cur.execute("SELECT buddy_id FROM users WHERE id = %s", (viewer_id,))
+                row = cur.fetchone()
+                if not row or row.get("buddy_id") != user_id:
+                    raise HTTPException(status_code=403, detail="Нет доступа к дневнику этого пользователя")
             try:
                 cur.execute(
                     """SELECT e.id, e.step_id, e.dream_id, e.event_type, e.message, e.created_at, s.title AS step_title
@@ -2867,6 +2872,8 @@ def list_step_events(user_id: int, limit: int = 100):
                     }
                 )
             return {"events": out}
+    except HTTPException:
+        raise
     except Exception:
         return {"events": []}
     finally:
