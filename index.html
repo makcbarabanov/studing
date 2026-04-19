@@ -386,6 +386,21 @@
         .modal-add-step-repeat-btn { margin: 0; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #2e7d32; cursor: pointer; font-size: 14px; width: 10.5em; height: 38px; min-height: 38px; box-sizing: border-box; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; }
         .modal-add-step-repeat-btn:hover { background: #f5f5f5; border-color: #999; }
         .modal-add-step-repeat-btn.active { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; font-weight: 600; }
+        /* Мобилка: подписи «Начало / Конец / Время с / Время по» в одну строку (без переноса «Время» / «с») */
+        @media (max-width: 768px) {
+            #modal-add-step .modal-add-step-mode-row.modal-add-step-row-exec { gap: 4px; }
+            #modal-add-step .modal-add-step-row-exec > .modal-add-step-period-cell.modal-add-step-bordered-block,
+            #modal-add-step .modal-add-step-row-exec > .modal-add-step-time-cell.modal-add-step-bordered-block {
+                padding: 8px 4px;
+            }
+            #modal-add-step .modal-add-step-row-exec > .modal-add-step-bordered-block .modal-add-step-date-block-head .modal-add-step-field-label {
+                font-size: 11px;
+                line-height: 1.15;
+                min-height: 0;
+                white-space: nowrap;
+                letter-spacing: -0.02em;
+            }
+        }
         #modal-add-step[data-step-modal-ui="edit-series"] .modal-add-step-repeat-row,
         #modal-add-step[data-step-modal-ui="edit-single"] .modal-add-step-repeat-row { display: none !important; }
         .modal-add-step-repeat-block { margin-top: 12px; padding: 12px; background: #f0f0f0; border-radius: 6px; transition: opacity 0.2s, background 0.2s; min-height: 96px; }
@@ -1566,7 +1581,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">165</span>
+                    <span class="app-version" aria-hidden="true">166</span>
                 </div>
             </footer>
         </div>
