@@ -7,6 +7,18 @@
 - Закоммичены `_sql/mig_ensure_idx_dreams_steps_series_id.sql` (восстановление индекса `idx_dreams_steps_series_id`) и `_sql/seed_system_reference_data_idempotent.sql` (идемпотентные справочники `dreams_statuses`, `dreams_categories`, `steps_rules`).
 - [Readme/migrations_applied.md](migrations_applied.md) обновлён описанием этих скриптов. Версия **156**.
 
+## 2026-04-19 — Модалка «Редактировать шаг»: вёрстка из мечт = из «Шаги»
+
+- **Проблема:** при открытии редактирования из аккордеона мечты `openEditStepModal` сначала вызывал полный `openAddStepModal`, который делал `syncAddStepModalRepeatState()` в режиме **`create`**, затем выставлял `edit-series` / `edit-single` и синхронизировал снова. Промежуточный `create` оставлял блоки дат/времени (`inlineTimes`, перенос групп в `midColumn`) в состоянии, несовместимом с CSS для **edit-series** — поля наслаивались. Из раздела «Шаги» тот же код вызывался уже при заполненном `stepsFlatCache` и после других переходов, поэтому баг проявлялся в основном из мечт.
+- **Исправление:** `openAddStepModal(dreamId, { prepareForEdit: true })` — сброс полей без первого `sync`/показа модалки; один `syncAddStepModalRepeatState` после установки `data-step-modal-ui` и полей редактирования, затем показ. Версия **157**.
+- **Дополнение:** одна и та же модалка `#modal-add-step`; дубля HTML нет. Если ранее открывали «Добавить шаг» с «Повторять», `#modal-add-step-inline-times` оставался внутри `#modal-add-step-dates-scope-wrap`. В режиме **edit-series** время рендерится в слотах верхней строки, а клон оболочки `inlineTimes` в `dates-scope-wrap` оставался видимым — снова наслоение (часто из аккордеона). В **edit-series** перед переносом групп в слоты `inlineTimes` возвращают в `midColumn` (скрыт `!important`). Версия **158**.
+
+## 2026-04-19 — Продагент: дисциплина двух окон Cursor
+
+- Корневой **[AGENTS.md](../AGENTS.md)**: Forge vs Продагент, почему путаются окна, тег **`[ПРОД]`** в прод-чате.
+- Правило **`.cursor/rules/island-prodagent-readonly.mdc`** (`alwaysApply: false` — включать только в прод-окне): без правок кода с прода; при задаче вне деплоя — CAPS-переспрос до **`ДА ПРОД`**.
+- [README.md](../README.md) и [Readme/RUNBOOK.md](RUNBOOK.md): ссылки на AGENTS и правило.
+
 ## 2026-04-18 — Рефакторинг документации (Hub and Spoke)
 
 - В корне репозитория: [README.md](../README.md) (входная точка).

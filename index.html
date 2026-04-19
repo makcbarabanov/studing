@@ -1533,7 +1533,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">156</span>
+                    <span class="app-version" aria-hidden="true">158</span>
                 </div>
             </footer>
         </div>
@@ -6098,7 +6098,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             overlay.dataset.seriesTotal = String(n);
             if (scopeAll) scopeAll.textContent = stepsCountWordRu(n);
         }
-        function openAddStepModal(dreamId) {
+        function openAddStepModal(dreamId, opts) {
+            opts = opts || {};
             var overlay = document.getElementById('modal-add-step');
             if (!overlay) return;
             overlay.dataset.stepModalUi = 'create';
@@ -6141,15 +6142,17 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (timeFromIn) timeFromIn.value = '';
             if (timeToIn) timeToIn.value = '';
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) { btn.classList.add('selected'); });
-            syncAddStepModalRepeatState();
-            updateAddStepModalCount();
-            overlay.classList.remove('hidden');
-            if (titleIn) titleIn.focus();
+            if (!opts.prepareForEdit) {
+                syncAddStepModalRepeatState();
+                updateAddStepModalCount();
+                overlay.classList.remove('hidden');
+                if (titleIn) titleIn.focus();
+            }
         }
         function openEditStepModal(stepObj) {
             var overlay = document.getElementById('modal-add-step');
             if (!overlay || !stepObj) return;
-            openAddStepModal(stepObj.dream_id);
+            openAddStepModal(stepObj.dream_id, { prepareForEdit: true });
             delete overlay._seriesStepsForEdit;
             if (stepObj._seriesSteps && stepObj._seriesSteps.length) overlay._seriesStepsForEdit = stepObj._seriesSteps;
             overlay.dataset.mode = 'edit';
@@ -6235,6 +6238,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             syncAddStepModalRepeatState();
             updateAddStepModalCount();
+            overlay.classList.remove('hidden');
             if (titleIn) titleIn.focus();
         }
         function openAddStepFinanceModal(dreamId, dream) {
@@ -6396,6 +6400,12 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (fromWrap) fromWrap.classList.toggle('hidden', !showPeriod);
             if (toWrap) toWrap.classList.toggle('hidden', !showPeriod);
             if (isEditSeries) {
+                // После «Добавить шаг» с «Повторять» inlineTimes оказывается в datesScopeWrap.
+                // В edit-series поля времени переносятся в timeFromSlot/timeToSlot строки row-exec;
+                // если inlineTimes оставить в видимом datesScopeWrap — дубли и наслоение (аккордеон мечты).
+                if (inlineTimes && midColumn && inlineTimes.parentElement !== midColumn) {
+                    midColumn.appendChild(inlineTimes);
+                }
                 if (timeFromWrap) timeFromWrap.classList.remove('hidden');
                 if (timeToWrap) timeToWrap.classList.remove('hidden');
                 if (timeFromSlot && timeFromGroup && timeFromGroup.parentElement !== timeFromSlot) timeFromSlot.appendChild(timeFromGroup);

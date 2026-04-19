@@ -13,7 +13,7 @@
 ## Роли ИИ-семьи и топология
 
 - **Forge** (Cursor) — Lead Developer в песочнице `~/Apps/island`: код, миграции, документация. Подробнее: [Readme/Forge.md](Readme/Forge.md).
-- **Продагент** — только на прод-сервере (тот же репозиторий): `git pull`, Docker, проверки. Не смешивать с Forge (см. [Readme/PROJECT.md](Readme/PROJECT.md)).
+- **Продагент** — только на прод-сервере (тот же репозиторий): `git pull`, Docker, проверки. Не смешивать с Forge (см. [Readme/PROJECT.md](Readme/PROJECT.md)). **Два окна Cursor:** как не перепутать чаты и включить жёсткий режим «без кода на проде» — см. **[AGENTS.md](AGENTS.md)** и правило **`.cursor/rules/island-prodagent-readonly.mdc`** (тег **`[ПРОД]`** в прод-окне).
 - Внешний контекст семьи (Bloom и др.) — в Forge.md и bridge-контракте.
 
 **Топология (справочно):** приложение и БД могут быть на разных хостах; переменные `DB_*` в `.env` на машине, где крутится контейнер `app`. Детали — [Readme/PROJECT.md](Readme/PROJECT.md) и RUNBOOK.
