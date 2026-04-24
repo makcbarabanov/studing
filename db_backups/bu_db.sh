@@ -1,10 +1,13 @@
 #!/bin/bash
-BACKUP_DIR="/home/makc/Apps/island/db_backups"   # или ~/db_backups
+# Бэкап удалённой БД в локальную операционную папку вне git.
+# Именование: <source>_<db>_YYYYMMDD_HHMMSS.dump (например, prod_default_db_20260423_120000.dump).
+BACKUP_DIR="${BACKUP_DIR:-$HOME/Backups/island}"
 SIZE_FILE="$BACKUP_DIR/last_size.txt"
-PG_HOST="83.217.220.97"
-PG_USER="marabot"
-PG_DB="default_db"
-export PGPASSWORD="2nix8#mN&Er5tR"   # или используй ~/.pgpass
+PG_HOST="${PG_HOST:-83.217.220.97}"
+PG_USER="${PG_USER:-marabot}"
+PG_DB="${PG_DB:-default_db}"
+BACKUP_SOURCE="${BACKUP_SOURCE:-prod}"   # prod | sandbox
+export PGPASSWORD="${PGPASSWORD:-2nix8#mN&Er5tR}"   # лучше хранить в ~/.pgpass
 
 mkdir -p "$BACKUP_DIR"
 
@@ -20,7 +23,7 @@ LAST_SIZE=""
 [ -f "$SIZE_FILE" ] && LAST_SIZE=$(cat "$SIZE_FILE")
 
 if [ "$CURRENT_SIZE" != "$LAST_SIZE" ]; then
-  DUMP_FILE="$BACKUP_DIR/default_db_$(date +%Y%m%d_%H%M%S).dump"
+  DUMP_FILE="$BACKUP_DIR/${BACKUP_SOURCE}_${PG_DB}_$(date +%Y%m%d_%H%M%S).dump"
   /usr/lib/postgresql/17/bin/pg_dump -h "$PG_HOST" -U "$PG_USER" -d "$PG_DB" -F c -f "$DUMP_FILE"
   if [ $? -eq 0 ]; then
     echo "$CURRENT_SIZE" > "$SIZE_FILE"

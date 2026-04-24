@@ -132,7 +132,11 @@
         .island-cal-day { padding: 8px 4px; min-height: 36px; background: #fff !important; color: #01579b !important; border: 1px solid #b3e5fc !important; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
         .island-cal-day:hover:not(:disabled) { background: #e3f2fd !important; border-color: #42a5f5 !important; color: #003c6f !important; }
         .island-cal-day-selected { background: #bbdefb !important; border-color: #1565c0 !important; font-weight: 700; color: #002171 !important; }
+        .island-cal-day-out-of-range { background: #f5f5f5 !important; border-color: #e0e0e0 !important; color: #bdbdbd !important; }
         .island-cal-day-empty { visibility: hidden; cursor: default; pointer-events: none; border: none !important; background: transparent !important; }
+        .island-cal-footer { margin-top: 8px; padding-top: 6px; border-top: 1px solid #b3e5fc; display: flex; justify-content: flex-end; }
+        .island-cal-apply { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #64b5f6; background: #e3f2fd; color: #01579b; cursor: pointer; font-weight: 600; }
+        .island-cal-apply:hover { background: #bbdefb; }
         .modal-dream-visibility-toggle { display: flex; gap: 12px; margin-top: 12px; }
         .modal-dream-visibility-option { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s; }
         .modal-dream-visibility-option:hover { background: #f8f8f8; border-color: #ccc; }
@@ -247,7 +251,7 @@
         .modal-step-series-delete h3 { margin-bottom: 8px; }
         .modal-step-series-delete .modal-step-series-delete-lead { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--island-secondary-text); }
         .modal-step-series-delete .modal-step-series-delete-hint { margin: 0 0 14px; color: var(--island-text-muted); font-size: 13px; line-height: 1.45; }
-        .modal.modal-add-step { width: 560px; max-width: 92vw; box-sizing: border-box; }
+        .modal.modal-add-step { width: 560px; max-width: 92vw; box-sizing: border-box; min-height: 650px; }
         .modal label { display: block; margin-top: 10px; margin-bottom: 4px; color: #555; }
         .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
         .modal-actions.modal-actions--choice { justify-content: flex-start; }
@@ -326,14 +330,11 @@
         .modal-add-step-row-exec .modal-add-step-single-block .modal-add-step-date { width: 13ch; min-width: 9.75rem; max-width: 100%; box-sizing: border-box; }
         .modal-add-step-row-exec .modal-add-step-mid-column .modal-add-step-time,
         .modal-add-step-dates-scope-wrap > .modal-add-step-inline-times .modal-add-step-time { width: 100%; max-width: 6.5em; flex-shrink: 0; box-sizing: border-box; }
-        /* create + edit-series: в верхнем ряду только 4 блока (Начало/Конец/Время с/Время по) */
-        /* #modal-add-step — одна модалка: всегда «Начало | Конец | Время с | Время по» (как в расписании); колонка «Выполнить до» + mid-column не используются */
+        /* #modal-add-step — одна модалка: базовый вид + прогрессивное раскрытие полей */
         #modal-add-step #modal-add-step-single-block,
         #modal-add-step #modal-add-step-mid-column { display: none !important; }
-        #modal-add-step #modal-add-step-date-from-wrap,
-        #modal-add-step #modal-add-step-date-to-wrap,
-        #modal-add-step #modal-add-step-time-from-wrap,
-        #modal-add-step #modal-add-step-time-to-wrap { display: flex !important; }
+        #modal-add-step .modal-add-step-row-exec > .modal-add-step-period-cell,
+        #modal-add-step .modal-add-step-row-exec > .modal-add-step-time-cell { display: flex; }
         .modal-add-step-dates-scope-wrap { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 8px; }
         /* «1 шаг / N шагов»: только редактирование серии; иначе .hidden не работает из‑за display:flex выше */
         #modal-add-step-dates-scope-wrap.hidden,
@@ -354,16 +355,91 @@
         .modal-add-step-row-exec > .modal-add-step-time-cell .modal-add-step-time-group { display: flex; flex-direction: column; gap: 4px; }
         .modal-add-step-row-exec > .modal-add-step-time-cell .modal-add-step-time-group label { display: none; }
         .modal-add-step-row-exec > .modal-add-step-time-cell .modal-add-step-time { width: 100%; max-width: 13ch; min-width: 0; height: 38px; margin: 0; box-sizing: border-box; }
-        .modal-add-step-period-cell { border-color: #90caf9; background: #f3f9ff; }
-        .modal-add-step-time-cell { border-color: #a5d6a7; background: #f3fbf4; }
-        .modal-add-step .modal-add-step-time-hint { margin-top: 6px; font-size: 12px; color: #888; }
+        .modal-add-step-period-cell {
+            border-color: #90caf9;
+            --modal-period-cell-bg: #f3f9ff;
+            background: var(--modal-period-cell-bg);
+        }
+        #modal-add-step-date-from-label-suffix {
+            transition: opacity 0.18s ease;
+        }
+        #modal-add-step-date-from-label-suffix:not(.is-visible) {
+            display: none;
+        }
+        #modal-add-step-date-from-label-suffix.is-visible {
+            display: block;
+            color: inherit;
+        }
+        .modal-add-step-time-cell {
+            border-color: #a5d6a7;
+            --modal-time-cell-bg: #f3fbf4;
+            background: var(--modal-time-cell-bg);
+            transition: opacity 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.2s ease;
+        }
+        .modal-add-step-time-cell:not(.disabled) {
+            box-shadow: 0 0 0 1px rgba(46, 125, 50, 0.16);
+        }
+        #modal-add-step-time-from-wrap { cursor: pointer; }
+        #modal-add-step-time-to-wrap { cursor: pointer; }
+        #modal-add-step-time-from-wrap input,
+        #modal-add-step-time-to-wrap input,
+        #modal-add-step-time-from-wrap button,
+        #modal-add-step-time-to-wrap button { cursor: auto; }
+        /* «с» на второй строке под «Время»; без интервала span скрыт целиком (без пустой строки от <br>) */
+        #modal-add-step-time-from-label-suffix {
+            transition: opacity 0.18s ease;
+        }
+        #modal-add-step-time-from-label-suffix:not(.is-visible) {
+            display: none;
+        }
+        #modal-add-step-time-from-label-suffix.is-visible {
+            display: block;
+            color: inherit;
+        }
+        #modal-add-step .modal-add-step-row-exec > .modal-add-step-time-cell .modal-add-step-date-block-head .modal-add-step-field-label {
+            white-space: nowrap;
+        }
+        #modal-add-step-time-from-slot #modal-add-step-time-from-inner-label,
+        #modal-add-step-time-to-slot label[for="modal-add-step-time-to"] {
+            display: none !important;
+        }
+        .modal-add-step-disclosure-row { margin-top: 10px; display: flex; flex-wrap: nowrap; align-items: center; gap: 10px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .modal-add-step-link-btn {
+            border: 1px solid #cfd8dc;
+            background: #f1f5f8;
+            color: #455a64;
+            font-size: 12px;
+            line-height: 1.2;
+            padding: 4px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .modal-add-step-link-btn:hover { color: #1f3a44; border-color: #b0bec5; background: #e7eef3; }
+        .modal-add-step-link-btn.active { color: #1b5e20; border-color: #81c784; background: #e8f5e9; font-weight: 600; text-decoration: none; }
         .modal-add-step-repeat-row { margin-top: 10px; }
         .modal-add-step-repeat-row .modal-add-step-repeat-btn { width: 10.5em; }
         .modal-add-step .modal-add-step-days-wrap { margin-top: 12px; }
         .modal-add-step .modal-add-step-days-wrap.disabled { opacity: 0.5; pointer-events: none; }
         .modal-add-step-mode-row { margin-top: 12px; display: flex; flex-direction: row; justify-content: flex-start; align-items: flex-start; gap: 12px; flex-wrap: nowrap; }
+        .modal-add-step-mode-row.modal-add-step-row-exec { margin-bottom: 64px; }
+        .modal-add-step-under-actions {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+        }
+        .modal-add-step-under-actions--time,
+        .modal-add-step-under-actions--time-end { flex-direction: column; gap: 6px; }
         .modal-add-step-bordered-block { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; box-sizing: border-box; background: #fafafa; }
-        .modal-add-step-bordered-block .modal-add-step-date-block-head { text-align: center; margin-bottom: 8px; }
+        .modal-add-step-row-exec > .modal-add-step-bordered-block { position: relative; overflow: visible; }
+        .modal-add-step-bordered-block .modal-add-step-date-block-head { text-align: center; margin-bottom: 8px; min-height: 2.5em; display: flex; align-items: flex-end; justify-content: center; }
         .modal-add-step-bordered-block .modal-add-step-date-block-head .modal-add-step-field-label { margin: 0; }
         .modal-add-step-bordered-block .modal-add-step-date-field { margin: 0 auto; justify-content: center; max-width: 100%; }
         .modal-add-step-time-bordered-inner { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; justify-content: flex-start; }
@@ -375,7 +451,15 @@
         .modal-add-step .modal-add-step-repeat-btn-wrap { height: 38px; display: flex; align-items: stretch; margin: 0; padding: 0; }
         .modal-add-step .modal-add-step-repeat-btn-wrap .modal-add-step-repeat-btn { height: 100%; min-height: 0; margin: 0; padding: 0 12px; box-sizing: border-box; display: block; }
         .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row { display: flex; gap: 8px; align-items: stretch; height: 38px; min-height: 38px; }
-        .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row .modal-add-step-repeat-btn { flex: 1 1 0; min-width: 0; width: auto; }
+        .modal-add-step-edit-scope-btns .modal-add-step-scope-btn-row .modal-add-step-repeat-btn {
+            flex: 1 1 0;
+            min-width: 0;
+            width: auto;
+            font-size: 12px;
+            line-height: 1.15;
+            white-space: nowrap;
+            padding: 6px 8px;
+        }
         .modal-add-step-finish-all-btn { margin-top: 10px; width: 100%; padding: 8px 12px; font-size: 13px; border-radius: 4px; border: 1px solid #c62828; background: #fff; color: #b71c1c; cursor: pointer; font-weight: 500; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .modal-add-step-finish-all-btn.hidden--step-ui { display: none !important; }
         .modal-add-step-finish-all-btn:hover { background: #ffebee; border-color: #b71c1c; }
@@ -386,7 +470,7 @@
         .modal-add-step-repeat-btn { margin: 0; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #2e7d32; cursor: pointer; font-size: 14px; width: 10.5em; height: 38px; min-height: 38px; box-sizing: border-box; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; }
         .modal-add-step-repeat-btn:hover { background: #f5f5f5; border-color: #999; }
         .modal-add-step-repeat-btn.active { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; font-weight: 600; }
-        /* Мобилка: подписи «Начало / Конец / Время с / Время по» в одну строку (без переноса «Время» / «с») */
+        /* Мобилка: подписи сохраняются в 2 строки ("Дата/Время" + "начала/по/с"). */
         @media (max-width: 768px) {
             #modal-add-step .modal-add-step-mode-row.modal-add-step-row-exec { gap: 4px; }
             #modal-add-step .modal-add-step-row-exec > .modal-add-step-period-cell.modal-add-step-bordered-block,
@@ -401,10 +485,18 @@
                 letter-spacing: -0.02em;
             }
         }
-        #modal-add-step[data-step-modal-ui="edit-series"] .modal-add-step-repeat-row,
-        #modal-add-step[data-step-modal-ui="edit-single"] .modal-add-step-repeat-row { display: none !important; }
+        #modal-add-step .modal-add-step-repeat-row { display: none !important; }
         .modal-add-step-repeat-block { margin-top: 12px; padding: 12px; background: #f0f0f0; border-radius: 6px; transition: opacity 0.2s, background 0.2s; min-height: 96px; }
         .modal-add-step-repeat-block.disabled { opacity: 0.5; pointer-events: none; background: #e8e8e8; }
+        .modal-add-step-time-cell.disabled { opacity: 0.55; box-shadow: none; }
+        @media (prefers-reduced-motion: reduce) {
+            .modal-add-step-time-cell { transition: none; }
+        }
+        .modal-add-step-target-wrap { margin-top: 10px; padding: 10px 12px; border: 1px solid #d6e6f7; border-radius: 6px; background: #f8fbff; }
+        .modal-add-step-target-wrap.hidden { display: block; visibility: hidden; pointer-events: none; }
+        .modal-add-step-target-row { display: flex; gap: 10px; align-items: center; }
+        .modal-add-step-target-input { width: 8em; padding: 7px 8px; box-sizing: border-box; }
+        .modal-add-step-target-type { padding: 7px 8px; box-sizing: border-box; }
         .modal-add-step .modal-add-step-days-label { margin-bottom: 6px; }
         .modal-add-step .modal-add-step-days { display: flex; gap: 6px; flex-wrap: nowrap; margin: 8px 0; }
         .modal-add-step .modal-add-step-day-btn { margin: 0; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; background: #e8e8e8; color: #666; cursor: pointer; font-size: 12px; white-space: nowrap; width: auto; min-width: 0; transition: background 0.2s, border-color 0.2s, color 0.2s; outline: none; }
@@ -412,6 +504,12 @@
         .modal-add-step .modal-add-step-day-btn.selected { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; font-weight: 600; }
         .modal-add-step .modal-add-step-day-btn:focus-visible { outline: 2px solid #4CAF50; outline-offset: 2px; }
         .modal-add-step .modal-add-step-day-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+        .modal-add-step .modal-add-step-day-btn.out-of-range {
+            background: #f2f2f2;
+            border-color: #d9d9d9;
+            color: #b3b3b3;
+            opacity: 1;
+        }
         .modal-add-step-footer-meta { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 12px; margin: 10px 0 0 0; min-height: 1.5em; font-size: 13px; color: #666; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .modal-add-step-footer-meta .modal-add-step-count { margin: 0; flex: 0 0 auto; white-space: nowrap; line-height: 1.5; min-height: 1.5em; }
         .add-buddy-list { max-height: 50vh; overflow-y: auto; }
@@ -1336,7 +1434,7 @@
                 </div>
             </div>
             <!-- Общий календарь дедлайна мечты (текст дд.мм.гг + сетка; без отдельной иконки) -->
-            <div id="island-date-calendar-popover" class="island-date-calendar-popover hidden" role="dialog" aria-modal="true" aria-label="Календарь даты" aria-hidden="true">
+            <div id="island-date-calendar-popover" class="island-date-calendar-popover hidden" role="dialog" aria-modal="true" aria-label="Календарь даты" aria-hidden="true" tabindex="-1">
                 <div class="island-cal-head">
                     <button type="button" class="island-cal-nav" id="island-cal-prev" aria-label="Предыдущий месяц">‹</button>
                     <div class="island-cal-head-mid">
@@ -1349,6 +1447,9 @@
                 </div>
                 <div class="island-cal-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
                 <div class="island-cal-grid" id="island-cal-grid"></div>
+                <div class="island-cal-footer">
+                    <button type="button" class="island-cal-apply" id="island-cal-apply">Готово</button>
+                </div>
             </div>
             <!-- Модальное окно: добавить бадди -->
             <div id="modal-add-buddy" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-buddy-title">
@@ -1433,15 +1534,18 @@
                         </div>
                         <div id="modal-add-step-date-from-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell" aria-label="Начало периода">
                             <div class="modal-add-step-date-block-head">
-                                <label for="modal-add-step-date-from" class="modal-add-step-field-label">Начало</label>
+                                <label for="modal-add-step-date-from" class="modal-add-step-field-label" id="modal-add-step-date-from-label">Дата<span id="modal-add-step-date-from-label-suffix" aria-hidden="true">начала</span></label>
                             </div>
                             <div class="modal-add-step-date-field">
                                 <input type="text" id="modal-add-step-date-from" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                             </div>
+                            <div class="modal-add-step-under-actions modal-add-step-under-actions--recurring">
+                                <button type="button" class="modal-add-step-link-btn" id="modal-add-step-action-recurring">+ Повторять</button>
+                            </div>
                         </div>
                         <div id="modal-add-step-date-to-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell" aria-label="Конец периода">
                             <div class="modal-add-step-date-block-head">
-                                <label for="modal-add-step-date-to" class="modal-add-step-field-label">Конец</label>
+                                <label for="modal-add-step-date-to" class="modal-add-step-field-label" id="modal-add-step-date-to-label">Дата<br>окончания</label>
                             </div>
                             <div class="modal-add-step-date-field">
                                 <input type="text" id="modal-add-step-date-to" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
@@ -1449,33 +1553,38 @@
                         </div>
                         <div id="modal-add-step-time-from-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell" aria-label="Время начала">
                             <div class="modal-add-step-date-block-head">
-                                <label for="modal-add-step-time-from" class="modal-add-step-field-label">Время с</label>
+                                <label for="modal-add-step-time-from" class="modal-add-step-field-label">Время<span id="modal-add-step-time-from-label-suffix" aria-hidden="true"><br>с</span></label>
                             </div>
                             <div class="modal-add-step-time-slot" id="modal-add-step-time-from-slot"></div>
+                            <div class="modal-add-step-under-actions modal-add-step-under-actions--time">
+                                <button type="button" class="modal-add-step-link-btn" id="modal-add-step-action-time">+ Интервал</button>
+                            </div>
                         </div>
                         <div id="modal-add-step-time-to-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell" aria-label="Время окончания">
                             <div class="modal-add-step-date-block-head">
-                                <label for="modal-add-step-time-to" class="modal-add-step-field-label">Время по</label>
+                                <label for="modal-add-step-time-to" class="modal-add-step-field-label">Время<br>по</label>
                             </div>
                             <div class="modal-add-step-time-slot" id="modal-add-step-time-to-slot"></div>
+                            <div class="modal-add-step-under-actions modal-add-step-under-actions--time-end">
+                                <button type="button" class="modal-add-step-link-btn hidden" id="modal-add-step-action-time-end">+ Конец</button>
+                            </div>
                         </div>
                         <div class="modal-add-step-mid-column" id="modal-add-step-mid-column">
                             <div class="modal-add-step-inline-times modal-add-step-bordered-block" id="modal-add-step-inline-times" aria-label="Время шага">
                                 <div class="modal-add-step-time-bordered-inner">
                                     <div class="modal-add-step-time-group" id="modal-add-step-time-from-group">
-                                        <label for="modal-add-step-time-from">Время с</label>
+                                        <label for="modal-add-step-time-from" id="modal-add-step-time-from-inner-label">Время</label>
                                         <input type="text" id="modal-add-step-time-from" class="modal-add-step-time" inputmode="numeric" placeholder="00:00" maxlength="5">
                                     </div>
                                     <div class="modal-add-step-time-group" id="modal-add-step-time-to-group">
-                                        <label for="modal-add-step-time-to">Время по</label>
+                                        <label for="modal-add-step-time-to">Время<br>по</label>
                                         <input type="text" id="modal-add-step-time-to" class="modal-add-step-time" inputmode="numeric" placeholder="00:00" maxlength="5">
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-add-step-time-hint">Время необязательно, формат HH:MM (24 часа)</div>
-                    <!-- Редактирование серии: «1 шаг / N шагов» сразу под подсказкой по времени (до «Повторять» и дней), чтобы не терялось на мобилке -->
+                    <!-- Редактирование серии: «1 шаг / N шагов» сразу под рядом дат/времени (на мобилке не уезжает) -->
                     <div id="modal-add-step-dates-scope-wrap" class="modal-add-step-dates-scope-wrap hidden">
                         <div class="modal-add-step-edit-scope-btns hidden" id="modal-add-step-edit-scope-btns">
                             <span class="modal-add-step-field-label modal-add-step-field-label-ghost" aria-hidden="true">Область</span>
@@ -1505,12 +1614,31 @@
                             </div>
                         </div>
                     </div>
+                    <div id="modal-add-step-target-wrap" class="modal-add-step-target-wrap hidden" aria-live="polite">
+                        <label for="modal-add-step-target-value" class="modal-add-step-field-label">Цель (количество)</label>
+                        <div class="modal-add-step-target-row">
+                            <input type="number" id="modal-add-step-target-value" class="modal-add-step-target-input" min="1" step="1" placeholder="20">
+                            <select id="modal-add-step-target-type" class="modal-add-step-target-type">
+                                <option value="fixed">фиксированная</option>
+                                <option value="progress">прогрессия</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="modal-add-step-footer-meta">
                         <p class="modal-add-step-count" id="modal-add-step-count"></p>
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="modal-add-step-cancel">Отмена</button>
                         <button type="button" id="modal-add-step-create">Создать</button>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-add-step-ui-alert" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-step-ui-alert-title">
+                <div class="modal">
+                    <h3 id="modal-add-step-ui-alert-title">Проверьте форму</h3>
+                    <p id="modal-add-step-ui-alert-text" style="margin:12px 0;color:#333;line-height:1.45;">Введите название шага</p>
+                    <div class="modal-actions">
+                        <button type="button" id="modal-add-step-ui-alert-ok">Ок</button>
                     </div>
                 </div>
             </div>
@@ -1582,7 +1710,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">168</span>
+                    <span class="app-version" aria-hidden="true">200</span>
                 </div>
             </footer>
         </div>
@@ -4346,8 +4474,31 @@
             var d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
             return isNaN(d.getTime()) ? null : d;
         }
+        function getWeekdaysAvailableInRange(fromIso, toIso) {
+            var from = isoToDate(fromIso);
+            var to = isoToDate(toIso);
+            if (!from || !to || from > to) return null;
+            var days = {};
+            var d = new Date(from);
+            while (d <= to) {
+                days[d.getDay()] = true;
+                d.setDate(d.getDate() + 1);
+            }
+            return days;
+        }
+        function getAddStepDateToMinIso() {
+            if (!islandDateCalInput || islandDateCalInput.id !== 'modal-add-step-date-to') return null;
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay || overlay.classList.contains('hidden')) return null;
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var fromUi = fromIn && fromIn.value ? fromIn.value.trim() : '';
+            var fromIso = uiDateToIso(fromUi);
+            return fromIso || null;
+        }
         var islandDateCalPop = null;
         var islandDateCalInput = null;
+        /** Выбранный в сетке день до подтверждения (двойной клик / «Готово»); null — только подсветка из значения поля. */
+        var islandDateCalPendingIso = null;
         var islandDateCalViewY = 2026;
         var islandDateCalViewM = 1;
         var ISLAND_CAL_MONTH_LONG = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -4360,12 +4511,20 @@
             return new Date(y, m0 + 1, 0).getDate();
         }
         function islandCalClose() {
+            islandDateCalPendingIso = null;
             var pop = islandCalEnsurePop();
             if (pop) {
                 pop.classList.add('hidden');
                 pop.setAttribute('aria-hidden', 'true');
             }
             islandDateCalInput = null;
+        }
+        function islandCalCommitPendingToInput() {
+            if (!islandDateCalPendingIso || !islandDateCalInput) return;
+            islandDateCalInput.value = isoToUiDate(islandDateCalPendingIso);
+            islandDateCalInput.classList.remove('island-date-field-invalid');
+            islandDateCalInput.dispatchEvent(new Event('input', { bubbles: true }));
+            islandDateCalInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
         function islandCalPosition() {
             var pop = islandCalEnsurePop();
@@ -4441,6 +4600,7 @@
             if (!islandDateCalPop || !grid) return;
             var y = islandDateCalViewY;
             var m = islandDateCalViewM;
+            var minIsoForTo = getAddStepDateToMinIso();
             islandCalSyncMonthSelect();
             islandCalFillYearSelect();
             var m0 = m - 1;
@@ -4448,6 +4608,7 @@
             var first = new Date(y, m0, 1);
             var startPad = (first.getDay() + 6) % 7;
             var curIso = islandDateCalInput ? uiDateToIso((islandDateCalInput.value || '').trim()) : null;
+            var showIso = islandDateCalPendingIso || curIso;
             grid.innerHTML = '';
             var dNum = 0;
             for (var row = 0; row < 6; row++) {
@@ -4465,17 +4626,45 @@
                         btn.textContent = String(dNum);
                         var isoCell = String(y) + '-' + String(m).padStart(2, '0') + '-' + String(dNum).padStart(2, '0');
                         btn.dataset.iso = isoCell;
-                        if (curIso && curIso === isoCell) btn.classList.add('island-cal-day-selected');
-                        (function(isoVal) {
-                            btn.addEventListener('click', function(ev) {
-                                ev.preventDefault();
-                                if (islandDateCalInput) {
+                        if (showIso && showIso === isoCell) btn.classList.add('island-cal-day-selected');
+                        var isOutOfRange = !!(minIsoForTo && isoCell < minIsoForTo);
+                        if (isOutOfRange) {
+                            btn.disabled = true;
+                            btn.classList.add('island-cal-day-out-of-range');
+                        } else {
+                            (function(isoVal) {
+                                btn.addEventListener('click', function(ev) {
+                                    ev.preventDefault();
+                                    if (islandDateCalInput) {
+                                        islandDateCalInput.value = isoToUiDate(isoVal);
+                                        islandDateCalInput.classList.remove('island-date-field-invalid');
+                                        islandDateCalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        islandDateCalInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                    islandDateCalPendingIso = null;
+                                    islandCalRender();
+                                    islandCalPosition();
+                                    requestAnimationFrame(function() {
+                                        if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) {
+                                            try {
+                                                islandDateCalPop.focus({ preventScroll: true });
+                                            } catch (e) {}
+                                        }
+                                    });
+                                });
+                                btn.addEventListener('dblclick', function(ev) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    if (!islandDateCalInput) return;
                                     islandDateCalInput.value = isoToUiDate(isoVal);
                                     islandDateCalInput.classList.remove('island-date-field-invalid');
-                                    islandCalRender();
-                                }
-                            });
-                        })(isoCell);
+                                    islandDateCalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                    islandDateCalInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                    islandDateCalPendingIso = null;
+                                    islandCalClose();
+                                });
+                            })(isoCell);
+                        }
                     }
                     grid.appendChild(btn);
                 }
@@ -4484,6 +4673,7 @@
         function islandCalOpenForInput(inputEl) {
             islandCalEnsurePop();
             if (!islandDateCalPop) return;
+            islandDateCalPendingIso = null;
             islandDateCalInput = inputEl;
             islandCalSetViewFromValue();
             islandCalRender();
@@ -4497,6 +4687,7 @@
         function islandCalRefreshFromTyping(inputEl) {
             islandCalEnsurePop();
             if (!islandDateCalPop || islandDateCalInput !== inputEl || islandDateCalPop.classList.contains('hidden')) return;
+            islandDateCalPendingIso = null;
             var iso = uiDateToIso((inputEl.value || '').trim());
             if (iso) {
                 var q = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -4522,6 +4713,7 @@
             var inp = ev.target;
             if (!inp || !inp.classList.contains('island-date-field')) return;
             setTimeout(function() {
+                if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden') && islandDateCalPendingIso) return;
                 var ae = document.activeElement;
                 if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden') && ae && islandDateCalPop.contains(ae)) return;
                 islandCalClose();
@@ -4546,6 +4738,7 @@
                 prev._islandCalBound = true;
                 prev.addEventListener('click', function(ev) {
                     ev.preventDefault();
+                    islandDateCalPendingIso = null;
                     islandDateCalViewM--;
                     if (islandDateCalViewM < 1) { islandDateCalViewM = 12; islandDateCalViewY--; }
                     islandCalRender();
@@ -4556,6 +4749,7 @@
                 next._islandCalBound = true;
                 next.addEventListener('click', function(ev) {
                     ev.preventDefault();
+                    islandDateCalPendingIso = null;
                     islandDateCalViewM++;
                     if (islandDateCalViewM > 12) { islandDateCalViewM = 1; islandDateCalViewY++; }
                     islandCalRender();
@@ -4569,6 +4763,7 @@
                 monthSel.addEventListener('change', function() {
                     var v = parseInt(monthSel.value, 10);
                     if (!isNaN(v) && v >= 1 && v <= 12) {
+                        islandDateCalPendingIso = null;
                         islandDateCalViewM = v;
                         islandCalRender();
                         islandCalPosition();
@@ -4581,10 +4776,21 @@
                 yearSel.addEventListener('change', function() {
                     var v = parseInt(yearSel.value, 10);
                     if (!isNaN(v)) {
+                        islandDateCalPendingIso = null;
                         islandDateCalViewY = v;
                         islandCalRender();
                         islandCalPosition();
                     }
+                });
+            }
+            var calApplyBtn = document.getElementById('island-cal-apply');
+            if (calApplyBtn && !calApplyBtn._islandCalBound) {
+                calApplyBtn._islandCalBound = true;
+                calApplyBtn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    islandCalCommitPendingToInput();
+                    islandCalClose();
                 });
             }
             if (!window._islandDateGlobalListeners) {
@@ -6197,6 +6403,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var toIn = document.getElementById('modal-add-step-date-to');
             var timeFromIn = document.getElementById('modal-add-step-time-from');
             var timeToIn = document.getElementById('modal-add-step-time-to');
+            var targetValueIn = document.getElementById('modal-add-step-target-value');
+            var targetTypeIn = document.getElementById('modal-add-step-target-type');
             var modalTitle = document.getElementById('modal-add-step-title');
             var createBtn = document.getElementById('modal-add-step-create');
             var repeatOnlyWrap = document.getElementById('modal-add-step-repeat-only-wrap');
@@ -6215,10 +6423,18 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var todayStr = isoToUiDate(todayIso);
             if (dateSingleIn) dateSingleIn.value = todayStr;
             if (fromIn) fromIn.value = todayStr;
-            if (toIn) toIn.value = todayStr;
+            if (toIn) toIn.value = '';
             if (timeFromIn) timeFromIn.value = '';
             if (timeToIn) timeToIn.value = '';
+            if (targetValueIn) targetValueIn.value = '';
+            if (targetTypeIn) targetTypeIn.value = 'fixed';
+            overlay.dataset.showRecurring = '0';
+            overlay.dataset.allDay = '1';
+            overlay.dataset.showTimeStart = '0';
+            overlay.dataset.showTimeEnd = '0';
+            overlay.dataset.showTarget = '0';
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) { btn.classList.add('selected'); });
+            setStepModalUiState({ isSeries: false, isRecurring: false, isAllDay: true, showTimeStart: false, showTimeEnd: false, showTarget: false });
             if (!opts.prepareForEdit) {
                 syncAddStepModalRepeatState();
                 updateAddStepModalCount();
@@ -6248,6 +6464,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var dateSingleIn = document.getElementById('modal-add-step-date-single');
             var timeFromIn = document.getElementById('modal-add-step-time-from');
             var timeToIn = document.getElementById('modal-add-step-time-to');
+            var targetValueIn = document.getElementById('modal-add-step-target-value');
+            var targetTypeIn = document.getElementById('modal-add-step-target-type');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
             var repeatOnlyWrap = document.getElementById('modal-add-step-repeat-only-wrap');
             var editScopeBtns = document.getElementById('modal-add-step-edit-scope-btns');
@@ -6262,6 +6480,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (dateSingleIn) dateSingleIn.value = editDateUi;
             if (timeFromIn) timeFromIn.value = formatTimeHM(stepObj.start_time || '');
             if (timeToIn) timeToIn.value = formatTimeHM(stepObj.end_time || '');
+            if (targetValueIn) targetValueIn.value = '';
+            if (targetTypeIn) targetTypeIn.value = 'fixed';
             if (repeatBtn) { repeatBtn.classList.remove('active'); repeatBtn.disabled = !!isSeriesStep; }
             var fromIn = document.getElementById('modal-add-step-date-from');
             var toIn = document.getElementById('modal-add-step-date-to');
@@ -6309,11 +6529,21 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     }
                 }
             } else {
-                if (repeatOnlyWrap) repeatOnlyWrap.classList.add('hidden');
+                if (repeatOnlyWrap) repeatOnlyWrap.classList.remove('hidden');
                 if (editScopeBtns) editScopeBtns.classList.add('hidden');
                 if (fromIn) fromIn.value = editDateUi;
-                if (toIn) toIn.value = editDateUi;
+                if (toIn) toIn.value = '';
             }
+            var hasTimeStart = !!(timeFromIn && (timeFromIn.value || '').trim());
+            var hasTimeEnd = !!(timeToIn && (timeToIn.value || '').trim());
+            setStepModalUiState({
+                isSeries: !!isSeriesStep,
+                isRecurring: !!isSeriesStep,
+                isAllDay: !hasTimeStart && !hasTimeEnd,
+                showTimeStart: !!isSeriesStep || hasTimeStart || hasTimeEnd,
+                showTimeEnd: hasTimeEnd,
+                showTarget: false
+            });
             syncAddStepModalRepeatState();
             updateAddStepModalCount();
             if (overlay.dataset.isSeriesStep === '1') {
@@ -6369,6 +6599,16 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
             if (bulkOv) bulkOv.classList.add('hidden');
             bulkEndConfirmState = null;
+        }
+        function openAddStepUiAlert(message) {
+            var overlay = document.getElementById('modal-add-step-ui-alert');
+            var textEl = document.getElementById('modal-add-step-ui-alert-text');
+            if (textEl) textEl.textContent = (message || '').toString() || 'Проверьте заполнение формы';
+            if (overlay) overlay.classList.remove('hidden');
+        }
+        function closeAddStepUiAlert() {
+            var overlay = document.getElementById('modal-add-step-ui-alert');
+            if (overlay) overlay.classList.add('hidden');
         }
         function openFinishAllSeriesConfirm() {
             var overlay = document.getElementById('modal-add-step');
@@ -6446,6 +6686,139 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (yesBtn) yesBtn.disabled = false;
             });
         }
+        function getStepModalUiState(overlay) {
+            if (!overlay) overlay = document.getElementById('modal-add-step');
+            if (!overlay) return null;
+            function bit(name, fallback) {
+                var v = overlay.dataset[name];
+                if (v === '1') return true;
+                if (v === '0') return false;
+                return !!fallback;
+            }
+            var modeUi = overlay.dataset.stepModalUi || 'create';
+            var isSeries = modeUi === 'edit-series';
+            return {
+                isSeries: isSeries,
+                isRecurring: isSeries ? true : bit('showRecurring', false),
+                isAllDay: bit('allDay', true),
+                showTimeStart: bit('showTimeStart', false),
+                showTimeEnd: bit('showTimeEnd', false),
+                showTarget: bit('showTarget', false)
+            };
+        }
+        function setStepModalUiState(nextState) {
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay) return;
+            var prev = getStepModalUiState(overlay) || {};
+            var st = Object.assign({}, prev, nextState || {});
+            if (st.isSeries) st.isRecurring = true;
+            if (st.isAllDay) {
+                st.showTimeStart = false;
+                st.showTimeEnd = false;
+            } else if (!st.showTimeStart && st.showTimeEnd) {
+                st.showTimeStart = true;
+            }
+            overlay.dataset.showRecurring = st.isRecurring ? '1' : '0';
+            overlay.dataset.allDay = st.isAllDay ? '1' : '0';
+            overlay.dataset.showTimeStart = st.showTimeStart ? '1' : '0';
+            overlay.dataset.showTimeEnd = st.showTimeEnd ? '1' : '0';
+            overlay.dataset.showTarget = st.showTarget ? '1' : '0';
+            var repeatBtn = document.getElementById('modal-add-step-repeat');
+            if (repeatBtn) repeatBtn.classList.toggle('active', !!st.isRecurring);
+            var timeFromIn = document.getElementById('modal-add-step-time-from');
+            var timeToIn = document.getElementById('modal-add-step-time-to');
+            if (st.isAllDay) {
+                if (timeFromIn) timeFromIn.value = '';
+                if (timeToIn) timeToIn.value = '';
+            } else if (!st.showTimeEnd && timeToIn) {
+                timeToIn.value = '';
+            }
+            var fromLblSuffix = document.getElementById('modal-add-step-date-from-label-suffix');
+            var timeFromLblSuffix = document.getElementById('modal-add-step-time-from-label-suffix');
+            var toLbl = document.getElementById('modal-add-step-date-to-label');
+            if (fromLblSuffix) {
+                fromLblSuffix.classList.toggle('is-visible', !!st.isRecurring);
+                if (st.isRecurring) fromLblSuffix.removeAttribute('aria-hidden');
+                else fromLblSuffix.setAttribute('aria-hidden', 'true');
+            }
+            if (timeFromLblSuffix) {
+                timeFromLblSuffix.classList.toggle('is-visible', !!st.showTimeEnd);
+                if (st.showTimeEnd) timeFromLblSuffix.removeAttribute('aria-hidden');
+                else timeFromLblSuffix.setAttribute('aria-hidden', 'true');
+            }
+            var timeFromInnerLbl = document.getElementById('modal-add-step-time-from-inner-label');
+            if (timeFromInnerLbl) {
+                if (st.showTimeEnd) timeFromInnerLbl.innerHTML = 'Время<br>с';
+                else timeFromInnerLbl.textContent = 'Время';
+            }
+            if (toLbl) toLbl.innerHTML = 'Дата<br>окончания';
+            var disclosureRow = document.getElementById('modal-add-step-disclosure-row');
+            if (disclosureRow) disclosureRow.classList.toggle('hidden', st.isSeries);
+            var timeBtn = document.getElementById('modal-add-step-action-time');
+            var timeEndBtn = document.getElementById('modal-add-step-action-time-end');
+            var recurBtn = document.getElementById('modal-add-step-action-recurring');
+            var targetBtn = document.getElementById('modal-add-step-action-target');
+            if (timeBtn) {
+                if (!st.showTimeStart) {
+                    timeBtn.textContent = '+ Интервал';
+                } else {
+                    timeBtn.textContent = st.showTimeEnd ? '− Интервал' : '+ Интервал';
+                }
+                timeBtn.classList.toggle('active', !!st.showTimeEnd);
+            }
+            if (timeEndBtn) {
+                timeEndBtn.classList.add('hidden');
+            }
+            if (recurBtn) {
+                recurBtn.textContent = st.isRecurring ? '− Разово' : '+ Повторять';
+                recurBtn.classList.toggle('active', st.isRecurring);
+                recurBtn.classList.toggle('hidden', st.isSeries);
+            }
+            if (targetBtn) {
+                targetBtn.textContent = st.showTarget ? '− Убрать цель' : '+ Добавить цель';
+                targetBtn.classList.toggle('active', st.showTarget);
+                targetBtn.classList.toggle('hidden', st.isSeries);
+            }
+            var targetWrap = document.getElementById('modal-add-step-target-wrap');
+            if (targetWrap) targetWrap.classList.toggle('hidden', !st.showTarget || st.isSeries);
+            syncAddStepModalRepeatState();
+            updateAddStepModalCount();
+        }
+        function buildStepModalPayloadDraft() {
+            var overlay = document.getElementById('modal-add-step');
+            if (!overlay) return null;
+            var st = getStepModalUiState(overlay);
+            var titleIn = document.getElementById('modal-add-step-title-input');
+            var fromIn = document.getElementById('modal-add-step-date-from');
+            var toIn = document.getElementById('modal-add-step-date-to');
+            var timeFromIn = document.getElementById('modal-add-step-time-from');
+            var timeToIn = document.getElementById('modal-add-step-time-to');
+            var targetValueIn = document.getElementById('modal-add-step-target-value');
+            var targetTypeIn = document.getElementById('modal-add-step-target-type');
+            var dateStart = uiDateToIso(fromIn && fromIn.value ? fromIn.value.trim() : '');
+            var dateEnd = uiDateToIso(toIn && toIn.value ? toIn.value.trim() : '');
+            var rawFrom = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
+            var rawTo = timeToIn && timeToIn.value ? timeToIn.value.trim() : '';
+            var normalizedFrom = rawFrom ? normalizeTime24Input(rawFrom) : '';
+            var normalizedTo = rawTo ? normalizeTime24Input(rawTo) : '';
+            var selectedDays = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(btn) { return parseInt(btn.dataset.day, 10); });
+            var dayMap = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+            var recurrencePattern = st.isRecurring ? selectedDays.map(function(d) { return dayMap[d]; }).filter(Boolean) : [];
+            var targetRaw = targetValueIn && targetValueIn.value ? parseFloat(targetValueIn.value) : NaN;
+            var targetValue = (st.showTarget && isFinite(targetRaw) && targetRaw > 0) ? targetRaw : null;
+            return {
+                title: titleIn && titleIn.value ? titleIn.value.trim() : '',
+                is_recurring: !!st.isRecurring,
+                date_start: dateStart || null,
+                date_end: st.isRecurring ? (dateEnd || null) : null,
+                is_all_day: !!st.isAllDay,
+                time_start: (st.isAllDay || !st.showTimeStart) ? null : (normalizedFrom || null),
+                time_end: (st.isAllDay || !st.showTimeEnd) ? null : (normalizedTo || null),
+                recurrence_pattern: recurrencePattern,
+                target_value: targetValue,
+                target_type: targetValue != null ? ((targetTypeIn && targetTypeIn.value) || 'fixed') : null
+            };
+        }
         function syncAddStepModalRepeatState() {
             var overlay = document.getElementById('modal-add-step');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
@@ -6463,38 +6836,60 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var timeToSlot = document.getElementById('modal-add-step-time-to-slot');
             var timeFromGroup = document.getElementById('modal-add-step-time-from-group');
             var timeToGroup = document.getElementById('modal-add-step-time-to-group');
+            var timeFromIn = document.getElementById('modal-add-step-time-from');
+            var timeToIn = document.getElementById('modal-add-step-time-to');
             var inlineTimes = document.getElementById('modal-add-step-inline-times');
             if (!repeatBtn || !block || !midColumn || !inlineTimes) return;
             var stepModalUi = overlay && overlay.dataset.stepModalUi;
-            var isCreate = stepModalUi === 'create';
             var isEditSeries = stepModalUi === 'edit-series';
-            var isRepeat = repeatBtn.classList.contains('active');
-            var showPeriod = isRepeat || isEditSeries;
+            var st = getStepModalUiState(overlay);
+            var isRepeat = isEditSeries || (st && st.isRecurring);
+            var showTimeStart = isEditSeries || (st && !st.isAllDay && st.showTimeStart);
+            var showTimeEndInState = st && st.showTimeEnd;
             function forceDisplay(el, visible, displayMode) {
                 if (!el) return;
                 el.style.display = visible ? (displayMode || 'block') : 'none';
             }
+            function reserveVisibility(el, visible, displayMode) {
+                if (!el) return;
+                el.style.display = displayMode || 'block';
+                el.style.visibility = visible ? 'visible' : 'hidden';
+                el.style.pointerEvents = visible ? 'auto' : 'none';
+            }
             if (singleBlock) singleBlock.classList.remove('disabled');
             if (dateSingleIn) dateSingleIn.disabled = true;
-            block.classList.toggle('disabled', !showPeriod);
+            block.classList.toggle('disabled', !isRepeat);
             if (datesScopeWrap) datesScopeWrap.classList.toggle('hidden', !isEditSeries);
-            if (timeFromWrap) timeFromWrap.classList.remove('hidden');
-            if (timeToWrap) timeToWrap.classList.remove('hidden');
             if (timeFromSlot && timeFromGroup && timeFromGroup.parentElement !== timeFromSlot) timeFromSlot.appendChild(timeFromGroup);
             if (timeToSlot && timeToGroup && timeToGroup.parentElement !== timeToSlot) timeToSlot.appendChild(timeToGroup);
             if (midColumn) midColumn.classList.add('hidden');
             forceDisplay(singleBlock, false);
             forceDisplay(midColumn, false);
-            forceDisplay(fromWrap, true, 'flex');
-            forceDisplay(toWrap, true, 'flex');
-            forceDisplay(timeFromWrap, true, 'flex');
-            forceDisplay(timeToWrap, true, 'flex');
-            if (isRepeat && !isCreate && fromIn && dateSingleIn && dateSingleIn.value) fromIn.value = dateSingleIn.value;
+            reserveVisibility(fromWrap, true, 'flex');
+            reserveVisibility(toWrap, isRepeat, 'flex');
+            reserveVisibility(block, isRepeat, 'block');
+            reserveVisibility(timeFromWrap, true, 'flex');
+            reserveVisibility(timeToWrap, !!(showTimeStart && showTimeEndInState), 'flex');
+            if (timeFromWrap) timeFromWrap.classList.toggle('disabled', !showTimeStart);
+            if (timeToWrap) timeToWrap.classList.toggle('disabled', !showTimeEndInState);
+            if (timeFromIn) {
+                timeFromIn.readOnly = !showTimeStart;
+                if (!showTimeStart && document.activeElement === timeFromIn) {
+                    try { timeFromIn.blur(); } catch (e) {}
+                }
+            }
+            if (timeToIn) {
+                timeToIn.readOnly = !showTimeEndInState;
+                if (!showTimeEndInState && document.activeElement === timeToIn) {
+                    try { timeToIn.blur(); } catch (e) {}
+                }
+            }
             syncAddStepModalDaysState();
         }
         function syncAddStepModalDaysState() {
             var overlay = document.getElementById('modal-add-step');
             var repeatBtn = document.getElementById('modal-add-step-repeat');
+            var fromIn = document.getElementById('modal-add-step-date-from');
             var toIn = document.getElementById('modal-add-step-date-to');
             var wrap = document.getElementById('modal-add-step-days-wrap');
             var labelEl = document.getElementById('modal-add-step-days-label');
@@ -6504,18 +6899,45 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var canPickDays = (repeatBtn && repeatBtn.classList.contains('active')) || seriesAllScope;
             if (!canPickDays) {
                 wrap.classList.add('disabled');
-                overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) { btn.disabled = true; });
+                overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
+                    btn.disabled = true;
+                    btn.classList.remove('out-of-range');
+                });
                 if (isEditSeries && getEditModalScope() === 'single') {
                     labelEl.textContent = 'Дни недели недоступны при правке одного шага серии';
                 }
                 return;
             }
-            var hasEndDate = toIn && (toIn.value || '').trim() !== '';
-            wrap.classList.toggle('disabled', !hasEndDate);
+            var fromUi = fromIn && fromIn.value ? fromIn.value.trim() : '';
+            var toUi = toIn && toIn.value ? toIn.value.trim() : '';
+            var hasEndDate = !!toUi;
+            var fromIso = uiDateToIso(fromUi);
+            var toIso = uiDateToIso(toUi);
+            var hasValidRange = !!(fromIso && toIso && fromIso <= toIso);
+            var daysInRange = hasValidRange ? getWeekdaysAvailableInRange(fromIso, toIso) : null;
+            wrap.classList.toggle('disabled', !hasValidRange);
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
-                btn.disabled = !hasEndDate;
+                var day = parseInt(btn.dataset.day, 10);
+                var isAvailable = !!(daysInRange && daysInRange[day]);
+                if (!hasValidRange) {
+                    btn.disabled = true;
+                    btn.classList.remove('out-of-range');
+                    return;
+                }
+                btn.disabled = !isAvailable;
+                btn.classList.toggle('out-of-range', !isAvailable);
+                if (!isAvailable) btn.classList.remove('selected');
             });
-            labelEl.textContent = hasEndDate ? 'Дни недели (все активны — нажмите, чтобы исключить день)' : 'Укажите дату окончания, чтобы выбрать дни недели';
+            if (!hasEndDate) {
+                labelEl.textContent = 'Укажите дату окончания, чтобы выбрать дни недели';
+            } else if (!hasValidRange) {
+                labelEl.textContent = 'Дата окончания не может быть раньше даты начала';
+            } else {
+                var availableCount = Object.keys(daysInRange).length;
+                labelEl.textContent = availableCount < 7
+                    ? 'Дни недели (недоступные дни выключены по диапазону дат)'
+                    : 'Дни недели (все активны — нажмите, чтобы исключить день)';
+            }
         }
         function updateAddStepModalCount() {
             var overlay = document.getElementById('modal-add-step');
@@ -6542,20 +6964,24 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             syncAddStepModalDaysState();
             if (mode === 'edit') {
-                var dsEdit = fromIn && fromIn.value ? fromIn.value.trim() : '';
+                var dsEdit = (fromIn && fromIn.value ? fromIn.value.trim() : '') || (toIn && toIn.value ? toIn.value.trim() : '');
                 countEl.textContent = dsEdit ? editStepPreviewLineRu(1) : '';
                 return;
             }
             if (!repeatBtn || !repeatBtn.classList.contains('active')) {
                 var fromForOne = document.getElementById('modal-add-step-date-from');
-                var ds = fromForOne && fromForOne.value ? fromForOne.value.trim() : '';
+                var toForOne = document.getElementById('modal-add-step-date-to');
+                var ds = (fromForOne && fromForOne.value ? fromForOne.value.trim() : '') || (toForOne && toForOne.value ? toForOne.value.trim() : '');
                 countEl.textContent = ds ? 'Будет создан 1 шаг' : '';
                 return;
             }
             var fromUi = fromIn && fromIn.value ? fromIn.value.trim() : '';
             var toUi = toIn && toIn.value ? toIn.value.trim() : '';
             var checked = [].map.call(overlay.querySelectorAll('.modal-add-step-day-btn.selected'), function(b) { return parseInt(b.dataset.day, 10); });
-            if (!fromUi || !toUi) { countEl.textContent = ''; return; }
+            if (!fromUi || !toUi) {
+                countEl.textContent = 'Будет создан 1 шаг';
+                return;
+            }
             var fromStr = uiDateToIso(fromUi);
             var toStr = uiDateToIso(toUi);
             if (!fromStr || !toStr) { countEl.textContent = 'Формат дат: дд.мм.гг'; return; }
@@ -6580,10 +7006,93 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var toIn = document.getElementById('modal-add-step-date-to');
             var timeFromIn = document.getElementById('modal-add-step-time-from');
             var timeToIn = document.getElementById('modal-add-step-time-to');
+            var timeFromWrap = document.getElementById('modal-add-step-time-from-wrap');
+            var timeFromSlot = document.getElementById('modal-add-step-time-from-slot');
+            var timeToWrap = document.getElementById('modal-add-step-time-to-wrap');
+            var timeToSlot = document.getElementById('modal-add-step-time-to-slot');
+            var actionTimeBtn = document.getElementById('modal-add-step-action-time');
+            var actionRecurringBtn = document.getElementById('modal-add-step-action-recurring');
+            var actionTargetBtn = document.getElementById('modal-add-step-action-target');
             var cancelBtn = document.getElementById('modal-add-step-cancel');
             var createBtn = document.getElementById('modal-add-step-create');
-            function update() { updateAddStepModalCount(); }
-            if (repeatBtn) repeatBtn.addEventListener('click', function() { repeatBtn.classList.toggle('active'); syncAddStepModalRepeatState(); update(); });
+            var uiAlertOv = document.getElementById('modal-add-step-ui-alert');
+            var uiAlertOk = document.getElementById('modal-add-step-ui-alert-ok');
+            function normalizeAddStepDateOrder() {
+                if (!fromIn || !toIn) return;
+                var fromIso = uiDateToIso((fromIn.value || '').trim());
+                var toIso = uiDateToIso((toIn.value || '').trim());
+                if (!fromIso || !toIso) return;
+                if (toIso < fromIso) {
+                    toIn.value = isoToUiDate(fromIso);
+                    toIn.classList.remove('island-date-field-invalid');
+                }
+            }
+            function update() {
+                updateAddStepModalCount();
+                overlay._stepPayloadDraft = buildStepModalPayloadDraft();
+            }
+            if (repeatBtn) repeatBtn.addEventListener('click', function() {
+                var st = getStepModalUiState(overlay) || {};
+                setStepModalUiState({ isRecurring: !repeatBtn.classList.contains('active') && !st.isSeries });
+                update();
+            });
+            if (actionTimeBtn) actionTimeBtn.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                var st = getStepModalUiState(overlay) || {};
+                if (!st.showTimeStart) {
+                    setStepModalUiState({ isAllDay: false, showTimeStart: true, showTimeEnd: true });
+                    update();
+                    if (timeFromIn) try { timeFromIn.focus(); } catch (e) {}
+                    return;
+                }
+                if (st.showTimeEnd) {
+                    setStepModalUiState({ isAllDay: false, showTimeStart: true, showTimeEnd: false });
+                } else {
+                    setStepModalUiState({ isAllDay: false, showTimeStart: true, showTimeEnd: true });
+                }
+                update();
+                var nst = getStepModalUiState(overlay) || {};
+                if (nst.showTimeEnd && timeToIn) try { timeToIn.focus(); } catch (e) {}
+                if (!nst.showTimeEnd && timeFromIn) try { timeFromIn.focus(); } catch (e) {}
+            });
+            function toggleTimeStartFromCell(ev) {
+                var st = getStepModalUiState(overlay) || {};
+                var target = ev && ev.target;
+                if (target && target.closest('button')) return;
+                var inputClick = !!(target && target.closest && target.closest('input'));
+                if (st.showTimeStart && inputClick) return;
+                var enable = !st.showTimeStart;
+                setStepModalUiState({ isAllDay: !enable, showTimeStart: enable, showTimeEnd: false });
+                update();
+                if (enable && timeFromIn) {
+                    try { timeFromIn.focus(); } catch (e) {}
+                }
+            }
+            function focusTimeToFromCell(ev) {
+                var st = getStepModalUiState(overlay) || {};
+                if (!st.showTimeStart || !st.showTimeEnd) return;
+                var target = ev && ev.target;
+                if (target && target.closest('button')) return;
+                if (target && target.closest('input') === timeToIn) return;
+                if (timeToIn) try { timeToIn.focus(); } catch (e) {}
+            }
+            if (timeFromWrap) timeFromWrap.addEventListener('click', toggleTimeStartFromCell);
+            if (timeFromSlot) timeFromSlot.addEventListener('click', toggleTimeStartFromCell);
+            if (timeToWrap) timeToWrap.addEventListener('click', focusTimeToFromCell);
+            if (timeToSlot) timeToSlot.addEventListener('click', focusTimeToFromCell);
+            if (actionRecurringBtn) actionRecurringBtn.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                var st = getStepModalUiState(overlay) || {};
+                if (st.isSeries) return;
+                setStepModalUiState({ isRecurring: !st.isRecurring });
+                update();
+            });
+            if (actionTargetBtn) actionTargetBtn.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                var st = getStepModalUiState(overlay) || {};
+                setStepModalUiState({ showTarget: !st.showTarget });
+                update();
+            });
             var scopeOneBtn = document.getElementById('modal-add-step-scope-one');
             var scopeAllBtn = document.getElementById('modal-add-step-scope-all');
             function editScopeClick(isAll) {
@@ -6612,16 +7121,30 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (dateSingleIn) { dateSingleIn.addEventListener('input', update); dateSingleIn.addEventListener('change', update); }
             if (fromIn) {
                 fromIn.addEventListener('input', function() {
-                    var ov = document.getElementById('modal-add-step');
-                    var rb = document.getElementById('modal-add-step-repeat');
-                    var toRef = document.getElementById('modal-add-step-date-to');
-                    var editOne = ov && ov.dataset.mode === 'edit' && ov.dataset.isSeriesStep !== '1';
-                    if (ov && (ov.dataset.stepModalUi === 'create' || editOne) && rb && !rb.classList.contains('active') && toRef) toRef.value = fromIn.value;
+                    normalizeAddStepDateOrder();
                     update();
                 });
-                fromIn.addEventListener('change', update);
+                fromIn.addEventListener('change', function() {
+                    normalizeAddStepDateOrder();
+                    update();
+                });
             }
-            if (toIn) { toIn.addEventListener('input', update); toIn.addEventListener('change', update); }
+            if (toIn) {
+                toIn.addEventListener('input', function() {
+                    normalizeAddStepDateOrder();
+                    update();
+                });
+                toIn.addEventListener('change', function() {
+                    normalizeAddStepDateOrder();
+                    update();
+                });
+            }
+            if (timeFromIn) { timeFromIn.addEventListener('input', update); timeFromIn.addEventListener('change', update); }
+            if (timeToIn) { timeToIn.addEventListener('input', update); timeToIn.addEventListener('change', update); }
+            var targetValueIn = document.getElementById('modal-add-step-target-value');
+            var targetTypeIn = document.getElementById('modal-add-step-target-type');
+            if (targetValueIn) { targetValueIn.addEventListener('input', update); targetValueIn.addEventListener('change', update); }
+            if (targetTypeIn) targetTypeIn.addEventListener('change', update);
             overlay.querySelectorAll('.modal-add-step-day-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     if (btn.disabled) return;
@@ -6630,6 +7153,23 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 });
             });
             if (cancelBtn) cancelBtn.addEventListener('click', closeAddStepModal);
+            if (uiAlertOk && !uiAlertOk._stepAlertBound) {
+                uiAlertOk._stepAlertBound = true;
+                uiAlertOk.addEventListener('click', function() {
+                    closeAddStepUiAlert();
+                    var titleInput = document.getElementById('modal-add-step-title-input');
+                    if (titleInput) {
+                        try { titleInput.focus(); } catch (e) {}
+                    }
+                });
+            }
+            if (uiAlertOv && !uiAlertOv._stepAlertBound) {
+                uiAlertOv._stepAlertBound = true;
+                uiAlertOv.addEventListener('click', function(ev) {
+                    if (ev.target !== uiAlertOv) return;
+                    closeAddStepUiAlert();
+                });
+            }
             overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeAddStepModal(); });
             if (createBtn) createBtn.addEventListener('click', function() {
                 var dreamId = overlay.dataset.dreamId;
@@ -6637,16 +7177,20 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var mode = overlay.dataset.mode || 'create';
                 var stepId = overlay.dataset.stepId;
                 var isSeriesStep = overlay.dataset.isSeriesStep === '1';
+                var draftPayload = buildStepModalPayloadDraft();
                 var titleIn = document.getElementById('modal-add-step-title-input');
-                var title = (titleIn && titleIn.value) ? titleIn.value.trim() : '';
-                if (!title) { alert('Введите название шага'); return; }
+                var title = draftPayload && draftPayload.title ? draftPayload.title : ((titleIn && titleIn.value) ? titleIn.value.trim() : '');
+                if (!title) {
+                    openAddStepUiAlert('Введите название шага');
+                    return;
+                }
                 if (mode === 'edit') {
                     if (!stepId) return;
                     var fromUiEd = fromIn && fromIn.value ? fromIn.value.trim() : '';
                     var toUiEd = toIn && toIn.value ? toIn.value.trim() : '';
-                    if (!fromUiEd) { alert('Укажите дату (Начало)'); return; }
-                    if (toUiEd && toUiEd !== fromUiEd && !isSeriesStep) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
-                    var dateUiEdit = fromUiEd;
+                    if (!fromUiEd && !toUiEd) { alert('Укажите дату: заполните «Начало» и/или «Конец»'); return; }
+                    if (!isSeriesStep && fromUiEd && toUiEd && toUiEd !== fromUiEd) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
+                    var dateUiEdit = fromUiEd || toUiEd;
                     var dateStrEdit = uiDateToIso(dateUiEdit);
                     if (!dateStrEdit) { alert('Неверный формат даты. Используй дд.мм.гг'); return; }
                     var timeFromRawEdit = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';
@@ -6656,7 +7200,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     if (timeFromRawEdit && !timeFromEdit) { alert('Неверный формат времени начала. Используй HH:MM (00:00–23:59)'); return; }
                     if (timeToRawEdit && !timeToEdit) { alert('Неверный формат времени окончания. Используй HH:MM (00:00–23:59)'); return; }
                     if (timeFromEdit && timeToEdit && timeFromEdit > timeToEdit) { alert('Время начала должно быть не позже времени окончания'); return; }
-                    var isRepeatInEdit = repeatBtn && repeatBtn.classList.contains('active');
+                    var isRepeatInEdit = !isSeriesStep && draftPayload && draftPayload.is_recurring;
                     if (!isSeriesStep && isRepeatInEdit) {
                         var fromUiEdit = fromIn && fromIn.value ? fromIn.value.trim() : '';
                         var toUiEdit = toIn && toIn.value ? toIn.value.trim() : '';
@@ -6786,13 +7330,13 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     });
                     return;
                 }
-                var isRepeat = repeatBtn && repeatBtn.classList.contains('active');
+                var isRepeat = draftPayload && draftPayload.is_recurring;
                 if (!isRepeat) {
                     var fromUiOne = fromIn && fromIn.value ? fromIn.value.trim() : '';
                     var toUiOne = toIn && toIn.value ? toIn.value.trim() : '';
-                    if (!fromUiOne) { alert('Укажите дату (Начало)'); return; }
-                    if (toUiOne && toUiOne !== fromUiOne) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
-                    var dateUi = fromUiOne;
+                    if (!fromUiOne && !toUiOne) { alert('Укажите дату: заполните «Начало» и/или «Конец»'); return; }
+                    if (fromUiOne && toUiOne && toUiOne !== fromUiOne) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
+                    var dateUi = fromUiOne || toUiOne;
                     var dateStr = uiDateToIso(dateUi);
                     if (!dateStr) { alert('Неверный формат даты. Используй дд.мм.гг'); return; }
                     var timeFromRaw = timeFromIn && timeFromIn.value ? timeFromIn.value.trim() : '';

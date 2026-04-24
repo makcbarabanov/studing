@@ -162,6 +162,17 @@ chmod 644 /home/makc/Apps/island/media/avatars/* 2>/dev/null || true
 3. Forge: restore в Docker-БД песка.  
 4. Проверка пользователей / мечт / аватаров.
 
+### Политика хранения бэкапов (порядок в репозитории)
+
+- Активные дампы хранить **вне репозитория**: `~/Backups/island`.
+- Именование источника обязательно: `prod_<db>_YYYYMMDD_HHMMSS.dump` или `sandbox_<db>_YYYYMMDD_HHMMSS.dump`.
+- В git хранить только скрипты и документацию; сами `.dump` и папки `db_backups*` не коммитить.
+- Недельный чек: есть свежий дамп и тестовый `pg_restore` проходит в песочнице.
+- Скрипт `db_backups/bu_db.sh` поддерживает переменные:
+  - `BACKUP_DIR` (по умолчанию `~/Backups/island`)
+  - `BACKUP_SOURCE` (`prod`/`sandbox`, по умолчанию `prod`)
+  - `PG_HOST`, `PG_USER`, `PG_DB`, `PGPASSWORD`
+
 ---
 
 ## Архив

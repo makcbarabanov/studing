@@ -5,3 +5,9 @@ media/
 
 # Локальная корзина (регламент — Readme/Readme.md, п. 13); не коммитим содержимое
 _trash/
+
+# Локальные/операционные бэкапы БД и архивы (вне git)
+*.dump
+db_backups*/
+db_backups_safe/
+*.tar.gz
