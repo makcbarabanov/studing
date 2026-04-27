@@ -904,6 +904,7 @@
             .dreams-table { font-size: 13px; display: table; width: 100%; }
             .dreams-table th, .dreams-table td { padding: 8px 6px; }
             .modal { max-width: 100%; margin: 10px; padding: 16px; max-height: 85vh; }
+            .modal-add-step .modal-add-step-date { font-size: 13px; }
             .modal-actions { flex-wrap: wrap; }
             .modal-actions button { min-height: 44px; }
             .landing-card { padding: 24px 20px; }
@@ -1534,7 +1535,7 @@
                                 <label for="modal-add-step-date-single" class="modal-add-step-field-label" id="modal-add-step-date-single-label">Выполнить до</label>
                             </div>
                             <div class="modal-add-step-date-field">
-                                <input type="text" id="modal-add-step-date-single" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
+                                <input type="text" id="modal-add-step-date-single" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="8" autocomplete="off">
                             </div>
                         </div>
                         <div id="modal-add-step-date-from-wrap" class="modal-add-step-bordered-block modal-add-step-period-cell" aria-label="Начало периода">
@@ -1542,7 +1543,7 @@
                                 <label for="modal-add-step-date-from" class="modal-add-step-field-label" id="modal-add-step-date-from-label">Дата<span id="modal-add-step-date-from-label-suffix" aria-hidden="true">начала</span></label>
                             </div>
                             <div class="modal-add-step-date-field">
-                                <input type="text" id="modal-add-step-date-from" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
+                                <input type="text" id="modal-add-step-date-from" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="8" autocomplete="off">
                             </div>
                             <div class="modal-add-step-under-actions modal-add-step-under-actions--recurring">
                                 <button type="button" class="modal-add-step-link-btn" id="modal-add-step-action-recurring">+ Повторять</button>
@@ -1553,7 +1554,7 @@
                                 <label for="modal-add-step-date-to" class="modal-add-step-field-label" id="modal-add-step-date-to-label">Дата<br>окончания</label>
                             </div>
                             <div class="modal-add-step-date-field">
-                                <input type="text" id="modal-add-step-date-to" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
+                                <input type="text" id="modal-add-step-date-to" class="modal-add-step-date island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="8" autocomplete="off">
                             </div>
                         </div>
                         <div id="modal-add-step-time-from-wrap" class="modal-add-step-bordered-block modal-add-step-time-cell" aria-label="Время начала">
@@ -1715,7 +1716,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">201</span>
+                    <span class="app-version" aria-hidden="true">202</span>
                 </div>
             </footer>
         </div>
@@ -5100,7 +5101,8 @@
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                     } else if (s.waived) {
                         right += '<button type="button" class="step-waived-clear" title="Снять отметку «не выполнен»">↩</button>';
-                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived-clear" data-action="waived-clear"><span class="step-mobile-action-icon">↩</span><span>Снять «не выполнил»</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived" disabled title="' + escapeAttr('Шаг уже отмечен как «не выполнен»') + '"><span class="step-mobile-action-icon">−</span><span>Не выполнил</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment" disabled title="' + escapeAttr('Для этого шага комментарий недоступен') + '"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                     }
                     right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
                     right += '<button type="button" class="step-series-remove" title="Убрать шаги серии из расписания">✕</button>';
@@ -5146,7 +5148,11 @@
                             }
                             mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                         } else if (s.waived) {
-                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived-clear" data-action="waived-clear"><span class="step-mobile-action-icon">↩</span><span>Снять «не выполнил»</span></button>');
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived" disabled title="' + escapeAttr('Шаг уже отмечен как «не выполнен»') + '"><span class="step-mobile-action-icon">−</span><span>Не выполнил</span></button>');
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment" disabled title="' + escapeAttr('Для этого шага комментарий недоступен') + '"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
+                        } else {
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived" disabled title="' + escapeAttr('Функция недоступна для этого шага') + '"><span class="step-mobile-action-icon">−</span><span>Не выполнил</span></button>');
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment" disabled title="' + escapeAttr('Функция недоступна для этого шага') + '"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                         }
                     }
                     if (!omitRight && !fin) {
@@ -5154,11 +5160,15 @@
                         right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
                         right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
                         if (!compactSeries) mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
+                        else mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move" disabled title="' + escapeAttr('Для серии перенос даты недоступен') + '"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
                     } else if (!omitRight && fin) {
                         right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
                         right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived" disabled title="' + escapeAttr('Недоступно для финансового шага') + '"><span class="step-mobile-action-icon">−</span><span>Не выполнил</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment" disabled title="' + escapeAttr('Недоступно для финансового шага') + '"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move" disabled title="' + escapeAttr('Недоступно для финансового шага') + '"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
                     }
@@ -5226,6 +5236,7 @@
             var bindStepAction = function(selector, handler) {
                 el.querySelectorAll(selector).forEach(function(btn) {
                     btn.addEventListener('click', function(e) {
+                        if (this.disabled) return;
                         closeMobileMenu();
                         handler.call(btn, e);
                     });
@@ -7335,10 +7346,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     });
                     return;
                 }
-                var isRepeat = draftPayload && draftPayload.is_recurring;
+                var fromUiOne = fromIn && fromIn.value ? fromIn.value.trim() : '';
+                var toUiOne = toIn && toIn.value ? toIn.value.trim() : '';
+                var isRepeatRequested = !!(draftPayload && draftPayload.is_recurring);
+                var isRepeat = !!(isRepeatRequested && fromUiOne && toUiOne);
                 if (!isRepeat) {
-                    var fromUiOne = fromIn && fromIn.value ? fromIn.value.trim() : '';
-                    var toUiOne = toIn && toIn.value ? toIn.value.trim() : '';
                     if (!fromUiOne && !toUiOne) { alert('Укажите дату: заполните «Начало» и/или «Конец»'); return; }
                     if (fromUiOne && toUiOne && toUiOne !== fromUiOne) { alert('Для одного шага дата «Конец» должна совпадать с «Начало» или быть пустой.'); return; }
                     var dateUi = fromUiOne || toUiOne;
@@ -7366,9 +7378,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     });
                     return;
                 }
-                var fromUi = fromIn && fromIn.value ? fromIn.value.trim() : '';
-                var toUi = toIn && toIn.value ? toIn.value.trim() : '';
-                if (!fromUi || !toUi) { alert('Укажите дату начала и дату окончания'); return; }
+                var fromUi = fromUiOne;
+                var toUi = toUiOne;
                 var fromStr = uiDateToIso(fromUi);
                 var toStr = uiDateToIso(toUi);
                 if (!fromStr || !toStr) { alert('Неверный формат дат. Используй дд.мм.гг'); return; }
