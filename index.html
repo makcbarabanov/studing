@@ -879,7 +879,7 @@
         #port-hint-banner.show { display: block; }
         /* Мобильная версия */
         @media (max-width: 768px) {
-            body { margin: 0; background-attachment: scroll; }
+            body { margin: 0; background-attachment: scroll; background-image: none; }
             /* iOS/мобильные браузеры: backdrop-filter может ломать position:fixed у потомков */
             .container { padding: 12px; max-width: 100%; backdrop-filter: none !important; }
             .app-sticky-top { width: 100%; left: 0; transform: none; border-radius: 0; }
@@ -1716,7 +1716,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">202</span>
+                    <span class="app-version" aria-hidden="true">203</span>
                 </div>
             </footer>
         </div>
@@ -1801,7 +1801,7 @@
                 avatarWrap.className = 'add-buddy-avatar';
                 if (u.avatar_path) {
                     var img = document.createElement('img');
-                    img.src = mediaBase + (u.avatar_path || '').replace(/^\//, '') + '?t=' + Date.now();
+                    img.src = buildMediaUrl(u.avatar_path, '');
                     img.alt = fullName;
                     img.onerror = function() { img.remove(); var s = document.createElement('span'); s.textContent = initials; avatarWrap.appendChild(s); };
                     avatarWrap.appendChild(img);
@@ -1923,6 +1923,12 @@
             } catch (e) { alert('Ошибка сети'); }
             btnEl.disabled = false;
         }
+        function buildMediaUrl(path, cacheKey) {
+            var p = (path || '').toString().replace(/^\//, '');
+            if (!p) return '';
+            var base = API_BASE_URL + '/media/' + p;
+            return cacheKey ? (base + '?v=' + encodeURIComponent(String(cacheKey))) : base;
+        }
         function applyHeaderView() {
             var avatarEl = document.getElementById('profile-avatar');
             var nameEl = document.getElementById('profile-full_name');
@@ -1932,8 +1938,8 @@
             var taskCodeEl = document.getElementById('header-task-code');
             if (taskCodeEl) taskCodeEl.textContent = 'код ' + TASK_CODE;
             if (!avatarEl || !nameEl || !ratioEl || !slotEl) return;
-            if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '') + '?t=' + Date.now();
-            if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+            if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = buildMediaUrl(currentUser.buddy_avatar_path, currentUser.buddy_avatar_rev || '');
+            if (currentUser && currentUser.avatar_path) currentUser.avatar_url = buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '');
             if (headerView === 'me') {
                 var fullName = (currentUser && (currentUser.full_name || '').trim()) || 'Гость';
                 nameEl.textContent = fullName;
@@ -2083,8 +2089,8 @@
 
                 currentUser = await response.json();
                 if (currentUser) lastStepsForDiary = { userId: currentUser.id, isBuddy: false };
-                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '') + '?t=' + Date.now();
-                if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = buildMediaUrl(currentUser.buddy_avatar_path, currentUser.buddy_avatar_rev || '');
+                if (currentUser && currentUser.avatar_path) currentUser.avatar_url = buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '');
                 // Сохраняем данные пользователя
                 try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e) {}
                 showProfile(); // Показываем личный кабинет
@@ -2141,7 +2147,7 @@
                     currentUser.buddy_id = parseInt(data.buddy_id, 10) || data.buddy_id;
                     currentUser.buddy_name = (data.buddy_name != null && data.buddy_name !== '') ? String(data.buddy_name) : '';
                     currentUser.buddy_avatar_path = data.buddy_avatar_path || null;
-                    currentUser.buddy_avatar_url = data.buddy_avatar_path ? (API_BASE_URL + '/media/' + String(data.buddy_avatar_path).replace(/^\//, '') + '?t=' + Date.now()) : null;
+                    currentUser.buddy_avatar_url = data.buddy_avatar_path ? buildMediaUrl(data.buddy_avatar_path, currentUser.buddy_avatar_rev || '') : null;
                     try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e) {}
                 }
                 await loadBuddyRequests();
@@ -2165,6 +2171,34 @@
             } catch (e) { alert('Ошибка сети'); }
         }
 
+        var profileLoadMeterTimer = null;
+        var profileLoadMeterStartedAt = 0;
+        function startProfileLoadMeter() {
+            profileLoadMeterStartedAt = Date.now();
+            var loadingEl = document.getElementById('profile-loading');
+            if (loadingEl) {
+                loadingEl.textContent = 'Загрузка кабинета… 0.0 c';
+                loadingEl.classList.remove('hidden');
+            }
+            var appContent = document.querySelector('.app-content');
+            if (appContent) appContent.classList.add('hidden');
+            if (profileLoadMeterTimer) clearInterval(profileLoadMeterTimer);
+            profileLoadMeterTimer = setInterval(function() {
+                var sec = ((Date.now() - profileLoadMeterStartedAt) / 1000).toFixed(1);
+                var el = document.getElementById('profile-loading');
+                if (el) el.textContent = 'Загрузка кабинета… ' + sec + ' c';
+            }, 100);
+        }
+        function stopProfileLoadMeter() {
+            if (profileLoadMeterTimer) {
+                clearInterval(profileLoadMeterTimer);
+                profileLoadMeterTimer = null;
+            }
+            var elapsedMs = Date.now() - profileLoadMeterStartedAt;
+            if (elapsedMs > 0 && typeof console !== 'undefined') {
+                console.log('[Perf] showProfile loaded in', elapsedMs + 'ms');
+            }
+        }
         async function showProfile() {
             document.getElementById('landing-view').classList.add('hidden');
             document.body.classList.remove('landing-visible');
@@ -2176,9 +2210,10 @@
             setTimeout(updateStickySpacer, 0);
             setTimeout(updateStickySpacer, 150);
 
+            startProfileLoadMeter();
             headerView = 'me';
-            currentUser.avatar_url = (currentUser.avatar_path && (API_BASE_URL + '/media/' + currentUser.avatar_path + '?t=' + Date.now())) || null;
-            await loadBuddyRequests();
+            currentUser.avatar_url = currentUser.avatar_path ? buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '') : null;
+            loadBuddyRequests();
 
             // 2. Мечты и справочники — один параллельный запрос (быстрее)
             dreamEditContext.ownerId = currentUser.id;
@@ -2193,13 +2228,13 @@
             errEl.classList.add('hidden');
             try {
                 const [stRes, catRes, dreamsRes] = await Promise.all([
-                    fetch(API_BASE_URL + '/dreams_statuses'),
-                    fetch(API_BASE_URL + '/dreams_categories'),
+                    fetch(API_BASE_URL + '/dreams_statuses', { cache: 'force-cache' }),
+                    fetch(API_BASE_URL + '/dreams_categories', { cache: 'force-cache' }),
                     fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.id, { cache: 'no-store' })
                 ]);
                 if (stRes.ok) dreamStatusesList = await stRes.json();
                 if (catRes.ok) dreamCategoriesList = await catRes.json();
-                if (dreamsRes.status === 401) { clearSessionAndShowLogin('Сессия истекла. Войдите снова.'); return; }
+                if (dreamsRes.status === 401) { stopProfileLoadMeter(); clearSessionAndShowLogin('Сессия истекла. Войдите снова.'); return; }
                 if (!dreamsRes.ok) {
                     currentUserDreamsCache = [];
                     errEl.textContent = 'Ошибка загрузки мечт';
@@ -2236,6 +2271,7 @@
                 errEl.textContent = 'Ошибка загрузки';
                 errEl.classList.remove('hidden');
                 refreshDreamsDisplay();
+                stopProfileLoadMeter();
             }
             // Показать блок «Мои мечты», скрыть «Бадди» и «Шаги»
             document.getElementById('dreams-block').classList.remove('hidden');
@@ -2243,6 +2279,7 @@
             document.getElementById('steps-block').classList.add('hidden');
             document.querySelectorAll('.app-menu a').forEach(function(a) { a.classList.remove('active'); });
             document.getElementById('menu-my-dreams').classList.add('active');
+            stopProfileLoadMeter();
             var loadingEl = document.getElementById('profile-loading');
             if (loadingEl) loadingEl.classList.add('hidden');
             var appContent = document.querySelector('.app-content');
@@ -2642,7 +2679,7 @@
             if (previewEl) {
                 previewEl.innerHTML = '';
                 if (currentUser.avatar_path) {
-                    var url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+                    var url = buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '');
                     var img = document.createElement('img');
                     img.src = url;
                     img.alt = 'Аватар';
@@ -2660,7 +2697,7 @@
                     if (data.avatar_path && previewEl) {
                         previewEl.innerHTML = '';
                         var img = document.createElement('img');
-                        img.src = API_BASE_URL + '/media/' + String(data.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+                        img.src = buildMediaUrl(data.avatar_path, currentUser.avatar_rev || '');
                         img.alt = 'Аватар';
                         img.style.width = img.style.height = '100%';
                         img.style.objectFit = 'cover';
@@ -5087,6 +5124,8 @@
                         var doneML = (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Выполнить просроченные' : 'Выполнил';
                         if (s.completed) doneML = 'Серия уже выполнена';
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"' + (s.completed ? ' disabled title="' + escapeAttr('Серия шагов уже выполнена') + '"' : '') + '><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneML) + '</span></button>');
+                    } else {
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done" disabled title="' + escapeAttr('В этой серии нет просроченных шагов') + '"><span class="step-mobile-action-icon">✓</span><span>Выполнить просроченные</span></button>');
                     }
                     if (!s.completed && !s.waived) {
                         if (!hideSeriesBulkDoneWaive) {
@@ -5097,6 +5136,8 @@
                         if (!hideSeriesBulkDoneWaive) {
                             var wML = (seriesOd !== null && seriesOd > 0) ? 'Не выполнил просроченные' : 'Не выполнил';
                             mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived"><span class="step-mobile-action-icon">−</span><span>' + escapeHtml(wML) + '</span></button>');
+                        } else {
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived" disabled title="' + escapeAttr('В этой серии нет просроченных шагов') + '"><span class="step-mobile-action-icon">−</span><span>Не выполнил просроченные</span></button>');
                         }
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                     } else if (s.waived) {
@@ -5106,6 +5147,7 @@
                     }
                     right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
                     right += '<button type="button" class="step-series-remove" title="Убрать шаги серии из расписания">✕</button>';
+                    mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move" disabled title="' + escapeAttr('Для серии перенос даты недоступен') + '"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
                     mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
                     mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-series-remove" data-action="series-remove"><span class="step-mobile-action-icon">✕</span><span>Убрать из расписания…</span></button>');
                 } else {
@@ -7997,17 +8039,20 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     document.body.classList.remove('profile-visible');
                     return;
                 }
-                // Подтянуть актуальные данные с сервера (аватар бадди, имя и т.д.), чтобы в браузере на ПК не показывались устаревшие
-                try {
-                    var res = await fetch(API_BASE_URL + '/users/me?user_id=' + encodeURIComponent(currentUser.id), { cache: 'no-store' });
-                    if (res.ok) {
-                        var fresh = await res.json();
+                // Актуализацию профиля не блокируем: показываем кабинет сразу, а /users/me тянем фоном.
+                fetch(API_BASE_URL + '/users/me?user_id=' + encodeURIComponent(currentUser.id), { cache: 'no-store' })
+                    .then(function(res) { return res && res.ok ? res.json() : null; })
+                    .then(function(fresh) {
+                        if (!fresh || !fresh.id) return;
                         currentUser = fresh;
+                        if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = buildMediaUrl(currentUser.buddy_avatar_path, currentUser.buddy_avatar_rev || '');
+                        if (currentUser && currentUser.avatar_path) currentUser.avatar_url = buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '');
                         try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e2) {}
-                    }
-                } catch (e2) { /* оставляем данные из localStorage */ }
-                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = API_BASE_URL + '/media/' + String(currentUser.buddy_avatar_path).replace(/^\//, '') + '?t=' + Date.now();
-                if (currentUser && currentUser.avatar_path) currentUser.avatar_url = API_BASE_URL + '/media/' + String(currentUser.avatar_path).replace(/^\//, '') + '?t=' + Date.now();
+                        applyHeaderView();
+                    })
+                    .catch(function() {});
+                if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = buildMediaUrl(currentUser.buddy_avatar_path, currentUser.buddy_avatar_rev || '');
+                if (currentUser && currentUser.avatar_path) currentUser.avatar_url = buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '');
                 if (currentUser && currentUser.id) {
                     document.getElementById('profile-view').classList.remove('hidden');
                     document.getElementById('landing-view').classList.add('hidden');
