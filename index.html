@@ -1716,7 +1716,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">203</span>
+                    <span class="app-version" aria-hidden="true">204</span>
                 </div>
             </footer>
         </div>
@@ -4488,6 +4488,24 @@
             if (isNaN(h) || isNaN(mm) || h < 0 || h > 23 || mm < 0 || mm > 59) return null;
             return String(h).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
         }
+        function formatTimeInputMasked(raw) {
+            var digits = (raw || '').toString().replace(/\D/g, '').slice(0, 4);
+            if (!digits) return '';
+            if (digits.length <= 2) return digits;
+            return digits.slice(0, 2) + ':' + digits.slice(2);
+        }
+        function applyTimeInputMask(inputEl) {
+            if (!inputEl) return;
+            var prev = inputEl.value || '';
+            var next = formatTimeInputMasked(prev);
+            if (next !== prev) inputEl.value = next;
+            if (next.length === 5) {
+                var norm = normalizeTime24Input(next);
+                inputEl.classList.toggle('island-date-field-invalid', !norm);
+            } else {
+                inputEl.classList.remove('island-date-field-invalid');
+            }
+        }
         function isoToUiDate(iso) {
             var raw = (iso || '').toString().trim();
             var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -7197,8 +7215,26 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                     update();
                 });
             }
-            if (timeFromIn) { timeFromIn.addEventListener('input', update); timeFromIn.addEventListener('change', update); }
-            if (timeToIn) { timeToIn.addEventListener('input', update); timeToIn.addEventListener('change', update); }
+            if (timeFromIn) {
+                timeFromIn.addEventListener('input', function() { applyTimeInputMask(timeFromIn); update(); });
+                timeFromIn.addEventListener('change', function() { applyTimeInputMask(timeFromIn); update(); });
+                timeFromIn.addEventListener('blur', function() {
+                    var v = (timeFromIn.value || '').trim();
+                    if (v.length === 5 && normalizeTime24Input(v)) timeFromIn.value = normalizeTime24Input(v);
+                    else if (!v) timeFromIn.classList.remove('island-date-field-invalid');
+                    update();
+                });
+            }
+            if (timeToIn) {
+                timeToIn.addEventListener('input', function() { applyTimeInputMask(timeToIn); update(); });
+                timeToIn.addEventListener('change', function() { applyTimeInputMask(timeToIn); update(); });
+                timeToIn.addEventListener('blur', function() {
+                    var v = (timeToIn.value || '').trim();
+                    if (v.length === 5 && normalizeTime24Input(v)) timeToIn.value = normalizeTime24Input(v);
+                    else if (!v) timeToIn.classList.remove('island-date-field-invalid');
+                    update();
+                });
+            }
             var targetValueIn = document.getElementById('modal-add-step-target-value');
             var targetTypeIn = document.getElementById('modal-add-step-target-type');
             if (targetValueIn) { targetValueIn.addEventListener('input', update); targetValueIn.addEventListener('change', update); }
