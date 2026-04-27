@@ -711,6 +711,107 @@
             font-variant-numeric: tabular-nums;
         }
         .steps-list .step-day-divider:first-child { border-top: none; padding-top: 4px; }
+        .step-day-divider-row {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            gap: 6px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .steps-list-plain > li.step-day-divider,
+        .steps-list .step-day-divider {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+        .step-day-divider-date { flex: 0 0 auto; }
+        .step-day-divider-stats {
+            flex: 0 0 auto;
+            font-variant-numeric: tabular-nums;
+            font-size: 12px;
+            font-weight: 700;
+            color: #455a64;
+        }
+        .step-day-share-btn {
+            position: relative;
+            flex: 0 0 auto;
+            flex-shrink: 0;
+            align-self: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            max-width: fit-content;
+            min-width: 0;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            padding: 1px;
+            margin: 0;
+            cursor: pointer;
+            font-size: 0;
+            line-height: 0;
+            color: #37474f;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            overflow: visible;
+        }
+        .step-day-share-icon {
+            display: inline-block;
+            font-size: 1.125rem;
+            line-height: 1;
+            vertical-align: middle;
+            letter-spacing: 0;
+            pointer-events: none;
+        }
+        .step-day-share-btn:hover:not(:disabled) { background: rgba(55, 71, 79, 0.09); }
+        .step-day-share-btn:focus-visible {
+            outline: 2px solid #2e7d32;
+            outline-offset: 1px;
+        }
+        .step-day-share-btn:disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+        .step-day-share-badge {
+            position: absolute;
+            top: -4px;
+            right: -5px;
+            min-width: 14px;
+            height: 14px;
+            padding: 0 3px;
+            border-radius: 7px;
+            background: #2e7d32;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 14px;
+            text-align: center;
+            box-sizing: border-box;
+            display: none;
+        }
+        .step-day-share-btn[data-send-count]:not([data-send-count="0"]) .step-day-share-badge { display: inline-block; }
+        .modal-step-report-unmarked .modal { max-width: 520px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+        #step-report-unmarked-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 50vh;
+            overflow: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        #step-report-unmarked-list > li { border-bottom: 1px solid #eee; }
+        #step-report-unmarked-list > li:last-child { border-bottom: none; }
+        #step-report-unmarked-hint { margin: 8px 0 0; font-size: 13px; color: #666; }
+        /* Модалка отчёта за день: без дневника (чтобы не накладываться на второй оверлей) */
+        #step-report-unmarked-list .step-comment-btn,
+        #step-report-unmarked-list .step-mobile-action-comment {
+            display: none !important;
+        }
         .step-item-plain { padding: 8px 10px; border-bottom: 1px solid #eee; }
         .step-item-plain:hover { background: #f9f9f9; }
         .step-item-plain.completed, .step-row.completed { color: #777; font-style: italic; }
@@ -1303,6 +1404,19 @@
                     </div>
                 </div>
             </div>
+            <!-- Модалка: отметить неотмеченные шаги перед отчётом за день -->
+            <div id="modal-step-report-unmarked" class="modal-overlay hidden">
+                <div class="modal modal-step-report-unmarked">
+                    <h3 id="step-report-unmarked-title">Шаги за день</h3>
+                    <p id="step-report-unmarked-lead" style="margin:0 0 10px;color:#666;font-size:14px;">Отметьте шаги без дополнительных окон — статус сохраняется сразу; текст отчёта после каждого действия попадает в буфер обмена.</p>
+                    <ul id="step-report-unmarked-list" class="steps-list-plain"></ul>
+                    <p id="step-report-unmarked-hint" class="hidden"></p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="step-report-unmarked-cancel">Отмена</button>
+                        <button type="button" id="step-report-unmarked-send">Отправить отчёт</button>
+                    </div>
+                </div>
+            </div>
             <!-- Модалка: перенос даты шага -->
             <div id="modal-step-move" class="modal-overlay hidden">
                 <div class="modal">
@@ -1716,7 +1830,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">204</span>
+                    <span class="app-version" aria-hidden="true">211</span>
                 </div>
             </footer>
         </div>
@@ -3310,7 +3424,7 @@
                 var dreams = data.dreams || [];
                 stepsFlatCache = [];
                 var today = new Date();
-                var todayStr = today.toISOString().slice(0, 10);
+                var todayStr = localCalendarDateIso(today);
                 var currentYear = today.getFullYear();
                 function lastDayOfMonth(month0, year) {
                     var d = new Date(year, month0 + 1, 0);
@@ -3530,33 +3644,17 @@
                 deletedWrap.classList.add('hidden');
             }
 
-            var today = new Date();
-            var todayStr = today.toISOString().slice(0, 10);
-            var in7Days = new Date(today);
-            in7Days.setDate(in7Days.getDate() + 7);
-            var in7DaysStr = in7Days.toISOString().slice(0, 10);
-
-            var list = sortStepsByDeadline(stepsFlatCache.filter(function(s) {
-                if (s.deleted) return false;
-                if (filters.indexOf('all') !== -1) return true;
-                var dl = (s.deadline || '').toString().slice(0, 10);
-                var isCurrent = dl && dl >= todayStr && dl <= in7DaysStr && !s.completed && !s.waived;
-                var isOverdue = stepIsOverdueUtc(s);
-                var isCompleted = s.completed;
-                var isWaived = !!s.waived;
-                if (filters.indexOf('current') !== -1 && isCurrent) return true;
-                if (filters.indexOf('overdue') !== -1 && isOverdue) return true;
-                if (filters.indexOf('waived') !== -1 && isWaived) return true;
-                if (filters.indexOf('completed') !== -1 && isCompleted) return true;
-                return false;
-            }));
+            var list = getScheduleFilteredStepsSorted(filters, isBuddy);
             var titleCounterMap = buildStepTitleCounterMap(list, stepsFlatCache.filter(function(s) { return s && !s.deleted; }));
             listEl.innerHTML = '';
             if (list.length === 0) {
                 emptyEl.classList.remove('hidden');
+                syncStepReportUnmarkedModalAfterStepsRender();
                 return;
             }
             emptyEl.classList.add('hidden');
+            var dayStats = buildStepDayPlanStatsFromCache();
+            var scheduleToday = stepsScheduleTodayIso();
             var lastDividerIso = null;
             list.forEach(function(s) {
                 var dayKey = (s.deadline || '').toString().slice(0, 10);
@@ -3564,7 +3662,15 @@
                     var divLi = document.createElement('li');
                     divLi.className = 'step-day-divider';
                     divLi.setAttribute('role', 'separator');
-                    divLi.textContent = formatStepsListDayDivider(dayKey);
+                    divLi.setAttribute('data-day-iso', dayKey);
+                    var st = dayStats[dayKey] || { total: 0, done: 0 };
+                    var sendCount = (currentUser && !isBuddy) ? getStepReportSendCount(currentUser.id, dayKey) : 0;
+                    var showShare = !isBuddy && dayKey <= scheduleToday;
+                    divLi.innerHTML = buildStepDayDividerRowHtml(dayKey, st.done, st.total, {
+                        showShare: showShare,
+                        sendCount: sendCount,
+                        isBuddyView: !!isBuddy
+                    });
                     listEl.appendChild(divLi);
                     lastDividerIso = dayKey;
                 }
@@ -3585,6 +3691,7 @@
                     }
                 });
             });
+            syncStepReportUnmarkedModalAfterStepsRender();
         }
         function renderStepsDeletedList() {
             var deletedList = document.getElementById('steps-deleted-list');
@@ -3847,6 +3954,42 @@
                     wrap.querySelectorAll('.dreams-filter-btn').forEach(function(x) { x.classList.remove('active'); });
                     btn.classList.add('active');
                     if (stepsFlatCache.length) renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
+                });
+            });
+        })();
+        (function setupStepsDayShareAndReportModal() {
+            var ul = document.getElementById('steps-list');
+            if (ul && !ul._stepDayShareDelegated) {
+                ul._stepDayShareDelegated = true;
+                ul.addEventListener('click', function(e) {
+                    var btn = e.target.closest('.step-day-share-btn');
+                    if (!btn || btn.disabled) return;
+                    e.preventDefault();
+                    var iso = btn.getAttribute('data-day-iso');
+                    if (iso) handleStepDayShareClick(iso);
+                });
+            }
+            var mrep = document.getElementById('modal-step-report-unmarked');
+            var btnCancel = document.getElementById('step-report-unmarked-cancel');
+            var btnSend = document.getElementById('step-report-unmarked-send');
+            if (btnCancel) btnCancel.addEventListener('click', function() { closeStepReportUnmarkedModal(); });
+            if (mrep) mrep.addEventListener('click', function(e) { if (e.target === mrep) closeStepReportUnmarkedModal(); });
+            if (btnSend) btnSend.addEventListener('click', function() {
+                if (!stepReportUnmarkedModal.dayIso || !currentUser) return;
+                var dayIso = stepReportUnmarkedModal.dayIso;
+                var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+                var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
+                if (unmarked.length) {
+                    var hint2 = document.getElementById('step-report-unmarked-hint');
+                    if (hint2) {
+                        hint2.textContent = 'Сначала отметьте все шаги за этот день (выполнено или не выполнено).';
+                        hint2.style.color = '#c62828';
+                        hint2.classList.remove('hidden');
+                    }
+                    return;
+                }
+                performShareStepsDayReport(dayIso).then(function(ok) {
+                    if (ok) closeStepReportUnmarkedModal();
                 });
             });
         })();
@@ -4861,7 +5004,7 @@
                     if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) islandCalPosition();
                 });
             }
-            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance', 'modal-step-move', 'modal-step-comment', 'modal-step-done-late'].forEach(function(mid) {
+            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance', 'modal-step-move', 'modal-step-comment', 'modal-step-done-late', 'modal-step-report-unmarked'].forEach(function(mid) {
                 var ov = document.getElementById(mid);
                 if (ov && !ov._islandCalScroll) {
                     ov._islandCalScroll = true;
@@ -4890,6 +5033,275 @@
             var m = (iso || '').toString().match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (!m) return '';
             return m[3] + '.' + m[2] + '.';
+        }
+        function formatIsoDateLongRu(iso) {
+            var m = (iso || '').toString().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return '';
+            return m[3] + '.' + m[2] + '.' + m[1];
+        }
+        /** Локальный календарный день как YYYY-MM-DD (не UTC из `toISOString()` — иначе ✈️ и фильтр «Сейчас» съезжают из‑за часового пояса). */
+        function localCalendarDateIso(d) {
+            var dt = d || new Date();
+            return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+        }
+        /** Сегодняшняя дата в ISO YYYY-MM-DD по локальному календарю пользователя. */
+        function stepsScheduleTodayIso() {
+            return localCalendarDateIso(new Date());
+        }
+        /** Отфильтрованный и отсортированный список шагов расписания (как в `renderStepsList`, без «удалённых»). */
+        function getScheduleFilteredStepsSorted(activeFilters, isBuddy) {
+            var filters = Array.isArray(activeFilters) ? activeFilters : [activeFilters];
+            var today = new Date();
+            var todayStr = localCalendarDateIso(today);
+            var in7Days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+            var in7DaysStr = localCalendarDateIso(in7Days);
+            return sortStepsByDeadline(stepsFlatCache.filter(function(s) {
+                if (!s || s.deleted) return false;
+                if (filters.indexOf('all') !== -1) return true;
+                var dl = (s.deadline || '').toString().slice(0, 10);
+                var isCurrent = dl && dl >= todayStr && dl <= in7DaysStr && !s.completed && !s.waived;
+                var isOverdue = stepIsOverdueUtc(s);
+                var isCompleted = s.completed;
+                var isWaived = !!s.waived;
+                if (filters.indexOf('current') !== -1 && isCurrent) return true;
+                if (filters.indexOf('overdue') !== -1 && isOverdue) return true;
+                if (filters.indexOf('waived') !== -1 && isWaived) return true;
+                if (filters.indexOf('completed') !== -1 && isCompleted) return true;
+                return false;
+            }));
+        }
+        function stepReportSendStorageKey(userId, dayIso) {
+            return 'island_step_report_send_v1:' + String(userId || 0) + ':' + String(dayIso || '');
+        }
+        function getStepReportSendCount(userId, dayIso) {
+            try {
+                var raw = localStorage.getItem(stepReportSendStorageKey(userId, dayIso));
+                var n = parseInt(raw, 10);
+                return Number.isFinite(n) && n > 0 ? n : 0;
+            } catch (e) { return 0; }
+        }
+        function incrementStepReportSendCount(userId, dayIso) {
+            try {
+                var k = stepReportSendStorageKey(userId, dayIso);
+                var n = getStepReportSendCount(userId, dayIso) + 1;
+                localStorage.setItem(k, String(n));
+                return n;
+            } catch (e) { return 0; }
+        }
+        function scheduleStepsForDayIso(list, dayIso) {
+            return (list || []).filter(function(s) {
+                var dk = (s.deadline || '').toString().slice(0, 10);
+                return dk === dayIso;
+            });
+        }
+        function stepsFlatCacheNonDeleted() {
+            return (stepsFlatCache || []).filter(function(s) { return s && !s.deleted; });
+        }
+        /** Все запланированные на календарную дату шаги из кэша (без учёта фильтра «Сейчас» / «Все»). */
+        function getAllPlannedStepsForCalendarDay(dayIso) {
+            return stepsFlatCacheNonDeleted().filter(function(s) {
+                var dk = (s.deadline || '').toString().slice(0, 10);
+                return dk === dayIso;
+            });
+        }
+        /** Счётчик 3/8: N — все шаги дня в кэше, 3 — с completed; не зависит от видимого фильтра. */
+        function buildStepDayPlanStatsFromCache() {
+            var stats = {};
+            stepsFlatCacheNonDeleted().forEach(function(s) {
+                var dk = (s.deadline || '').toString().slice(0, 10);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dk)) return;
+                if (!stats[dk]) stats[dk] = { total: 0, done: 0 };
+                stats[dk].total += 1;
+                if (s.completed) stats[dk].done += 1;
+            });
+            return stats;
+        }
+        function buildStepTitleCounterMapForAllSteps() {
+            var all = stepsFlatCacheNonDeleted();
+            return buildStepTitleCounterMap(all, all);
+        }
+        function sortStepsForDayReport(steps) {
+            return (steps || []).slice().sort(function(a, b) {
+                var ta = stepMaxTimeMinutes(a);
+                var tb = stepMaxTimeMinutes(b);
+                if (ta != null && tb != null && ta !== tb) return ta - tb;
+                if (ta != null && tb == null) return -1;
+                if (ta == null && tb != null) return 1;
+                return (Number(a.id) || 0) - (Number(b.id) || 0);
+            });
+        }
+        function buildStepDayDividerRowHtml(dayIso, doneCount, totalCount, opts) {
+            opts = opts || {};
+            var showShare = !!opts.showShare;
+            var sendCount = opts.sendCount != null ? opts.sendCount : 0;
+            var dateLabel = escapeHtml(formatStepsListDayDivider(dayIso));
+            var dN = Number(doneCount) || 0;
+            var tN = Number(totalCount) || 0;
+            var stats = '<span class="step-day-divider-stats"><span class="step-day-divider-done">' + String(dN) + '</span>/<span class="step-day-divider-total">' + String(tN) + '</span></span>';
+            var shareTitle = showShare ? 'Отправить отчёт за день (системное меню)' : 'Отчёт доступен только для сегодня и прошлых дней';
+            if (opts.isBuddyView) shareTitle = 'Отчёт доступен только в «Мои шаги»';
+            var dis = (!showShare) ? ' disabled' : '';
+            var badgeText = sendCount > 0 ? String(sendCount) : '0';
+            return '<div class="step-day-divider-row">' +
+                '<span class="step-day-divider-date">' + dateLabel + '</span>' +
+                stats +
+                '<button type="button" class="step-day-share-btn"' + dis + ' data-day-iso="' + escapeAttr(dayIso) + '" title="' + escapeAttr(shareTitle) + '" aria-label="' + escapeAttr(shareTitle) + '" data-send-count="' + escapeAttr(String(sendCount)) + '">' +
+                '<span class="step-day-share-icon" aria-hidden="true">✈️</span>' +
+                '<span class="step-day-share-badge">' + escapeHtml(badgeText) + '</span>' +
+                '</button></div>';
+        }
+        function buildStepsDayReportText(dayIso, daySteps, titleCounterMap) {
+            var head = 'Отчёт за ' + formatIsoDateLongRu(dayIso);
+            var lines = [head, ''];
+            sortStepsForDayReport(daySteps).forEach(function(s) {
+                normalizeStepForUi(s);
+                var title = stepTitleWithCounter(s, titleCounterMap || {});
+                var mark = s.completed ? '✅' : '❌';
+                lines.push(mark + ' — ' + title);
+            });
+            return lines.join('\n');
+        }
+        /** Текст отчёта за день в буфер без alert (режим модалки отчёта после смены статуса). */
+        function copyDayReportClipboardSilent(dayIso) {
+            if (!dayIso || !/^\d{4}-\d{2}-\d{2}$/.test(dayIso)) return;
+            try {
+                var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+                var titleCounterMap = buildStepTitleCounterMapForAllSteps();
+                var text = buildStepsDayReportText(dayIso, daySteps, titleCounterMap);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).catch(function() {});
+                }
+            } catch (e) {}
+        }
+        async function shareStepsDayReportText(text) {
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: (text.split('\n')[0] || 'Отчёт').trim(), text: text });
+                    return true;
+                } catch (e) {
+                    if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return false;
+                }
+            }
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    alert('Текст отчёта скопирован в буфер обмена.');
+                    return true;
+                }
+            } catch (e2) {}
+            alert('Не удалось открыть системное меню «Поделиться». Скопируйте текст вручную:\n\n' + text);
+            return true;
+        }
+        var stepReportUnmarkedModal = { dayIso: '', titleCounterMap: null, isBuddy: false };
+        function closeStepReportUnmarkedModal() {
+            var m = document.getElementById('modal-step-report-unmarked');
+            if (m) m.classList.add('hidden');
+            var ul = document.getElementById('step-report-unmarked-list');
+            if (ul) ul.innerHTML = '';
+            var hint = document.getElementById('step-report-unmarked-hint');
+            if (hint) { hint.textContent = ''; hint.classList.add('hidden'); }
+            stepReportUnmarkedModal = { dayIso: '', titleCounterMap: null, isBuddy: false };
+        }
+        function refreshStepReportUnmarkedModalBody() {
+            var m = document.getElementById('modal-step-report-unmarked');
+            if (!m || m.classList.contains('hidden') || !stepReportUnmarkedModal.dayIso) return;
+            var dayIso = stepReportUnmarkedModal.dayIso;
+            var isBuddy = !!stepReportUnmarkedModal.isBuddy;
+            var canManage = !isBuddy || !!(currentUser && currentUser.buddy_trust);
+            var titleCounterMap = buildStepTitleCounterMapForAllSteps();
+            var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+            var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
+            var ul = document.getElementById('step-report-unmarked-list');
+            var hint = document.getElementById('step-report-unmarked-hint');
+            var sendBtn = document.getElementById('step-report-unmarked-send');
+            if (!ul) return;
+            ul.innerHTML = '';
+            if (unmarked.length === 0) {
+                if (hint) {
+                    hint.textContent = 'Все шаги за день отмечены. Нажмите «Отправить отчёт».';
+                    hint.style.color = '#666';
+                    hint.classList.remove('hidden');
+                }
+                if (sendBtn) sendBtn.disabled = false;
+                return;
+            }
+            if (hint) hint.classList.add('hidden');
+            if (sendBtn) sendBtn.disabled = true;
+            unmarked.forEach(function(s) {
+                var li = document.createElement('li');
+                li.className = 'step-item-plain step-unified-line' + (s.completed ? ' completed' : '') + (s.waived ? ' step-waived' : '');
+                li.dataset.dreamId = s.dream_id;
+                li.dataset.stepId = s.id;
+                li.innerHTML = buildUnifiedStepRowHtml(s.dream_id, s, titleCounterMap, { canManage: canManage, dayReportModal: true });
+                ul.appendChild(li);
+                var inner = li.querySelector('.step-unified-inner');
+                if (inner) wireUnifiedStepRow(inner, s.dream_id, s, {
+                    canManage: canManage,
+                    isReadOnly: !canManage,
+                    useAccordionDelete: false,
+                    dayReportModal: true,
+                    onRefresh: function() {
+                        renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
+                        refreshStepReportUnmarkedModalBody();
+                        copyDayReportClipboardSilent(stepReportUnmarkedModal.dayIso);
+                    }
+                });
+            });
+        }
+        function openStepReportUnmarkedModal(dayIso, isBuddy) {
+            stepReportUnmarkedModal.dayIso = dayIso;
+            stepReportUnmarkedModal.isBuddy = !!isBuddy;
+            stepReportUnmarkedModal.titleCounterMap = buildStepTitleCounterMapForAllSteps();
+            var titleEl = document.getElementById('step-report-unmarked-title');
+            if (titleEl) titleEl.textContent = 'Шаги за ' + formatIsoDateLongRu(dayIso);
+            var m = document.getElementById('modal-step-report-unmarked');
+            if (m) m.classList.remove('hidden');
+            refreshStepReportUnmarkedModalBody();
+        }
+        function syncStepReportUnmarkedModalAfterStepsRender() {
+            var m = document.getElementById('modal-step-report-unmarked');
+            if (!m || m.classList.contains('hidden') || !stepReportUnmarkedModal.dayIso) return;
+            refreshStepReportUnmarkedModalBody();
+        }
+        async function performShareStepsDayReport(dayIso) {
+            if (!currentUser || !dayIso) return false;
+            var isBuddy = !!stepsViewIsBuddy;
+            if (isBuddy) return false;
+            var titleCounterMap = buildStepTitleCounterMapForAllSteps();
+            var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+            if (!daySteps.length) return false;
+            var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
+            if (unmarked.length) return false;
+            var text = buildStepsDayReportText(dayIso, daySteps, titleCounterMap);
+            var ok = await shareStepsDayReportText(text);
+            if (!ok) return false;
+            var n = incrementStepReportSendCount(currentUser.id, dayIso);
+            var btn = document.querySelector('#steps-list .step-day-share-btn[data-day-iso="' + dayIso + '"]');
+            if (btn) {
+                btn.setAttribute('data-send-count', String(n));
+                var badge = btn.querySelector('.step-day-share-badge');
+                if (badge) badge.textContent = String(n);
+            }
+            return true;
+        }
+        async function runShareStepsReportForDay(dayIso) {
+            if (!currentUser || !dayIso) return;
+            var isBuddy = !!stepsViewIsBuddy;
+            if (isBuddy) return;
+            var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+            if (!daySteps.length) return;
+            var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
+            if (unmarked.length) {
+                openStepReportUnmarkedModal(dayIso, isBuddy);
+                return;
+            }
+            await performShareStepsDayReport(dayIso);
+        }
+        function handleStepDayShareClick(dayIso) {
+            if (!dayIso || !/^\d{4}-\d{2}-\d{2}$/.test(dayIso)) return;
+            var todayStr = stepsScheduleTodayIso();
+            if (dayIso > todayStr) return;
+            runShareStepsReportForDay(dayIso);
         }
         function buildStepDateTimeHtml(stepObj, opts) {
             opts = opts || {};
@@ -5292,6 +5704,8 @@
                 });
             }
             var fin = !!s.isFinStep;
+            /** Модалка «отметить шаги перед отчётом»: без вторых оверлеев комментария / просрочки */
+            var inDayReportModal = !!(opts.dayReportModal || (el.closest && el.closest('#step-report-unmarked-list')));
             var doneBtn = el.querySelector('.step-done-btn');
             var bindStepAction = function(selector, handler) {
                 el.querySelectorAll(selector).forEach(function(btn) {
@@ -5326,6 +5740,14 @@
                         return;
                     }
                     if (stepIsOverdueUtc(s)) {
+                        if (inDayReportModal) {
+                            saveStepCompleted(dreamId, s.id, true).then(function() {
+                                s.completed = true;
+                                if (doneBtn) doneBtn.classList.add('step-done-on');
+                                onRefresh();
+                            }).catch(function() {});
+                            return;
+                        }
                         openStepDoneLateModal(dreamId, s.id, doneBtn);
                         return;
                     }
@@ -5335,7 +5757,18 @@
                         onRefresh();
                     }).catch(function() {});
             });
-            bindStepAction('.step-waived-btn, .step-mobile-action-waived', function(e) { e.preventDefault(); openStepWaivedModal(dreamId, s.id); });
+            bindStepAction('.step-waived-btn, .step-mobile-action-waived', function(e) {
+                e.preventDefault();
+                if (inDayReportModal) {
+                    patchStep(dreamId, s.id, { waived: true }).then(function() {
+                        s.waived = true;
+                        s.completed = false;
+                        onRefresh();
+                    }).catch(function() { alert('Не удалось сохранить'); });
+                    return;
+                }
+                openStepWaivedModal(dreamId, s.id);
+            });
             bindStepAction('.step-waived-clear, .step-mobile-action-waived-clear', function(e) {
                 e.preventDefault();
                 patchStep(dreamId, s.id, { waived: false }).then(function() {
@@ -5343,7 +5776,9 @@
                     onRefresh();
                 }).catch(function() { alert('Не удалось снять отметку'); });
             });
-            bindStepAction('.step-comment-btn, .step-mobile-action-comment', function(e) { e.preventDefault(); openStepCommentModal(dreamId, s.id); });
+            if (!inDayReportModal) {
+                bindStepAction('.step-comment-btn, .step-mobile-action-comment', function(e) { e.preventDefault(); openStepCommentModal(dreamId, s.id); });
+            }
             bindStepAction('.step-move-btn, .step-mobile-action-move', function(e) { e.preventDefault(); openStepMoveModal(dreamId, s.id, s.deadline); });
             bindStepAction('.step-edit, .step-mobile-action-edit', function(e) {
                 e.preventDefault();
