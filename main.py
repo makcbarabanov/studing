@@ -1,7 +1,7 @@
 import os
 import time
 import calendar
-from datetime import datetime, date, time as dt_time, timedelta, timezone
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 import re
 import psycopg2
@@ -218,6 +218,7 @@ class FinanceStepsCreate(BaseModel):
 class StepUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
+    completed_late: Optional[bool] = None  # при completed=True: с клиента; иначе сервер оценит (см. step_should_mark_completed_late)
     deadline: Optional[str] = None  # YYYY-MM-DD
     start_time: Optional[str] = None  # HH:MM
     end_time: Optional[str] = None    # HH:MM
@@ -291,33 +292,12 @@ def _step_row_to_dict(s):
     }
 
 
-def _parse_hhmm_to_time(val) -> Optional[dt_time]:
-    if val is None:
-        return None
-    s = str(val).strip()
-    if not s:
-        return None
-    s = s[:5] if len(s) >= 5 else s
-    parts = s.split(":")
-    if len(parts) < 2:
-        return None
-    try:
-        return dt_time(int(parts[0]), int(parts[1]))
-    except (ValueError, TypeError):
-        return None
-
-
-def _step_max_time_of_day(start_time, end_time) -> Optional[dt_time]:
-    st = _parse_hhmm_to_time(start_time)
-    et = _parse_hhmm_to_time(end_time)
-    opts = [t for t in (st, et) if t is not None]
-    if not opts:
-        return None
-    return max(opts)
-
-
 def step_due_boundary_utc(deadline, start_time, end_time) -> Optional[datetime]:
-    """UTC-момент: с него шаг считается просроченным (сравнение: now >= boundary). Без времени — 00:00 UTC следующего дня после deadline."""
+    """Граница «календарный день дедлайна закончился» для серверной эвристики: 00:00 UTC следующего дня после даты deadline.
+
+    Время суток шага (start_time/end_time) не используется — согласовано с ЛК (локальная полночь на клиенте; при PATCH с телом
+    `completed_late` сервер берёт значение с клиента).
+    """
     if not deadline:
         return None
     dstr = str(deadline)[:10]
@@ -325,10 +305,7 @@ def step_due_boundary_utc(deadline, start_time, end_time) -> Optional[datetime]:
         d = date.fromisoformat(dstr)
     except ValueError:
         return None
-    mt = _step_max_time_of_day(start_time, end_time)
-    if mt is None:
-        return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1)
-    return datetime.combine(d, mt, tzinfo=timezone.utc) + timedelta(minutes=1)
+    return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1)
 
 
 def step_is_overdue_at(deadline, start_time, end_time, completed: bool, deleted: bool, waived: bool, at_utc: datetime) -> bool:
@@ -2693,6 +2670,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
 
             now_utc = datetime.now(timezone.utc)
             pending_late: List[tuple] = []
+            late_for_diary: Optional[bool] = None  # одиночное completed + computed completed_late
             if body.completed is True:
                 cur.execute(
                     f"SELECT id, deadline, start_time, end_time FROM dreams_steps WHERE {where_sql}",
@@ -2704,7 +2682,11 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                     dl = body.deadline if body.deadline is not None else r0.get("deadline")
                     st = body.start_time if body.start_time is not None else r0.get("start_time")
                     et = body.end_time if body.end_time is not None else r0.get("end_time")
-                    late = step_should_mark_completed_late(dl, st, et, now_utc)
+                    if body.completed_late is not None:
+                        late = bool(body.completed_late)
+                    else:
+                        late = step_should_mark_completed_late(dl, st, et, now_utc)
+                    late_for_diary = late
                     updates.append("completed_late = %s")
                     vals.append(late)
                 elif len(rows_for_late) > 1:
@@ -2779,7 +2761,11 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                 dl = body.deadline if body.deadline is not None else cur_step.get("deadline")
                 st = body.start_time if body.start_time is not None else cur_step.get("start_time")
                 et = body.end_time if body.end_time is not None else cur_step.get("end_time")
-                msg = "выполнен с опозданием" if step_should_mark_completed_late(dl, st, et, now_utc) else "выполнен вовремя"
+                if late_for_diary is not None:
+                    late_ev = late_for_diary
+                else:
+                    late_ev = step_should_mark_completed_late(dl, st, et, now_utc)
+                msg = "Выполнил с опозданием" if late_ev else "Выполнил вовремя"
                 _insert_step_event_safe(cur, step_id, dream_id, editor_id, "completed", msg if not note_trim else f"{msg}: {note_trim}")
             elif body.completed is True and multi_row:
                 _insert_step_event_safe(cur, step_id, dream_id, editor_id, "series_completed", note_trim)
