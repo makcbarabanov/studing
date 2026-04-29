@@ -287,6 +287,36 @@
             opacity: 0.5; cursor: not-allowed; background: #fafafa; border-color: #e0e0e0; color: #9e9e9e;
         }
         .modal-actions button:disabled { opacity: 0.55; cursor: not-allowed; }
+        #library-block {
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(165, 214, 167, 0.65);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        }
+        .library-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+        .library-title { margin: 0; font-weight: 600; color: var(--island-accent-deep); }
+        .library-subtitle { margin: 0 0 12px; font-size: 13px; color: var(--island-text-muted); }
+        .library-add-btn {
+            width: auto; margin: 0; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600;
+            background: var(--island-surface); color: var(--island-accent-dark); border: 1px solid var(--island-accent-border);
+        }
+        .library-add-btn:hover { background: var(--island-accent-soft); border-color: var(--island-accent); opacity: 1; }
+        .library-section { margin-bottom: 14px; background: rgba(255, 255, 255, 0.68); border: 1px solid #e7efe8; border-radius: 10px; padding: 10px 10px 6px; }
+        .library-section-title { margin: 0 0 7px; font-size: 14px; color: #355766; font-weight: 700; }
+        .library-section-title--planned::before { content: "💡 "; }
+        .library-section-title--reading::before { content: "🎧 "; }
+        .library-section-title--finished::before { content: "✅ "; }
+        .library-list { list-style: none; margin: 0; padding: 0; }
+        .library-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #e4ece6; }
+        .library-item:last-child { border-bottom: none; }
+        .library-item-title { min-width: 0; font-size: 14px; color: #23314d; }
+        .library-empty { color: #8a959b; font-size: 13px; padding: 4px 0 8px; }
+        .library-edit-btn {
+            width: auto; margin: 0; padding: 4px 9px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600;
+            background: var(--island-accent-soft); color: var(--island-accent-deep); border: 1px solid var(--island-accent-border);
+        }
+        .library-edit-btn:hover { background: #dff0e3; border-color: var(--island-accent-dark); opacity: 1; }
         .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
         .add-buddy-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
         .add-buddy-filter-btns { display: flex; gap: 4px; }
@@ -1197,6 +1227,7 @@
                     <div class="app-header-name-row">
                         <div class="app-header-name" id="profile-full_name">—</div>
                         <button type="button" id="header-bell" class="app-header-bell app-header-bell-next-to-name" aria-label="Уведомления" title="Уведомления"><span class="app-header-bell-icon">🔔</span><span id="header-bell-dot" class="app-header-bell-dot hidden"></span></button>
+                        <button type="button" id="header-books" class="app-header-bell app-header-bell-next-to-name" aria-label="Библиотека" title="Библиотека"><span class="app-header-bell-icon">📚</span></button>
                     </div>
                     <div class="app-header-stats">
                         <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span id="header-link-diary" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Дневник шагов">дневник</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
@@ -1362,6 +1393,15 @@
                     <p id="diary-events-empty" class="hidden" style="color:#666;">Пока нет записей.</p>
                     <p id="diary-events-error" class="error hidden"></p>
                 </div>
+                <div id="library-block" class="hidden">
+                    <div class="library-head">
+                        <h3 class="library-title">Библиотека</h3>
+                        <button type="button" id="library-add-btn" class="library-add-btn">+ Книга</button>
+                    </div>
+                    <p class="library-subtitle">Личный список книг без привязки к шагам мечты.</p>
+                    <p id="library-error" class="error hidden"></p>
+                    <div id="library-sections"></div>
+                </div>
                 <!-- Витрина мечт (чужие мечты — помочь другим). Фильтры в хедере #app-showcase-breadcrumbs -->
                 <div id="showcase-block" class="hidden">
                     <div id="showcase-grid" class="showcase-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
@@ -1402,6 +1442,27 @@
                         <button type="button" class="secondary" id="step-comment-cancel">Отмена</button>
                         <button type="button" class="secondary" id="step-comment-skip">Пропустить</button>
                         <button type="button" id="step-comment-save" disabled>Сохранить</button>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-library-book" class="modal-overlay hidden">
+                <div class="modal">
+                    <h3 id="library-book-modal-title">Книга</h3>
+                    <label for="library-book-title">Название</label>
+                    <input type="text" id="library-book-title" placeholder="Название книги">
+                    <label for="library-book-author">Автор</label>
+                    <input type="text" id="library-book-author" placeholder="Автор (необязательно)">
+                    <label for="library-book-status">Статус</label>
+                    <select id="library-book-status">
+                        <option value="planned">Планирую</option>
+                        <option value="reading">Читаю / слушаю</option>
+                        <option value="listening">Читаю / слушаю</option>
+                        <option value="finished">Прочитано</option>
+                    </select>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="library-book-cancel">Отмена</button>
+                        <button type="button" class="secondary hidden" id="library-book-delete">Удалить</button>
+                        <button type="button" id="library-book-save">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -1831,7 +1892,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">214</span>
+                    <span class="app-version" aria-hidden="true">219</span>
                 </div>
             </footer>
         </div>
@@ -2221,6 +2282,7 @@
         let dreamStatusesList = [];
         let dreamCategoriesList = [];
         var currentUserDreamsCache = [];
+        var libraryDraft = { dreamId: 0, bookId: 0 };
         var buddyDreamsCache = [];
         var headerView = 'me';
         var myHeaderStats = { ratio: '0/0', helped: 0 };
@@ -2358,6 +2420,7 @@
                     if (dfErr) dfErr.classList.remove('hidden');
                     applyDreamsFilterUI();
                     refreshDreamsDisplay();
+                    renderLibrarySection();
                 } else {
                 const data = await dreamsRes.json();
                 const dreams = data.dreams || [];
@@ -2379,6 +2442,7 @@
                 if (df) df.classList.remove('hidden');
                 applyDreamsFilterUI();
                 refreshDreamsDisplay();
+                renderLibrarySection();
                 }
             } catch (error) {
                 console.error('Не удалось загрузить мечты', error);
@@ -2386,6 +2450,7 @@
                 errEl.textContent = 'Ошибка загрузки';
                 errEl.classList.remove('hidden');
                 refreshDreamsDisplay();
+                renderLibrarySection();
                 stopProfileLoadMeter();
             }
             // Показать блок «Мои мечты», скрыть «Бадди» и «Шаги»
@@ -2485,6 +2550,10 @@
         function sortStepsByDeadline(steps) {
             if (!steps || steps.length === 0) return steps || [];
             return steps.slice().sort(compareStepsByDeadlineTimeTitle);
+        }
+        function sortStepsByDeadlineDesc(steps) {
+            if (!steps || steps.length === 0) return steps || [];
+            return steps.slice().sort(function(a, b) { return compareStepsByDeadlineTimeTitle(b, a); });
         }
         /** Убирает суффикс « (3/12)» из заголовка — тот же смысл, что на бэкенде `_step_title_series_key`. */
         function stripStepTitleCounterSuffix(t) {
@@ -2677,6 +2746,8 @@
             document.getElementById('steps-block').classList.add('hidden');
             var db = document.getElementById('diary-block');
             if (db) db.classList.add('hidden');
+            var lb = document.getElementById('library-block');
+            if (lb) lb.classList.add('hidden');
             var sb = document.getElementById('showcase-block');
             if (sb) sb.classList.add('hidden');
             var nb = document.getElementById('notifications-block');
@@ -2696,7 +2767,7 @@
                 if (titleRowEl) titleRowEl.classList.remove('hidden');
                 if (sectionTitleEl) {
                     sectionTitleEl.classList.remove('hidden');
-                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'diary' ? 'Дневник шагов' : (section === 'profile-edit' ? 'Настройки профиля' : 'Мои мечты')))));
+                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'diary' ? 'Дневник шагов' : (section === 'library' ? 'Библиотека' : (section === 'profile-edit' ? 'Настройки профиля' : 'Мои мечты'))))));
                 }
                 if (dreamsFilterEl) dreamsFilterEl.classList.toggle('hidden', section !== 'dreams' && section !== 'buddy');
                 if (stepsFilterEl) stepsFilterEl.classList.toggle('hidden', section !== 'steps' && section !== 'steps-buddy' && section !== 'diary');
@@ -2770,8 +2841,116 @@
                 var footerAddDi = document.getElementById('app-footer-add');
                 if (footerAddDi) footerAddDi.classList.add('hidden');
                 loadStepDiary();
+            } else if (section === 'library') {
+                lastCabinetSection = 'library';
+                if (lb) lb.classList.remove('hidden');
+                var footerAddLb = document.getElementById('app-footer-add');
+                if (footerAddLb) footerAddLb.classList.add('hidden');
+                renderLibrarySection();
             }
             updateCabinetNavActive(section);
+        }
+
+        function extractLibraryBooks() {
+            var out = [];
+            currentUserDreamsCache.forEach(function(d) {
+                if (!d || d.rule_code !== 'books_reading') return;
+                (d.books || []).forEach(function(b) {
+                    out.push({
+                        dream_id: d.id,
+                        id: b.id,
+                        title: b.title || '',
+                        author: b.author || '',
+                        status: (b.status || 'planned').toLowerCase()
+                    });
+                });
+            });
+            return out;
+        }
+
+        function renderLibrarySection() {
+            var sectionsEl = document.getElementById('library-sections');
+            var errEl = document.getElementById('library-error');
+            if (!sectionsEl) return;
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+            var books = extractLibraryBooks();
+            var groups = [
+                { key: 'planned', title: 'Планирую', statuses: ['planned'] },
+                { key: 'reading', title: 'Читаю/Слушаю', statuses: ['reading', 'listening'] },
+                { key: 'finished', title: 'Прочитано', statuses: ['finished'] }
+            ];
+            sectionsEl.innerHTML = groups.map(function(g) {
+                var rows = books.filter(function(b) { return g.statuses.indexOf(b.status) >= 0; });
+                var items = rows.length ? rows.map(function(b) {
+                    var author = b.author ? (' — ' + escapeHtml(b.author)) : '';
+                    return '<li class="library-item">'
+                        + '<div class="library-item-title">' + escapeHtml(b.title) + author + '</div>'
+                        + '<button type="button" class="library-edit-btn" data-dream-id="' + b.dream_id + '" data-book-id="' + b.id + '">Изм.</button>'
+                        + '</li>';
+                }).join('') : '<li class="library-empty">Пока пусто.</li>';
+                return '<section class="library-section"><h4 class="library-section-title library-section-title--' + g.key + '">' + g.title + '</h4><ul class="library-list">' + items + '</ul></section>';
+            }).join('');
+            sectionsEl.querySelectorAll('.library-edit-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var did = Number(btn.getAttribute('data-dream-id') || 0);
+                    var bid = Number(btn.getAttribute('data-book-id') || 0);
+                    openLibraryBookModal(did, bid);
+                });
+            });
+        }
+
+        async function ensureLibraryDreamId() {
+            var existing = currentUserDreamsCache.find(function(d) { return d && d.rule_code === 'books_reading'; });
+            if (existing && existing.id) return Number(existing.id);
+            var createRes = await fetch(API_BASE_URL + '/dreams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id, dream: 'Библиотека', status_id: 2, is_public: false })
+            });
+            if (!createRes.ok) throw new Error('create_dream_failed');
+            var created = await createRes.json();
+            var did = Number(created && created.id);
+            if (!did) throw new Error('dream_id_missing');
+            await fetch(API_BASE_URL + '/dreams/' + did + '?user_id=' + currentUser.id, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rule_code: 'books_reading', settings: { library_mode: true } })
+            });
+            var patchDream = { id: did, dream: 'Библиотека', rule_code: 'books_reading', books: [] };
+            currentUserDreamsCache.push(patchDream);
+            return did;
+        }
+
+        async function libraryReloadDreamsCache() {
+            var res = await fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.id, { cache: 'no-store' });
+            if (!res.ok) throw new Error('reload_failed');
+            var data = await res.json();
+            currentUserDreamsCache = (data && data.dreams) ? data.dreams.slice() : [];
+            renderLibrarySection();
+        }
+
+        function openLibraryBookModal(dreamId, bookId) {
+            var modal = document.getElementById('modal-library-book');
+            if (!modal) return;
+            var titleEl = document.getElementById('library-book-title');
+            var authorEl = document.getElementById('library-book-author');
+            var statusEl = document.getElementById('library-book-status');
+            var hEl = document.getElementById('library-book-modal-title');
+            var delBtn = document.getElementById('library-book-delete');
+            libraryDraft = { dreamId: Number(dreamId) || 0, bookId: Number(bookId) || 0 };
+            if (hEl) hEl.textContent = libraryDraft.bookId ? 'Редактировать книгу' : 'Добавить книгу';
+            if (delBtn) delBtn.classList.toggle('hidden', !libraryDraft.bookId);
+            if (libraryDraft.bookId) {
+                var book = extractLibraryBooks().find(function(b) { return Number(b.id) === libraryDraft.bookId && Number(b.dream_id) === libraryDraft.dreamId; });
+                if (titleEl) titleEl.value = book ? (book.title || '') : '';
+                if (authorEl) authorEl.value = book ? (book.author || '') : '';
+                if (statusEl) statusEl.value = (book && book.status) ? book.status : 'planned';
+            } else {
+                if (titleEl) titleEl.value = '';
+                if (authorEl) authorEl.value = '';
+                if (statusEl) statusEl.value = 'planned';
+            }
+            modal.classList.remove('hidden');
         }
 
         function loadProfileEditForm() {
@@ -3698,7 +3877,7 @@
         }
         function renderStepsDeletedList() {
             var deletedList = document.getElementById('steps-deleted-list');
-            var list = sortStepsByDeadline(stepsFlatCache.filter(function(s) { return s.deleted; }));
+            var list = sortStepsByDeadlineDesc(stepsFlatCache.filter(function(s) { return s.deleted; }));
             deletedList.innerHTML = '';
             var lastDelDividerIso = null;
             list.forEach(function(s) {
@@ -4477,6 +4656,7 @@
         var showcaseBackLink = document.getElementById('showcase-back-link');
         if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         var headerBell = document.getElementById('header-bell');
+        var headerBooks = document.getElementById('header-books');
         if (headerBell) headerBell.addEventListener('click', function(e) {
             e.preventDefault();
             if (!currentUser) return;
@@ -4484,8 +4664,14 @@
             else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
             else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
             else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
+            else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
             else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
             switchMenu('notifications');
+        });
+        if (headerBooks) headerBooks.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            switchMenu('library');
         });
         var profileAvatarEl = document.getElementById('profile-avatar');
         if (profileAvatarEl) profileAvatarEl.addEventListener('click', function(e) {
@@ -4494,8 +4680,51 @@
             else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
             else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
             else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
+            else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
             else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
             switchMenu('profile-edit');
+        });
+        var libraryAddBtn = document.getElementById('library-add-btn');
+        if (libraryAddBtn) libraryAddBtn.addEventListener('click', function() { openLibraryBookModal(0, 0); });
+        var libraryModal = document.getElementById('modal-library-book');
+        var librarySaveBtn = document.getElementById('library-book-save');
+        var libraryCancelBtn = document.getElementById('library-book-cancel');
+        var libraryDeleteBtn = document.getElementById('library-book-delete');
+        if (libraryCancelBtn) libraryCancelBtn.addEventListener('click', function() { if (libraryModal) libraryModal.classList.add('hidden'); });
+        if (libraryModal) libraryModal.addEventListener('click', function(e) { if (e.target === libraryModal) libraryModal.classList.add('hidden'); });
+        if (librarySaveBtn) librarySaveBtn.addEventListener('click', async function() {
+            if (!currentUser || !currentUser.id) return;
+            var titleEl = document.getElementById('library-book-title');
+            var authorEl = document.getElementById('library-book-author');
+            var statusEl = document.getElementById('library-book-status');
+            var errEl = document.getElementById('library-error');
+            var title = (titleEl && titleEl.value || '').trim();
+            if (!title) { alert('Введите название книги'); return; }
+            var body = { title: title, author: (authorEl && authorEl.value || '').trim(), status: (statusEl && statusEl.value) || 'planned' };
+            try {
+                var dreamId = libraryDraft.dreamId || await ensureLibraryDreamId();
+                var url = API_BASE_URL + '/dreams/' + dreamId + '/books' + (libraryDraft.bookId ? ('/' + libraryDraft.bookId) : '') + '?user_id=' + currentUser.id;
+                var method = libraryDraft.bookId ? 'PATCH' : 'POST';
+                var res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error('book_save_failed');
+                if (libraryModal) libraryModal.classList.add('hidden');
+                await libraryReloadDreamsCache();
+            } catch (e) {
+                if (errEl) { errEl.textContent = 'Не удалось сохранить книгу'; errEl.classList.remove('hidden'); }
+            }
+        });
+        if (libraryDeleteBtn) libraryDeleteBtn.addEventListener('click', async function() {
+            if (!currentUser || !libraryDraft.dreamId || !libraryDraft.bookId) return;
+            if (!confirm('Удалить книгу?')) return;
+            var errEl = document.getElementById('library-error');
+            try {
+                var res = await fetch(API_BASE_URL + '/dreams/' + libraryDraft.dreamId + '/books/' + libraryDraft.bookId + '?user_id=' + currentUser.id, { method: 'DELETE' });
+                if (!res.ok) throw new Error('book_delete_failed');
+                if (libraryModal) libraryModal.classList.add('hidden');
+                await libraryReloadDreamsCache();
+            } catch (e) {
+                if (errEl) { errEl.textContent = 'Не удалось удалить книгу'; errEl.classList.remove('hidden'); }
+            }
         });
         var notificationsBackLink = document.getElementById('notifications-back-link');
         if (notificationsBackLink) notificationsBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
@@ -5114,7 +5343,7 @@
         function formatStepsListDayDivider(iso) {
             var m = (iso || '').toString().match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (!m) return '';
-            return m[3] + '.' + m[2] + '.';
+            return m[3] + '.' + m[2] + '.' + m[1].slice(-2);
         }
         function formatIsoDateLongRu(iso) {
             var m = (iso || '').toString().match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -5149,7 +5378,7 @@
             var todayStr = localCalendarDateIso(today);
             var in7Days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
             var in7DaysStr = localCalendarDateIso(in7Days);
-            return sortStepsByDeadline(stepsFlatCache.filter(function(s) {
+            var filtered = stepsFlatCache.filter(function(s) {
                 if (!s || s.deleted) return false;
                 if (filters.indexOf('all') !== -1) return true;
                 var dl = (s.deadline || '').toString().slice(0, 10);
@@ -5162,7 +5391,9 @@
                 if (filters.indexOf('waived') !== -1 && isWaived) return true;
                 if (filters.indexOf('completed') !== -1 && isCompleted) return true;
                 return false;
-            }));
+            });
+            if (filters.indexOf('current') !== -1) return sortStepsByDeadline(filtered);
+            return sortStepsByDeadlineDesc(filtered);
         }
         function stepReportSendStorageKey(userId, dayIso) {
             return 'island_step_report_send_v1:' + String(userId || 0) + ':' + String(dayIso || '');

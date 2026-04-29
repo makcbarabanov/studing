@@ -2957,6 +2957,29 @@ def update_dream_book(dream_id: int, book_id: int, body: DreamBookUpdate, user_i
         _return_conn(conn)
 
 
+@app.delete("/dreams/{dream_id}/books/{book_id}")
+def delete_dream_book(dream_id: int, book_id: int, user_id: int, viewer_id: Optional[int] = None):
+    """Удалить книгу из мечты books_reading. Владелец мечты или бадди с доверием."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute("DELETE FROM dream_books WHERE id = %s AND dream_id = %s", (book_id, dream_id))
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Книга не найдена")
+            conn.commit()
+            return {"ok": True}
+    except HTTPException:
+        raise
+    except psycopg2.ProgrammingError as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
 @app.post("/dreams/{dream_id}/books/{book_id}/log")
 def upsert_dream_book_log(dream_id: int, book_id: int, body: DreamBookLogCreate, user_id: int, viewer_id: Optional[int] = None):
     """Отметить факт чтения за дату (или обновить). Владелец мечты или бадди с доверием."""
