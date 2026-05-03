@@ -601,8 +601,9 @@
         .app-header-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
         .app-header-avatar .avatar-placeholder-camera { font-size: 26px; color: #999; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
         .app-header-center { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; gap: 4px; }
-        .app-header-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .app-header-name { font-family: 'kudryashevheadline', 'Kudryashev Headline', serif; font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; }
+        .app-header-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0; }
+        .app-header-name { font-family: 'kudryashevheadline', 'Kudryashev Headline', serif; font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .app-header-name-actions { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
         .app-header-bell-next-to-name { margin-left: 0; margin-right: 0; width: 36px; height: 36px; font-size: 1.15em; flex-shrink: 0; }
         .header-task-code { font-size: 0.75rem; color: #777; font-weight: normal; margin-left: 4px; }
         .app-header-stats { font-size: 12px; color: #666; line-height: 1.3; white-space: nowrap; }
@@ -1226,8 +1227,10 @@
                 <div class="app-header-center">
                     <div class="app-header-name-row">
                         <div class="app-header-name" id="profile-full_name">—</div>
+                        <div class="app-header-name-actions" role="group" aria-label="Уведомления и библиотека">
                         <button type="button" id="header-bell" class="app-header-bell app-header-bell-next-to-name" aria-label="Уведомления" title="Уведомления"><span class="app-header-bell-icon">🔔</span><span id="header-bell-dot" class="app-header-bell-dot hidden"></span></button>
                         <button type="button" id="header-books" class="app-header-bell app-header-bell-next-to-name" aria-label="Библиотека" title="Библиотека"><span class="app-header-bell-icon">📚</span></button>
+                        </div>
                     </div>
                     <div class="app-header-stats">
                         <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span id="header-link-diary" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Дневник шагов">дневник</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
@@ -1892,7 +1895,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">219</span>
+                    <span class="app-version" aria-hidden="true">220</span>
                 </div>
             </footer>
         </div>
