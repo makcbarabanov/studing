@@ -34,10 +34,15 @@
         body { font-family: Arial, sans-serif; margin: 20px; min-height: 100vh; background-color: #e8e4df; background-image: url('examples/breakfast.png'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat; }
         .container { max-width: min(980px, 95vw); margin: auto; background: rgba(255, 255, 255, 0.88); padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.08); box-sizing: border-box; backdrop-filter: blur(8px); }
         h1, h2 { color: #333; }
-        input[type="tel"], input[type="password"], input[type="text"], button {
+        input[type="tel"], input[type="password"], input[type="text"] {
             width: 100%; padding: 10px; margin: 8px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
         }
-        button { background-color: var(--island-accent); color: white; border: none; cursor: pointer; }
+        /* Кнопки без глобального width:100% — иначе все CTAs в кабинете растягиваются на строку; на лендинге см. .landing-auth .auth-form-wrap button */
+        button {
+            padding: 10px; margin: 8px 0; display: inline-block; box-sizing: border-box;
+            width: auto; max-width: 100%;
+            background-color: var(--island-accent); color: white; border: none; border-radius: 4px; cursor: pointer;
+        }
         button:hover { opacity: 0.8; }
         .hidden { display: none; }
         .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -568,6 +573,7 @@
         .app-sticky-inner { padding: 20px 20px 0 20px; box-sizing: border-box; }
         #app-sticky-spacer { width: 100%; }
         /* Футер: ширина как у хедера и контента (95vw, max 980px), фиксирован внизу */
+        /* pointer-events: нижняя полоса не крадёт клики у контента под собой (таблица отчётов, аккордеон долгов). Кликабельность у кнопок/счётчика включена явно. */
         .app-footer {
             position: fixed;
             bottom: 0;
@@ -582,6 +588,16 @@
             border-radius: 0 0 8px 8px;
             z-index: 19;
             box-sizing: border-box;
+            pointer-events: none;
+        }
+        .app-footer-inner {
+            pointer-events: none;
+        }
+        .app-footer .app-footer-counter,
+        .app-footer .app-footer-logout,
+        .app-footer .app-version,
+        .app-footer .app-footer-add {
+            pointer-events: auto;
         }
         .app-footer-inner { width: 100%; height: 48px; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 16px; box-sizing: border-box; position: relative; }
         .app-footer-counter { font-size: 14px; color: #555; font-weight: 600; white-space: nowrap; }
@@ -659,7 +675,10 @@
         .showcase-card .showcase-help-btn:hover { opacity:0.9; }
         .showcase-card .showcase-sent-btn { width:100%; padding:10px; background:#e0e0e0; color:#666; border:1px solid #ccc; border-radius:4px; font-weight:600; margin-top:8px; cursor:default; }
         #toast-container { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:1000; pointer-events:none; }
-        #toast-container .toast { background:rgba(0,0,0,0.85); color:#fff; padding:12px 20px; border-radius:8px; font-size:14px; max-width:90vw; box-shadow:0 4px 12px rgba(0,0,0,0.2); animation:toast-in 0.25s ease; }
+        #toast-container .toast { background:rgba(0,0,0,0.85); color:#fff; padding:12px 16px; border-radius:8px; font-size:14px; max-width:92vw; box-shadow:0 4px 12px rgba(0,0,0,0.2); animation:toast-in 0.25s ease; display:flex; align-items:center; gap:10px; }
+        #toast-container .toast .toast-text { line-height: 1.35; }
+        #toast-container .toast .toast-action { width:auto; margin:0; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:600; cursor:pointer; }
+        #toast-container .toast .toast-action:hover { opacity: 1; background:rgba(255,255,255,0.24); }
         @keyframes toast-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         .contact-buttons a { display:inline-flex; align-items:center; padding:8px 14px; border-radius:6px; border:2px solid #4CAF50; background:#fff; color:#2e7d32; font-weight:600; text-decoration:none; transition:all 0.2s; }
         .contact-buttons a:hover { background:#4CAF50; color:#fff; }
@@ -667,6 +686,203 @@
         .app-header-bell:hover { background: rgba(0,0,0,0.06); }
         .app-header-bell-dot { position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; border: 2px solid #fff; }
         .app-header-bell-dot.hidden { display: none; }
+        .cabinet-nav-reports-wrap { position: relative; display: inline-block; vertical-align: baseline; }
+        .app-header-reports-dot {
+            position: absolute;
+            top: -3px;
+            right: -7px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            border: 2px solid rgba(255, 255, 255, 0.95);
+            pointer-events: none;
+            box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.35);
+        }
+        .app-header-reports-dot.hidden { display: none !important; }
+        .cabinet-nav-link.cabinet-nav-reports-ready { animation: step-share-ready-pulse 1.3s ease-in-out infinite; }
+        .reports-bulk-wrap { margin-bottom: 12px; }
+        #reports-filter-top .dreams-filter-btn[data-report-filter="dobit"].reports-filter-needs-attention:not(.active) .dreams-filter-text {
+            color: #c62828;
+            font-weight: 700;
+        }
+        .reports-bulk-btn {
+            width: fit-content;
+            max-width: min(100%, 520px);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: 1px solid var(--island-accent-border);
+            background: linear-gradient(180deg, #f4faf4 0%, var(--island-accent-soft) 100%);
+            color: var(--island-accent-deep);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.12);
+            box-sizing: border-box;
+            transition: opacity 0.15s ease, transform 0.12s ease;
+        }
+        .reports-bulk-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: var(--island-accent);
+        }
+        .reports-bulk-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .reports-table-wrap {
+            margin: 16px 0 0;
+            max-width: 720px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .reports-table {
+            width: 100%;
+            min-width: min(100%, 520px);
+            table-layout: auto;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(165, 214, 167, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(46, 83, 60, 0.06);
+            font-size: 14px;
+        }
+        .reports-table thead th {
+            text-align: left;
+            padding: 10px 12px;
+            background: linear-gradient(180deg, #f1f8f1 0%, #e8f5e9 100%);
+            color: var(--island-accent-deep);
+            font-weight: 600;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(165, 214, 167, 0.85);
+            white-space: nowrap;
+        }
+        .reports-table th.reports-th--date { min-width: 10.5em; }
+        .reports-table th.reports-th--eff { width: 4.8ch; padding: 0; }
+        .reports-table td.reports-td--eff {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            width: 4.8ch;
+            min-width: 4.8ch;
+            max-width: 4.8ch;
+            padding-left: 6px;
+            padding-right: 8px;
+            box-sizing: border-box;
+        }
+        .reports-table th.reports-th--copy,
+        .reports-table th.reports-th--send,
+        .reports-table td.reports-td--copy,
+        .reports-table td.reports-td--send {
+            text-align: center;
+            min-width: 48px;
+            width: 3.25rem;
+            max-width: 4.5rem;
+            box-sizing: border-box;
+        }
+        .reports-table tbody tr { border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
+        .reports-table tbody tr:last-child { border-bottom: none; }
+        .reports-table tbody td { padding: 10px 12px; vertical-align: middle; }
+        .reports-td--date { font-weight: 600; color: var(--island-accent-deep); font-variant-numeric: tabular-nums; background: transparent; }
+        .reports-td--eff { color: #37474f; }
+        .reports-data-row {
+            --reports-progress-pct: 0%;
+            background-image: linear-gradient(to right,
+                rgba(200, 230, 201, 0.5) 0%,
+                rgba(200, 230, 201, 0.5) var(--reports-progress-pct),
+                transparent var(--reports-progress-pct));
+        }
+        .reports-data-row--debts { cursor: pointer; }
+        .reports-data-row .reports-td--date,
+        .reports-data-row .reports-td--copy,
+        .reports-data-row .reports-td--send { background-color: transparent; }
+        .reports-accordion-row td {
+            padding: 0;
+            background: rgba(245, 249, 245, 0.97);
+            border-bottom: 1px solid rgba(165, 214, 167, 0.45);
+        }
+        .reports-debt-panel {
+            padding: 10px 12px calc(12px + env(safe-area-inset-bottom)) 14px;
+            position: relative;
+            z-index: 21;
+        }
+        .reports-debt-step {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            font-size: 13px;
+            color: #37474f;
+        }
+        .reports-debt-step:last-child { border-bottom: none; }
+        .reports-debt-step-title { flex: 1; min-width: 0; word-break: break-word; line-height: 1.35; }
+        .reports-debt-step-actions { flex-shrink: 0; display: flex; gap: 8px; align-items: center; }
+        .reports-express-done,
+        .reports-express-waive {
+            min-width: 40px;
+            min-height: 38px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 1.05em;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--island-accent-border);
+            box-sizing: border-box;
+        }
+        .reports-express-done {
+            background: var(--island-accent-soft);
+            color: var(--island-accent-deep);
+        }
+        .reports-express-done:hover { border-color: var(--island-accent); }
+        .reports-express-waive {
+            background: #fff8e1;
+            color: #6d4c41;
+            border-color: #ffe082;
+        }
+        .reports-express-waive:hover { background: #fff3e0; border-color: #ffb74d; }
+        .reports-day-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 40px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            line-height: 1;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--island-accent-border);
+            background: var(--island-accent-soft);
+            color: var(--island-accent-dark);
+            transition: opacity 0.15s ease, border-color 0.15s ease;
+        }
+        .reports-day-icon-btn:hover { border-color: var(--island-accent); color: var(--island-accent-deep); }
+        .reports-day-action-copy.ready { animation: step-share-ready-pulse 1.3s ease-in-out infinite; }
+        .reports-day-action-copy.sent { opacity: 0.55; }
+        .reports-day-action-share.sent { opacity: 0.7; }
+        .reports-day-icon-btn:disabled,
+        .reports-day-icon-btn:disabled:hover,
+        .reports-day-icon-btn.reports-day-icon-btn--blocked,
+        .reports-day-icon-btn.reports-day-icon-btn--blocked:hover {
+            opacity: 0.42 !important;
+            cursor: pointer !important;
+            border-color: #cfd8dc !important;
+            background: #eceff1 !important;
+            color: #90a4ae !important;
+            animation: none !important;
+            transform: none !important;
+        }
+        .reports-td-eff--open { background: rgba(189, 189, 189, 0.22); color: #455a64; }
+        .reports-td-eff--full { background: rgba(76, 175, 80, 0.18); color: var(--island-accent-deep); font-weight: 600; }
+        .reports-td-eff--mid { background: rgba(255, 235, 59, 0.2); color: #f57f17; }
+        .reports-td-eff--low { background: rgba(255, 183, 77, 0.18); color: #e65100; }
         .app-header-buddy-slot { position: relative; width: 72px; min-width: 72px; height: 72px; min-height: 72px; margin-left: auto; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: flex-start; cursor: pointer; transition: opacity 0.2s; }
         .app-header-buddy-slot:hover { opacity: 0.9; }
         .app-header-buddy-slot img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
@@ -710,6 +926,63 @@
         .dreams-filter-btn:hover { opacity: 0.95; color: #333; }
         .dreams-filter-btn.active { border: none; box-shadow: none; background: #4CAF50; opacity: 1; color: #fff; }
         #steps-filter .dreams-filter-btn[data-filter="overdue"].steps-filter-needs-attention:not(.active) .dreams-filter-text { color: #c62828; font-weight: 600; }
+        /* Модалка «день шага прошёл»: три кнопки всегда в одну строку на узком экране */
+        #modal-step-done-late .modal-actions.modal-actions--done-late {
+            flex-wrap: nowrap;
+            gap: 8px;
+            justify-content: stretch;
+            margin-top: 12px;
+            margin-bottom: 0;
+        }
+        #modal-step-done-late .modal-actions.modal-actions--done-late button {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 9px 8px;
+            font-size: 13px;
+        }
+        /* Переключатель «Больше не спрашивать» под кнопками: опоздание, «не выполнен», перенос (не модалка прямого комментария). */
+        #modal-step-done-late .step-diary-prompt-foot,
+        #modal-step-waived .step-diary-prompt-foot,
+        #modal-step-move .step-diary-prompt-foot {
+            text-align: center;
+            margin: 0;
+            padding: 16px 6px 2px;
+            border-top: 1px solid rgba(165, 214, 167, 0.85);
+            box-sizing: border-box;
+        }
+        #modal-step-done-late a.step-diary-prompt-toggle,
+        #modal-step-waived a.step-diary-prompt-toggle,
+        #modal-step-move a.step-diary-prompt-toggle {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: none;
+            color: var(--island-accent-dark);
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.5;
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none;
+            text-underline-offset: 3px;
+            white-space: normal;
+            word-break: break-word;
+            box-sizing: border-box;
+        }
+        #modal-step-done-late a.step-diary-prompt-toggle:hover,
+        #modal-step-waived a.step-diary-prompt-toggle:hover,
+        #modal-step-move a.step-diary-prompt-toggle:hover {
+            color: var(--island-accent-deep);
+            text-decoration: underline;
+        }
+        #modal-step-done-late a.step-diary-prompt-toggle:focus-visible,
+        #modal-step-waived a.step-diary-prompt-toggle:focus-visible,
+        #modal-step-move a.step-diary-prompt-toggle:focus-visible {
+            outline: 2px solid var(--island-accent);
+            outline-offset: 4px;
+            border-radius: 2px;
+        }
         .steps-filter .dreams-filter-btn { width: auto; margin: 0; }
         .app-content { min-height: 120px; padding-bottom: 60px; }
         .buddy-title { display: none; }
@@ -808,6 +1081,14 @@
             opacity: 0.38;
             cursor: not-allowed;
         }
+        .step-day-share-btn[data-state="disabled"] { color: #90a4ae; }
+        .step-day-share-btn[data-state="ready"] { color: #2e7d32; animation: step-share-ready-pulse 1.3s ease-in-out infinite; }
+        .step-day-share-btn[data-state="sent"] { color: #9fb5a4; opacity: 0.6; }
+        @keyframes step-share-ready-pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 0.82; }
+            100% { transform: scale(1); opacity: 1; }
+        }
         .step-day-share-badge {
             position: absolute;
             top: -4px;
@@ -850,7 +1131,7 @@
         .step-item-plain.completed .step-title-text, .step-row.completed .step-title { text-decoration: line-through; }
         .step-item-plain.step-waived { opacity: 0.92; }
         .step-item-plain.step-waived .step-title-text { color: #6d4c41; }
-        /* width: auto — сброс глобального `button { width: 100% }` (стр. ~17), иначе минус/↩ растягиваются на всю строку */
+        /* Компактные кнопки в строке шага; глобально у button уже width: auto */
         .step-waived-btn { flex: 0 0 auto; flex-shrink: 0; width: auto; max-width: 2.25em; min-width: 1.6em; padding: 4px 2px; margin: 0; border: none; border-left: 1px solid #ccc; background: none; cursor: pointer; color: #c62828; font-size: 1.1em; font-weight: 700; line-height: 1; box-sizing: content-box; text-align: center; }
         .step-waived-btn:hover { background: #ffebee; }
         .step-waived-clear { flex: 0 0 auto; flex-shrink: 0; width: auto; max-width: 2.25em; min-width: 1.6em; padding: 4px 2px; margin: 0; border: none; border-left: 1px solid #ccc; background: none; cursor: pointer; color: #1565c0; font-size: 1em; line-height: 1; box-sizing: content-box; text-align: center; }
@@ -904,6 +1185,8 @@
         }
         .step-done-btn:hover, .step-comment-btn:hover, .step-move-btn:hover { background: #eee; }
         .step-done-btn:disabled, .step-comment-btn:disabled, .step-move-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        /* «Сохранить» без disabled: выглядит неактивным, но клик = «Пропустить» (см. aria-disabled). */
+        button.step-modal-note-save[aria-disabled="true"] { opacity: 0.45; cursor: pointer; }
         .step-done-btn.step-done-on { background: #e8f5e9; font-weight: 700; }
         .step-done-btn.step-done-locked { background: #eceff1; color: #90a4ae; cursor: default; border: 1px solid #d7dee3; }
         .step-done-btn.step-done-locked:hover { background: #eceff1; }
@@ -1040,6 +1323,22 @@
             .modal-add-step .modal-add-step-date { font-size: 13px; }
             .modal-actions { flex-wrap: wrap; }
             .modal-actions button { min-height: 44px; }
+            #modal-step-done-late .modal-actions.modal-actions--done-late { flex-wrap: nowrap !important; gap: 6px; }
+            #modal-step-done-late .modal-actions.modal-actions--done-late button {
+                min-height: auto;
+                padding: 8px 5px;
+                font-size: 11px;
+            }
+            #modal-step-done-late .step-diary-prompt-foot,
+            #modal-step-waived .step-diary-prompt-foot,
+            #modal-step-move .step-diary-prompt-foot {
+                padding: 12px 4px 0;
+            }
+            #modal-step-done-late a.step-diary-prompt-toggle,
+            #modal-step-waived a.step-diary-prompt-toggle,
+            #modal-step-move a.step-diary-prompt-toggle {
+                font-size: 12px;
+            }
             .landing-card { padding: 24px 20px; }
             .landing-hero .landing-title { font-size: 1.45em; }
             .landing-hero .landing-mission { font-size: 1.05em; }
@@ -1233,7 +1532,7 @@
                         </div>
                     </div>
                     <div class="app-header-stats">
-                        <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span id="header-link-diary" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Дневник шагов">дневник</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
+                        <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span class="cabinet-nav-reports-wrap"><span id="header-link-reports" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Отчёты по дням">✈️</span><span id="header-reports-dot" class="app-header-reports-dot hidden" aria-hidden="true"></span></span><span class="stat-sep"> | </span><span id="header-link-diary" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Дневник шагов">дневник</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
                         <span id="stat-dreams-ratio" class="stat-num hidden" aria-hidden="true"></span><span id="stat-helped-n" class="stat-num hidden" aria-hidden="true"></span>
                     </div>
                 </div>
@@ -1255,10 +1554,16 @@
                 <div class="steps-filter dreams-filter hidden" id="steps-filter" aria-label="Фильтр шагов">
                     <button type="button" class="dreams-filter-btn" data-filter="all" title="Все"><span class="dreams-filter-bg">📋</span><span class="dreams-filter-text">Все</span></button>
                     <button type="button" class="dreams-filter-btn active" data-filter="current" title="Текущие (7 дней)"><span class="dreams-filter-bg">☭</span><span class="dreams-filter-text">Сейчас</span></button>
-                    <button type="button" class="dreams-filter-btn" data-filter="overdue" title="Неотмеченные после дня дедлайна (нужна отметка)"><span class="dreams-filter-bg">⏰</span><span class="dreams-filter-text">Проср.</span></button>
+                    <button type="button" class="dreams-filter-btn" data-filter="overdue" title="Дела без отметки после дня дедлайна (нужно решение: ✓ или −)"><span class="dreams-filter-bg">⏰</span><span class="dreams-filter-text">Долги</span></button>
                     <button type="button" class="dreams-filter-btn" data-filter="waived" title="Не выполнены"><span class="dreams-filter-bg">−</span><span class="dreams-filter-text">Не вып.</span></button>
                     <button type="button" class="dreams-filter-btn" data-filter="completed" title="Выполненные"><span class="dreams-filter-bg">✅</span><span class="dreams-filter-text">Готово</span></button>
                     <button type="button" class="dreams-filter-btn" data-filter="deleted" title="Удалённые"><span class="dreams-filter-bg">🗑️</span><span class="dreams-filter-text">Удал.</span></button>
+                </div>
+                <div class="dreams-filter hidden" id="reports-filter-top" aria-label="Фильтр отчётов">
+                    <button type="button" class="dreams-filter-btn active" data-report-filter="all" title="Хронология всех отчётов"><span class="dreams-filter-bg">📋</span><span class="dreams-filter-text">Все</span></button>
+                    <button type="button" class="dreams-filter-btn" data-report-filter="dobit" title="Есть недоотмеченные дела"><span class="dreams-filter-bg">⏰</span><span class="dreams-filter-text">Добить</span></button>
+                    <button type="button" class="dreams-filter-btn" data-report-filter="send" title="Все дела отмечены, отчёт ещё не отправлен"><span class="dreams-filter-bg">✈️</span><span class="dreams-filter-text">Отправить</span></button>
+                    <button type="button" class="dreams-filter-btn" data-report-filter="finished" title="Уже отправленные отчёты"><span class="dreams-filter-bg">✅</span><span class="dreams-filter-text">Завершены</span></button>
                 </div>
             </div>
             <nav class="app-menu app-menu-desktop-hidden" id="app-menu-nav">
@@ -1372,7 +1677,11 @@
                         <label style="display:block;margin-bottom:4px;font-weight:600;">VK</label>
                         <input type="text" id="profile-edit-vk" placeholder="Ссылка на профиль" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
                         <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
-                        <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:16px;box-sizing:border-box;">
+                        <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
+                            <input type="checkbox" id="profile-edit-prompt-late-comments" checked style="margin-top:3px;flex-shrink:0;">
+                            <span>Предлагать необязательный комментарий в дневник при опоздании, «не выполнен» и переносе шага</span>
+                        </label>
                         <p id="profile-edit-error" class="error hidden" style="margin-bottom:8px;"></p>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" id="profile-edit-save" style="padding:10px 20px;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Сохранить</button>
@@ -1395,6 +1704,22 @@
                     <ul id="diary-events-list" style="margin:0;padding-left:18px;color:#4d5c76;font-size:13px;line-height:1.45;"></ul>
                     <p id="diary-events-empty" class="hidden" style="color:#666;">Пока нет записей.</p>
                     <p id="diary-events-error" class="error hidden"></p>
+                </div>
+                <div id="reports-block" class="hidden">
+                    <div id="reports-table-wrap" class="reports-table-wrap hidden">
+                        <table class="reports-table" id="reports-days-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="reports-th--date">Дата</th>
+                                    <th scope="col" class="reports-th--eff" title="Эффективность" aria-label="Эффективность"></th>
+                                    <th scope="col" class="reports-th--copy" title="Скопировать" aria-label="Скопировать"></th>
+                                    <th scope="col" class="reports-th--send" title="Отправить" aria-label="Отправить"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="reports-days-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p id="reports-empty" class="hidden" style="color:#666;margin-top:12px;">За последние 30 дней нет дней с запланированными шагами.</p>
                 </div>
                 <div id="library-block" class="hidden">
                     <div class="library-head">
@@ -1424,13 +1749,16 @@
             <div id="modal-step-waived" class="modal-overlay hidden">
                 <div class="modal">
                     <h3>Не выполнен</h3>
-                    <p style="margin:0 0 10px;color:#666;font-size:14px;">Комментарий в дневник <strong>не обязателен</strong>. «Пропустить» — отметить шаг без текста. «Сохранить» — только если ввели комментарий. «Отмена» — закрыть без изменений.</p>
+                    <p style="margin:0 0 10px;color:#666;font-size:14px;">Комментарий в дневник не обязателен. «Пропустить» — отметить шаг без текста. «Сохранить» — только если ввели комментарий. «Отмена» — закрыть без изменений.</p>
                     <label for="step-waived-note-text">Комментарий в дневник (необязательно)</label>
                     <textarea id="step-waived-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию, до нескольких фраз"></textarea>
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="step-waived-cancel">Отмена</button>
                         <button type="button" class="secondary" id="step-waived-skip">Пропустить</button>
-                        <button type="button" id="step-waived-save" disabled>Сохранить</button>
+                        <button type="button" class="secondary step-modal-note-save" id="step-waived-save" aria-disabled="true">Сохранить</button>
+                    </div>
+                    <div class="step-diary-prompt-foot">
+                        <a href="#" class="step-diary-prompt-toggle" id="step-waived-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
                     </div>
                 </div>
             </div>
@@ -1444,7 +1772,7 @@
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="step-comment-cancel">Отмена</button>
                         <button type="button" class="secondary" id="step-comment-skip">Пропустить</button>
-                        <button type="button" id="step-comment-save" disabled>Сохранить</button>
+                        <button type="button" class="secondary step-modal-note-save" id="step-comment-save" aria-disabled="true">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -1486,16 +1814,21 @@
             <div id="modal-step-move" class="modal-overlay hidden">
                 <div class="modal">
                     <h3>Перенос шага</h3>
-                    <p style="margin:0 0 10px;color:#666;font-size:14px;">Новая дата обязательна. Комментарий в дневник необязателен: «Пропустить» — только новая дата. «Сохранить» — новая дата и комментарий в дневник, если вы его ввели.</p>
+                    <p id="step-move-lead" style="margin:0 0 10px;color:#666;font-size:14px;">Новая дата обязательна. Комментарий в дневник необязателен: «Пропустить» — только новая дата. «Сохранить» — новая дата и комментарий в дневник, если вы его ввели.</p>
                     <label for="step-move-deadline">Новая дата</label>
                     <input type="text" id="step-move-deadline" class="island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off" aria-describedby="step-move-deadline-hint">
                     <p id="step-move-deadline-hint" class="modal-deadline-hints" style="margin:4px 0 10px 0;font-size:12px;color:#666;">Формат дд.мм.гг</p>
-                    <label for="step-move-note-text">Комментарий в дневник (необязательно)</label>
-                    <textarea id="step-move-note-text" rows="2" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию"></textarea>
+                    <div id="step-move-note-wrap">
+                        <label for="step-move-note-text">Комментарий в дневник (необязательно)</label>
+                        <textarea id="step-move-note-text" rows="2" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию"></textarea>
+                    </div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="step-move-cancel">Отмена</button>
                         <button type="button" class="secondary" id="step-move-skip">Пропустить</button>
                         <button type="button" id="step-move-save" disabled>Сохранить</button>
+                    </div>
+                    <div class="step-diary-prompt-foot">
+                        <a href="#" class="step-diary-prompt-toggle" id="step-move-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
                     </div>
                 </div>
             </div>
@@ -1504,12 +1837,14 @@
                 <div class="modal">
                     <h3>День шага уже прошёл</h3>
                     <p style="margin:0 0 10px;color:#666;font-size:14px;">Отметка «выполнено» будет с опозданием. Можно кратко пояснить в дневнике или пропустить.</p>
-                    <label for="step-done-late-note-text">Комментарий (необязательно)</label>
-                    <textarea id="step-done-late-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию"></textarea>
-                    <div class="modal-actions">
+                    <textarea id="step-done-late-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="Комментарий, по желанию" aria-label="Комментарий, по желанию"></textarea>
+                    <div class="modal-actions modal-actions--done-late">
                         <button type="button" class="secondary" id="step-done-late-cancel">Отмена</button>
                         <button type="button" class="secondary" id="step-done-late-skip">Пропустить</button>
-                        <button type="button" id="step-done-late-save" disabled>Сохранить</button>
+                        <button type="button" class="secondary" id="step-done-late-save">Сохранить</button>
+                    </div>
+                    <div class="step-diary-prompt-foot">
+                        <a href="#" class="step-diary-prompt-toggle" id="step-done-late-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
                     </div>
                 </div>
             </div>
@@ -1895,7 +2230,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">242</span>
+                    <span class="app-version" aria-hidden="true">244</span>
                 </div>
             </footer>
         </div>
@@ -2389,6 +2724,7 @@
             document.getElementById('page-title').classList.add('hidden');
             setTimeout(updateStickySpacer, 0);
             setTimeout(updateStickySpacer, 150);
+            updateStepOptionalDiaryCommentModalToggleUi();
 
             startProfileLoadMeter();
             headerView = 'me';
@@ -2503,6 +2839,8 @@
                 restoreSectionAfterStepSave = 'diary';
             else if (!document.getElementById('steps-block').classList.contains('hidden'))
                 restoreSectionAfterStepSave = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (document.getElementById('reports-block') && !document.getElementById('reports-block').classList.contains('hidden'))
+                restoreSectionAfterStepSave = 'reports';
             else if (!document.getElementById('buddy-block').classList.contains('hidden'))
                 restoreSectionAfterStepSave = 'buddy';
             else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden'))
@@ -2731,15 +3069,18 @@
         function updateCabinetNavActive(section) {
             var d = document.getElementById('header-link-dreams');
             var s = document.getElementById('header-link-steps');
+            var rep = document.getElementById('header-link-reports');
             var di = document.getElementById('header-link-diary');
             var v = document.getElementById('header-link-showcase');
             if (!d || !s || !v) return;
             d.classList.remove('active');
             s.classList.remove('active');
+            if (rep) rep.classList.remove('active');
             if (di) di.classList.remove('active');
             v.classList.remove('active');
             if (section === 'dreams' || section === 'buddy') d.classList.add('active');
             else if (section === 'steps' || section === 'steps-buddy') s.classList.add('active');
+            else if (section === 'reports' && rep) rep.classList.add('active');
             else if (section === 'diary' && di) di.classList.add('active');
             else if (section === 'showcase') v.classList.add('active');
         }
@@ -2747,6 +3088,8 @@
             document.getElementById('dreams-block').classList.add('hidden');
             document.getElementById('buddy-block').classList.add('hidden');
             document.getElementById('steps-block').classList.add('hidden');
+            var rbRep = document.getElementById('reports-block');
+            if (rbRep) rbRep.classList.add('hidden');
             var db = document.getElementById('diary-block');
             if (db) db.classList.add('hidden');
             var lb = document.getElementById('library-block');
@@ -2763,6 +3106,7 @@
             var breadcrumbsEl = document.getElementById('app-showcase-breadcrumbs');
             var dreamsFilterEl = document.getElementById('dreams-filter');
             var stepsFilterEl = document.getElementById('steps-filter');
+            var reportsFilterEl = document.getElementById('reports-filter-top');
             if (section === 'showcase') {
                 if (titleRowEl) titleRowEl.classList.add('hidden');
                 if (breadcrumbsEl) { breadcrumbsEl.classList.remove('hidden'); breadcrumbsEl.style.display = 'flex'; }
@@ -2770,10 +3114,11 @@
                 if (titleRowEl) titleRowEl.classList.remove('hidden');
                 if (sectionTitleEl) {
                     sectionTitleEl.classList.remove('hidden');
-                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'diary' ? 'Дневник шагов' : (section === 'library' ? 'Библиотека' : (section === 'profile-edit' ? 'Настройки профиля' : 'Мои мечты'))))));
+                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'reports' ? 'Отчёты' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'diary' ? 'Дневник шагов' : (section === 'library' ? 'Библиотека' : (section === 'profile-edit' ? 'Настройки профиля' : 'Мои мечты')))))));
                 }
                 if (dreamsFilterEl) dreamsFilterEl.classList.toggle('hidden', section !== 'dreams' && section !== 'buddy');
-                if (stepsFilterEl) stepsFilterEl.classList.toggle('hidden', section !== 'steps' && section !== 'steps-buddy' && section !== 'diary');
+                if (stepsFilterEl) stepsFilterEl.classList.toggle('hidden', section !== 'steps' && section !== 'steps-buddy');
+                if (reportsFilterEl) reportsFilterEl.classList.toggle('hidden', section !== 'reports');
                 if (breadcrumbsEl) { breadcrumbsEl.classList.add('hidden'); breadcrumbsEl.style.display = 'none'; }
             }
             if (section === 'profile-edit') {
@@ -2837,6 +3182,18 @@
                 document.getElementById('menu-steps-buddy').classList.add('active');
                 var footerAddSb = document.getElementById('app-footer-add'); if (footerAddSb) footerAddSb.classList.add('hidden');
                 loadSteps(currentUser ? currentUser.buddy_id : 0, true);
+            } else if (section === 'reports') {
+                lastCabinetSection = 'reports';
+                if (currentUser) lastStepsForDiary = { userId: currentUser.id, isBuddy: false };
+                var repBlk = document.getElementById('reports-block');
+                if (repBlk) repBlk.classList.remove('hidden');
+                var footerAddRep = document.getElementById('app-footer-add');
+                if (footerAddRep) footerAddRep.classList.add('hidden');
+                stepsViewIsBuddy = false;
+                loadSteps(currentUser ? currentUser.id : 0, false).then(function() {
+                    refreshReportsListUI();
+                    syncReportsMenuIndicator();
+                });
             } else if (section === 'diary') {
                 lastCabinetSection = 'diary';
                 var diaryEl = document.getElementById('diary-block');
@@ -2970,6 +3327,7 @@
             if (newPw) newPw.value = '';
             if (fileInput) fileInput.value = '';
             if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+            syncProfileLatePromptCheckbox();
             if (telegramEl) telegramEl.value = (currentUser.telegram || '').trim();
             if (vkEl) vkEl.value = (currentUser.vk || '').trim();
             if (phoneEl) phoneEl.value = (currentUser.phone || '').trim();
@@ -3312,12 +3670,28 @@
                     .catch(function() { applyUnliked(); showToast('Не удалось добавить в избранное.'); });
             }
         }
-        function showToast(message) {
+        function showToast(message, opts) {
+            opts = opts || {};
             var container = document.getElementById('toast-container');
             if (!container) return;
             var el = document.createElement('div');
             el.className = 'toast';
-            el.textContent = message;
+            var textEl = document.createElement('div');
+            textEl.className = 'toast-text';
+            textEl.textContent = message;
+            el.appendChild(textEl);
+            if (opts.actionLabel && typeof opts.onAction === 'function') {
+                var actionBtn = document.createElement('button');
+                actionBtn.type = 'button';
+                actionBtn.className = 'toast-action';
+                actionBtn.textContent = opts.actionLabel;
+                actionBtn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    opts.onAction();
+                });
+                el.appendChild(actionBtn);
+            }
             container.appendChild(el);
             container.classList.remove('hidden');
             setTimeout(function() {
@@ -3757,14 +4131,27 @@
             var saveBtn = document.getElementById('step-waived-save');
             if (!saveBtn) return;
             var has = !!(ta && (ta.value || '').trim().length);
-            saveBtn.disabled = !has;
+            saveBtn.disabled = false;
+            saveBtn.setAttribute('aria-disabled', has ? 'false' : 'true');
+            saveBtn.classList.toggle('secondary', !has);
         }
         function openStepWaivedModal(dreamId, stepId) {
+            if (!isStepOptionalDiaryCommentModalEnabled()) {
+                var midD = Number(dreamId), midS = Number(stepId);
+                patchStep(dreamId, stepId, { waived: true }).then(function() {
+                    var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === midD && Number(x.id) === midS; });
+                    if (row) { row.waived = true; normalizeStepForUi(row); }
+                    dreamIdToRestoreAfterRefresh = dreamId;
+                    refreshAfterDreamChange();
+                }).catch(function() { alert('Не удалось сохранить'); });
+                return;
+            }
             stepWaivedModal.dreamId = dreamId;
             stepWaivedModal.stepId = stepId;
             var ta = document.getElementById('step-waived-note-text');
             if (ta) ta.value = '';
             updateStepWaivedSaveButtonState();
+            updateStepOptionalDiaryCommentModalToggleUi();
             var m = document.getElementById('modal-step-waived');
             if (m) m.classList.remove('hidden');
         }
@@ -3834,6 +4221,7 @@
                 emptyEl.classList.remove('hidden');
                 syncStepsFilterOverdueAttention(isBuddy);
                 syncStepReportUnmarkedModalAfterStepsRender();
+                if (!isBuddy) syncReportsMenuIndicator();
                 return;
             }
             emptyEl.classList.add('hidden');
@@ -3849,9 +4237,9 @@
                     divLi.setAttribute('data-day-iso', dayKey);
                     var st = dayStats[dayKey] || { total: 0, done: 0 };
                     var sendCount = (currentUser && !isBuddy) ? getStepReportSendCount(currentUser.id, dayKey) : 0;
-                    var showShare = !isBuddy && dayKey <= scheduleToday;
+                    var canShare = !isBuddy && dayKey <= scheduleToday && st.total > 0 && st.done >= st.total;
                     divLi.innerHTML = buildStepDayDividerRowHtml(dayKey, st.done, st.total, {
-                        showShare: showShare,
+                        canShare: canShare,
                         sendCount: sendCount,
                         isBuddyView: !!isBuddy
                     });
@@ -3877,6 +4265,8 @@
             });
             syncStepsFilterOverdueAttention(isBuddy);
             syncStepReportUnmarkedModalAfterStepsRender();
+            maybeAutoCopyClosedDayReports(isBuddy);
+            if (!isBuddy) syncReportsMenuIndicator();
         }
         function renderStepsDeletedList() {
             var deletedList = document.getElementById('steps-deleted-list');
@@ -3918,7 +4308,10 @@
             var ta = document.getElementById('step-comment-note-text');
             var saveBtn = document.getElementById('step-comment-save');
             if (!saveBtn) return;
-            saveBtn.disabled = !(ta && (ta.value || '').trim().length);
+            var has = !!(ta && (ta.value || '').trim().length);
+            saveBtn.disabled = false;
+            saveBtn.setAttribute('aria-disabled', has ? 'false' : 'true');
+            saveBtn.classList.toggle('secondary', !has);
         }
         function openStepCommentModal(dreamId, stepId) {
             stepCommentModal = { dreamId: dreamId, stepId: stepId };
@@ -3955,6 +4348,8 @@
                 dateIn.value = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? isoToUiDate(iso) : '';
                 dateIn.classList.remove('island-date-field-invalid');
             }
+            syncStepMoveModalCommentSection();
+            updateStepOptionalDiaryCommentModalToggleUi();
             updateStepMoveButtonsState();
             document.getElementById('modal-step-move').classList.remove('hidden');
         }
@@ -3962,17 +4357,78 @@
             document.getElementById('modal-step-move').classList.add('hidden');
             stepMoveModal = { dreamId: 0, stepId: 0 };
         }
+        /** Историческое имя ключа: один флаг на «опоздание», «не выполнен», перенос (не прямой клик «комментарий к шагу»). */
+        var STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1 = 'island_prompt_step_done_late_comment_v1';
+        function isStepOptionalDiaryCommentModalEnabled() {
+            try { return localStorage.getItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1) !== '0'; } catch (e) { return true; }
+        }
+        function syncProfileLatePromptCheckbox() {
+            var el = document.getElementById('profile-edit-prompt-late-comments');
+            if (el) el.checked = isStepOptionalDiaryCommentModalEnabled();
+        }
+        var STEP_MOVE_LEAD_WITH_COMMENT = 'Новая дата обязательна. Комментарий в дневник необязателен: «Пропустить» — только новая дата. «Сохранить» — новая дата и комментарий в дневник, если вы его ввели.';
+        var STEP_MOVE_LEAD_NO_COMMENT = 'Новая дата обязательна. Укажите дату и нажмите «Сохранить».';
+        function updateStepOptionalDiaryCommentModalToggleUi() {
+            var on = isStepOptionalDiaryCommentModalEnabled();
+            var label = on ? 'Больше не спрашивать' : 'Запрашивать комментирование';
+            ['step-done-late-prompt-toggle', 'step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(id) {
+                var btn = document.getElementById(id);
+                if (btn) btn.textContent = label;
+            });
+        }
+        function syncStepMoveModalCommentSection() {
+            var wrap = document.getElementById('step-move-note-wrap');
+            var skipBtn = document.getElementById('step-move-skip');
+            var lead = document.getElementById('step-move-lead');
+            var on = isStepOptionalDiaryCommentModalEnabled();
+            if (wrap) wrap.classList.toggle('hidden', !on);
+            if (skipBtn) skipBtn.classList.toggle('hidden', !on);
+            if (lead) lead.textContent = on ? STEP_MOVE_LEAD_WITH_COMMENT : STEP_MOVE_LEAD_NO_COMMENT;
+        }
+        function toggleStepOptionalDiaryCommentModalPreference() {
+            try {
+                var cur = localStorage.getItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1);
+                localStorage.setItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1, cur === '0' ? '1' : '0');
+            } catch (e) {}
+            syncProfileLatePromptCheckbox();
+            updateStepOptionalDiaryCommentModalToggleUi();
+            syncStepMoveModalCommentSection();
+        }
+        function patchStepDoneLateComplete(dreamId, stepId, doneBtn, noteTrim) {
+            var row = stepsFlatCache.find(function(x) { return x.dream_id === dreamId && x.id === stepId; });
+            var body = { completed: true };
+            if (noteTrim) body.note = noteTrim;
+            if (row && row.deadline) {
+                var bm = stepOverdueBoundaryUtcMs(row.deadline, row);
+                if (bm != null) body.completed_late = Date.now() >= bm;
+            }
+            return patchStep(dreamId, stepId, body).then(function() {
+                var r = stepsFlatCache.find(function(x) { return x.dream_id === dreamId && x.id === stepId; });
+                if (r) { r.completed = true; if (r.completed_late !== undefined) r.completed_late = true; }
+                if (doneBtn) doneBtn.classList.add('step-done-on');
+                dreamIdToRestoreAfterRefresh = dreamId;
+                refreshAfterDreamChange();
+            });
+        }
         var stepDoneLateModal = { dreamId: 0, stepId: 0, doneBtn: null };
         function updateStepDoneLateSaveState() {
             var ta = document.getElementById('step-done-late-note-text');
             var saveBtn = document.getElementById('step-done-late-save');
             if (!saveBtn) return;
-            saveBtn.disabled = !(ta && (ta.value || '').trim().length);
+            var has = ta && (ta.value || '').trim().length > 0;
+            saveBtn.disabled = false;
+            if (has) saveBtn.classList.remove('secondary');
+            else saveBtn.classList.add('secondary');
         }
         function openStepDoneLateModal(dreamId, stepId, doneBtnEl) {
+            if (!isStepOptionalDiaryCommentModalEnabled()) {
+                patchStepDoneLateComplete(dreamId, stepId, doneBtnEl || null, '').catch(function() { alert('Не удалось сохранить'); });
+                return;
+            }
             stepDoneLateModal = { dreamId: dreamId, stepId: stepId, doneBtn: doneBtnEl || null };
             var ta = document.getElementById('step-done-late-note-text');
             if (ta) ta.value = '';
+            updateStepOptionalDiaryCommentModalToggleUi();
             updateStepDoneLateSaveState();
             document.getElementById('modal-step-done-late').classList.remove('hidden');
         }
@@ -4153,7 +4609,10 @@
             if (ul && !ul._stepDayShareDelegated) {
                 ul._stepDayShareDelegated = true;
                 ul.addEventListener('click', function(e) {
-                    var btn = e.target.closest('.step-day-share-btn');
+                    var rawT = e.target;
+                    var elT = rawT && rawT.nodeType === 1 ? rawT : (rawT && rawT.parentElement);
+                    if (!elT || typeof elT.closest !== 'function') return;
+                    var btn = elT.closest('.step-day-share-btn');
                     if (!btn || btn.disabled) return;
                     e.preventDefault();
                     var iso = btn.getAttribute('data-day-iso');
@@ -4183,6 +4642,89 @@
                     if (ok) closeStepReportUnmarkedModal();
                 });
             });
+        })();
+        (function setupReportsCenterUi() {
+            var tbody = document.getElementById('reports-days-tbody');
+            if (tbody && !tbody._reportsDelegated) {
+                tbody._reportsDelegated = true;
+                tbody.addEventListener('click', function(e) {
+                    /* Клик по тексту внутри <button> даёт target = Text node — у него нет .closest(), был бы TypeError и «мёртвый» клик. */
+                    var raw = e.target;
+                    var el = raw && raw.nodeType === 1 ? raw : (raw && raw.parentElement);
+                    if (!el || typeof el.closest !== 'function') return;
+                    var exD = el.closest('.reports-express-done');
+                    if (exD) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var d1 = Number(exD.getAttribute('data-dream-id'));
+                        var s1 = Number(exD.getAttribute('data-step-id'));
+                        if (!d1 || !s1) { showToast('Не удалось связать шаг с мечтой — откройте «Шаги» и обновите страницу'); return; }
+                        void reportsExpressCompleteStep(d1, s1);
+                        return;
+                    }
+                    var exW = el.closest('.reports-express-waive');
+                    if (exW) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var d2 = Number(exW.getAttribute('data-dream-id'));
+                        var s2 = Number(exW.getAttribute('data-step-id'));
+                        if (!d2 || !s2) { showToast('Не удалось связать шаг с мечтой — откройте «Шаги» и обновите страницу'); return; }
+                        void reportsExpressWaiveStep(d2, s2);
+                        return;
+                    }
+                    var c = el.closest('.reports-day-action-copy');
+                    if (c && c.classList.contains('reports-day-icon-btn--blocked')) {
+                        e.preventDefault();
+                        var isoB = c.getAttribute('data-day-iso');
+                        if (reportsCenterFilter === 'dobit') {
+                            showToast('Сначала отметь шаги снизу');
+                            return;
+                        }
+                        if (isoB && !isReportDayFullyMarked(isoB)) toggleReportsDebtAccordion(isoB);
+                        return;
+                    }
+                    if (c && !c.classList.contains('reports-day-icon-btn--blocked')) {
+                        e.preventDefault();
+                        var isoC = c.getAttribute('data-day-iso');
+                        if (isoC) copySingleReportFromCenter(isoC);
+                        return;
+                    }
+                    var s = el.closest('.reports-day-action-share');
+                    if (s && s.classList.contains('reports-day-icon-btn--blocked')) {
+                        e.preventDefault();
+                        var isoS0 = s.getAttribute('data-day-iso');
+                        if (reportsCenterFilter === 'dobit') {
+                            showToast('Сначала отметь шаги снизу');
+                            return;
+                        }
+                        if (isoS0 && !isReportDayFullyMarked(isoS0)) toggleReportsDebtAccordion(isoS0);
+                        return;
+                    }
+                    if (s && !s.classList.contains('reports-day-icon-btn--blocked')) {
+                        e.preventDefault();
+                        var isoS = s.getAttribute('data-day-iso');
+                        if (isoS) void performShareStepsDayReport(isoS);
+                        return;
+                    }
+                    var row = el.closest('.reports-data-row');
+                    if (row && !el.closest('button')) {
+                        var isoR = row.getAttribute('data-day-iso');
+                        if (isoR && !isReportDayFullyMarked(isoR)) toggleReportsDebtAccordion(isoR);
+                    }
+                });
+            }
+            var filterWrap = document.getElementById('reports-filter-top');
+            if (filterWrap && !filterWrap._reportsFilterBound) {
+                filterWrap._reportsFilterBound = true;
+                filterWrap.querySelectorAll('.dreams-filter-btn[data-report-filter]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var next = btn.getAttribute('data-report-filter') || 'all';
+                        reportsCenterFilter = next;
+                        if (reportsDebtAccordionDayIso && reportsCenterFilter !== 'all' && reportsCenterFilter !== 'dobit') reportsDebtAccordionDayIso = null;
+                        refreshReportsListUI();
+                    });
+                });
+            }
         })();
         async function loadBuddyDreams() {
             var titleEl = document.getElementById('buddy-title');
@@ -4441,7 +4983,7 @@
         document.getElementById('menu-my-dreams').addEventListener('click', function(e) { e.preventDefault(); headerView = 'me'; applyHeaderView(); switchMenu('dreams'); });
         document.getElementById('menu-buddy').addEventListener('click', function(e) { e.preventDefault(); headerView = 'buddy'; applyHeaderView(); switchMenu('buddy'); });
         document.getElementById('menu-my-steps').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps'); });
-        document.querySelectorAll('.dreams-filter-btn').forEach(function(btn) {
+        document.querySelectorAll('#dreams-filter .dreams-filter-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 dreamsFilter = this.dataset.filter || 'all';
                 applyDreamsFilterUI();
@@ -4507,6 +5049,13 @@
             headerLinkShowcase.addEventListener('click', function() { if (!currentUser) return; switchMenu('showcase'); });
             headerLinkShowcase.addEventListener('keydown', function(e) { if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('showcase'); } });
         }
+        var headerLinkReports = document.getElementById('header-link-reports');
+        if (headerLinkReports) {
+            headerLinkReports.addEventListener('click', function() { if (!currentUser) return; switchMenu('reports'); });
+            headerLinkReports.addEventListener('keydown', function(e) {
+                if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('reports'); }
+            });
+        }
         var headerLinkDiary = document.getElementById('header-link-diary');
         if (headerLinkDiary) {
             headerLinkDiary.addEventListener('click', function() { if (!currentUser) return; switchMenu('diary'); });
@@ -4514,47 +5063,39 @@
                 if ((e.key === 'Enter' || e.key === ' ') && currentUser) { e.preventDefault(); switchMenu('diary'); }
             });
         }
-        var stepWaivedSkip = document.getElementById('step-waived-skip');
-        var stepWaivedSave = document.getElementById('step-waived-save');
-        var stepWaivedCancel = document.getElementById('step-waived-cancel');
-        var stepWaivedNoteTa = document.getElementById('step-waived-note-text');
-        if (stepWaivedNoteTa) stepWaivedNoteTa.addEventListener('input', updateStepWaivedSaveButtonState);
-        if (stepWaivedCancel) stepWaivedCancel.addEventListener('click', function() { closeStepWaivedModal(); });
-        if (stepWaivedSkip) stepWaivedSkip.addEventListener('click', function() {
+        function submitStepWaivedFromModal() {
             if (!stepWaivedModal.dreamId) { closeStepWaivedModal(); return; }
             var did = stepWaivedModal.dreamId, midD = Number(did), midS = Number(stepWaivedModal.stepId);
-            patchStep(stepWaivedModal.dreamId, stepWaivedModal.stepId, { waived: true }).then(function() {
+            var note = (document.getElementById('step-waived-note-text') && document.getElementById('step-waived-note-text').value || '').trim();
+            var body = { waived: true };
+            if (note) body.note = note;
+            patchStep(stepWaivedModal.dreamId, stepWaivedModal.stepId, body).then(function() {
                 var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === midD && Number(x.id) === midS; });
                 if (row) { row.waived = true; normalizeStepForUi(row); }
                 closeStepWaivedModal();
                 dreamIdToRestoreAfterRefresh = did;
                 refreshAfterDreamChange();
             }).catch(function() { alert('Не удалось сохранить'); });
-        });
-        if (stepWaivedSave) stepWaivedSave.addEventListener('click', function() {
-            if (!stepWaivedModal.dreamId) { closeStepWaivedModal(); return; }
-            if (stepWaivedSave.disabled) return;
-            var note = (document.getElementById('step-waived-note-text') && document.getElementById('step-waived-note-text').value || '').trim();
-            if (!note) return;
-            var did = stepWaivedModal.dreamId;
-            patchStep(stepWaivedModal.dreamId, stepWaivedModal.stepId, { waived: true, note: note }).then(function() {
-                var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === Number(stepWaivedModal.dreamId) && Number(x.id) === Number(stepWaivedModal.stepId); });
-                if (row) { row.waived = true; normalizeStepForUi(row); }
-                closeStepWaivedModal();
-                dreamIdToRestoreAfterRefresh = did;
-                refreshAfterDreamChange();
-            }).catch(function() { alert('Не удалось сохранить'); });
-        });
+        }
+        var stepWaivedSkip = document.getElementById('step-waived-skip');
+        var stepWaivedSave = document.getElementById('step-waived-save');
+        var stepWaivedCancel = document.getElementById('step-waived-cancel');
+        var stepWaivedNoteTa = document.getElementById('step-waived-note-text');
+        if (stepWaivedNoteTa) stepWaivedNoteTa.addEventListener('input', updateStepWaivedSaveButtonState);
+        if (stepWaivedCancel) stepWaivedCancel.addEventListener('click', function() { closeStepWaivedModal(); });
+        if (stepWaivedSkip) stepWaivedSkip.addEventListener('click', function(e) { e.preventDefault(); submitStepWaivedFromModal(); });
+        if (stepWaivedSave) stepWaivedSave.addEventListener('click', function(e) { e.preventDefault(); submitStepWaivedFromModal(); });
         var modalStepWaived = document.getElementById('modal-step-waived');
         if (modalStepWaived) modalStepWaived.addEventListener('click', function(e) { if (e.target === modalStepWaived) closeStepWaivedModal(); });
         var stepCommentTa = document.getElementById('step-comment-note-text');
         if (stepCommentTa) stepCommentTa.addEventListener('input', updateStepCommentSaveState);
         document.getElementById('step-comment-cancel') && document.getElementById('step-comment-cancel').addEventListener('click', closeStepCommentModal);
         document.getElementById('step-comment-skip') && document.getElementById('step-comment-skip').addEventListener('click', closeStepCommentModal);
-        document.getElementById('step-comment-save') && document.getElementById('step-comment-save').addEventListener('click', function() {
-            if (!stepCommentModal.dreamId || document.getElementById('step-comment-save').disabled) return;
+        document.getElementById('step-comment-save') && document.getElementById('step-comment-save').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!stepCommentModal.dreamId) { closeStepCommentModal(); return; }
             var note = (document.getElementById('step-comment-note-text') && document.getElementById('step-comment-note-text').value || '').trim();
-            if (!note) return;
+            if (!note) { closeStepCommentModal(); return; }
             var did = stepCommentModal.dreamId;
             patchStep(stepCommentModal.dreamId, stepCommentModal.stepId, { note: note }).then(function() {
                 closeStepCommentModal();
@@ -4604,44 +5145,40 @@
         if (modalStepMove) modalStepMove.addEventListener('click', function(e) { if (e.target === modalStepMove) closeStepMoveModal(); });
         var stepDoneLateTa = document.getElementById('step-done-late-note-text');
         if (stepDoneLateTa) stepDoneLateTa.addEventListener('input', updateStepDoneLateSaveState);
+        ['step-done-late-prompt-toggle', 'step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(toggleId) {
+            var stepOptPromptToggle = document.getElementById(toggleId);
+            if (!stepOptPromptToggle) return;
+            stepOptPromptToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleStepOptionalDiaryCommentModalPreference();
+            });
+            stepOptPromptToggle.addEventListener('keydown', function(e) {
+                if (e.key === ' ' || e.code === 'Space') {
+                    e.preventDefault();
+                    toggleStepOptionalDiaryCommentModalPreference();
+                }
+            });
+        });
         document.getElementById('step-done-late-cancel') && document.getElementById('step-done-late-cancel').addEventListener('click', closeStepDoneLateModal);
         document.getElementById('step-done-late-skip') && document.getElementById('step-done-late-skip').addEventListener('click', function() {
             if (!stepDoneLateModal.dreamId) { closeStepDoneLateModal(); return; }
             var dId = stepDoneLateModal.dreamId, sId = stepDoneLateModal.stepId, btn = stepDoneLateModal.doneBtn;
-            var rowSkip = stepsFlatCache.find(function(x) { return x.dream_id === dId && x.id === sId; });
-            var bodySkip = { completed: true };
-            if (rowSkip && rowSkip.deadline) {
-                var bmSk = stepOverdueBoundaryUtcMs(rowSkip.deadline, rowSkip);
-                if (bmSk != null) bodySkip.completed_late = Date.now() >= bmSk;
-            }
-            patchStep(dId, sId, bodySkip).then(function() {
-                var row = stepsFlatCache.find(function(x) { return x.dream_id === dId && x.id === sId; });
-                if (row) { row.completed = true; if (row.completed_late !== undefined) row.completed_late = true; }
-                if (btn) btn.classList.add('step-done-on');
+            patchStepDoneLateComplete(dId, sId, btn, '').then(function() {
                 closeStepDoneLateModal();
-                dreamIdToRestoreAfterRefresh = dId;
-                refreshAfterDreamChange();
             }).catch(function() { alert('Не удалось сохранить'); });
         });
         document.getElementById('step-done-late-save') && document.getElementById('step-done-late-save').addEventListener('click', function() {
             if (!stepDoneLateModal.dreamId) { closeStepDoneLateModal(); return; }
-            if (document.getElementById('step-done-late-save').disabled) return;
             var note = (document.getElementById('step-done-late-note-text') && document.getElementById('step-done-late-note-text').value || '').trim();
-            if (!note) return;
             var dId = stepDoneLateModal.dreamId, sId = stepDoneLateModal.stepId, btn = stepDoneLateModal.doneBtn;
-            var rowSv = stepsFlatCache.find(function(x) { return x.dream_id === dId && x.id === sId; });
-            var bodySv = { completed: true, note: note };
-            if (rowSv && rowSv.deadline) {
-                var bmSv = stepOverdueBoundaryUtcMs(rowSv.deadline, rowSv);
-                if (bmSv != null) bodySv.completed_late = Date.now() >= bmSv;
+            if (!note) {
+                patchStepDoneLateComplete(dId, sId, btn, '').then(function() {
+                    closeStepDoneLateModal();
+                }).catch(function() { alert('Не удалось сохранить'); });
+                return;
             }
-            patchStep(dId, sId, bodySv).then(function() {
-                var row = stepsFlatCache.find(function(x) { return x.dream_id === dId && x.id === sId; });
-                if (row) { row.completed = true; if (row.completed_late !== undefined) row.completed_late = true; }
-                if (btn) btn.classList.add('step-done-on');
+            patchStepDoneLateComplete(dId, sId, btn, note).then(function() {
                 closeStepDoneLateModal();
-                dreamIdToRestoreAfterRefresh = dId;
-                refreshAfterDreamChange();
             }).catch(function() { alert('Не удалось сохранить'); });
         });
         var modalStepDoneLate = document.getElementById('modal-step-done-late');
@@ -4666,6 +5203,7 @@
             if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
             else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
             else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (document.getElementById('reports-block') && !document.getElementById('reports-block').classList.contains('hidden')) lastCabinetSection = 'reports';
             else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
             else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
             else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
@@ -4682,6 +5220,7 @@
             if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
             else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
             else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (document.getElementById('reports-block') && !document.getElementById('reports-block').classList.contains('hidden')) lastCabinetSection = 'reports';
             else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
             else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
             else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
@@ -4733,6 +5272,12 @@
         if (notificationsBackLink) notificationsBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         var profileEditBack = document.getElementById('profile-edit-back');
         if (profileEditBack) profileEditBack.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
+        var profilePromptLateComments = document.getElementById('profile-edit-prompt-late-comments');
+        if (profilePromptLateComments) profilePromptLateComments.addEventListener('change', function() {
+            try { localStorage.setItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1, this.checked ? '1' : '0'); } catch (e) {}
+            updateStepOptionalDiaryCommentModalToggleUi();
+            syncStepMoveModalCommentSection();
+        });
         var profileEditSave = document.getElementById('profile-edit-save');
         function parseApiErrorResponse(resp, fallbackMessage) {
             var contentType = (resp && resp.headers && resp.headers.get('content-type')) || '';
@@ -5318,7 +5863,7 @@
                     if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) islandCalPosition();
                 });
             }
-            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance', 'modal-step-move', 'modal-step-comment', 'modal-step-done-late', 'modal-step-report-unmarked'].forEach(function(mid) {
+            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance', 'modal-step-waived', 'modal-step-move', 'modal-step-comment', 'modal-step-done-late', 'modal-step-report-unmarked'].forEach(function(mid) {
                 var ov = document.getElementById(mid);
                 if (ov && !ov._islandCalScroll) {
                     ov._islandCalScroll = true;
@@ -5362,7 +5907,21 @@
         function stepsScheduleTodayIso() {
             return localCalendarDateIso(new Date());
         }
-        /** Красная подпись «Проср.», если есть неотмеченные после дня дедлайна (см. stepIsOverdueUtc). */
+        /** Сдвиг календарной даты YYYY-MM-DD на ±N дней (локальный календарь). */
+        function addCalendarDaysIso(dayIso, deltaDays) {
+            var m = (dayIso || '').toString().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return dayIso;
+            var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+            d.setDate(d.getDate() + (Number(deltaDays) || 0));
+            return localCalendarDateIso(d);
+        }
+        /** Окно «Карта дисциплины»: последние N календарных дней (включая сегодня). */
+        var REPORT_DISCIPLINE_WINDOW_DAYS = 30;
+        /** Развёрнутая строка «экспресс-зачистки долгов» в таблице отчётов (ISO дня или null). */
+        var reportsDebtAccordionDayIso = null;
+        /** Активный фильтр центра отчётов: all | dobit | send | finished. */
+        var reportsCenterFilter = 'all';
+        /** Красная подпись «Долги», если есть неотмеченные после дня дедлайна (см. stepIsOverdueUtc). */
         function syncStepsFilterOverdueAttention(isBuddy) {
             var btn = document.querySelector('#steps-filter .dreams-filter-btn[data-filter="overdue"]');
             if (!btn) return;
@@ -5401,6 +5960,10 @@
         function stepReportSendStorageKey(userId, dayIso) {
             return 'island_step_report_send_v1:' + String(userId || 0) + ':' + String(dayIso || '');
         }
+        function isStepFinalMarked(stepObj) {
+            normalizeStepForUi(stepObj);
+            return !!(stepObj && (stepObj.completed || stepObj.waived));
+        }
         function getStepReportSendCount(userId, dayIso) {
             try {
                 var raw = localStorage.getItem(stepReportSendStorageKey(userId, dayIso));
@@ -5415,6 +5978,329 @@
                 localStorage.setItem(k, String(n));
                 return n;
             } catch (e) { return 0; }
+        }
+        /** Слово «день / дня / дней» для числа n (для тостов). */
+        function ruDaysWord(n) {
+            var k = Math.floor(Math.abs(Number(n))) || 0;
+            var m100 = k % 100;
+            var m10 = k % 10;
+            if (m100 >= 11 && m100 <= 14) return 'дней';
+            if (m10 === 1) return 'день';
+            if (m10 >= 2 && m10 <= 4) return 'дня';
+            return 'дней';
+        }
+        function countCompletedStepsForEfficiency(daySteps) {
+            var n = 0;
+            (daySteps || []).forEach(function(s) {
+                normalizeStepForUi(s);
+                if (s.completed && !s.waived) n += 1;
+            });
+            return n;
+        }
+        function computeDayEfficiencyPercent(dayIso) {
+            var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+            if (!daySteps.length) return 0;
+            return Math.round(100 * countCompletedStepsForEfficiency(daySteps) / daySteps.length);
+        }
+        /** Прогресс заполненности дня: любая финальная отметка (✓, −, в т.ч. опоздание) / Y × 100. */
+        function computeDayProgressPercent(dayIso) {
+            var stats = buildStepDayPlanStatsFromCache();
+            var st = stats[dayIso];
+            if (!st || st.total < 1) return 0;
+            return Math.round(100 * st.done / st.total);
+        }
+        /** Все шаги дня получили финальный статус (✓ или −): «день закрыт» для отчёта. */
+        function isReportDayFullyMarked(dayIso) {
+            var stats = buildStepDayPlanStatsFromCache();
+            var st = stats[dayIso];
+            return !!(st && st.total >= 1 && st.done === st.total);
+        }
+        /**
+         * Карта дисциплины: все дни в окне REPORT_DISCIPLINE_WINDOW_DAYS, где есть хотя бы один шаг в расписании.
+         * Включая дни с «долгами» (X < Y). Даты ≤ сегодня, новее сверху.
+         */
+        function getReportDisciplineWindowDayIsoList() {
+            var today = stepsScheduleTodayIso();
+            var minIso = addCalendarDaysIso(today, -(REPORT_DISCIPLINE_WINDOW_DAYS - 1));
+            var stats = buildStepDayPlanStatsFromCache();
+            var out = [];
+            Object.keys(stats).forEach(function(dayIso) {
+                var st = stats[dayIso];
+                if (!st || st.total < 1) return;
+                if (dayIso > today || dayIso < minIso) return;
+                out.push(dayIso);
+            });
+            out.sort(function(a, b) { return b.localeCompare(a); });
+            return out;
+        }
+        /** Индикатор ✈️: есть хотя бы один «сформированный» день (закрыт), но ещё не «отправлен» (не копировали отчёт). */
+        function countReadyReportsInCache() {
+            if (!currentUser || !currentUser.id) return 0;
+            var n = 0;
+            getReportDisciplineWindowDayIsoList().forEach(function(dayIso) {
+                if (!isReportDayFullyMarked(dayIso)) return;
+                if (getStepReportSendCount(currentUser.id, dayIso) > 0) return;
+                n += 1;
+            });
+            return n;
+        }
+        function reportsEfficiencyHeatCellClass(effPercent, closed) {
+            if (!closed) return 'reports-td-eff--open';
+            var e = Math.round(Number(effPercent)) || 0;
+            if (e >= 100) return 'reports-td-eff--full';
+            if (e >= 50) return 'reports-td-eff--mid';
+            return 'reports-td-eff--low';
+        }
+        function syncReportsMenuIndicator() {
+            var dot = document.getElementById('header-reports-dot');
+            var link = document.getElementById('header-link-reports');
+            if (!link) return;
+            var n = countReadyReportsInCache();
+            if (dot) dot.classList.toggle('hidden', n === 0);
+            link.classList.toggle('cabinet-nav-reports-ready', n > 0);
+        }
+        function applyReportsFilterUi() {
+            var wrap = document.getElementById('reports-filter-top');
+            if (!wrap) return;
+            wrap.querySelectorAll('.dreams-filter-btn[data-report-filter]').forEach(function(btn) {
+                var key = btn.getAttribute('data-report-filter') || 'all';
+                btn.classList.toggle('active', key === reportsCenterFilter);
+            });
+        }
+        function syncReportsForgottenFilterAttention(dayIsoList) {
+            var btn = document.querySelector('#reports-filter-top .dreams-filter-btn[data-report-filter="dobit"]');
+            if (!btn) return;
+            var list = Array.isArray(dayIsoList) ? dayIsoList : getReportDisciplineWindowDayIsoList();
+            var hasForgotten = list.some(function(dayIso) { return !isReportDayFullyMarked(dayIso); });
+            btn.classList.toggle('reports-filter-needs-attention', hasForgotten);
+        }
+        function filterReportsDayIsoList(dayIsoList) {
+            var list = Array.isArray(dayIsoList) ? dayIsoList : [];
+            if (reportsCenterFilter === 'dobit') return list.filter(function(dayIso) { return !isReportDayFullyMarked(dayIso); });
+            if (reportsCenterFilter === 'send') return list.filter(function(dayIso) {
+                return isReportDayFullyMarked(dayIso) && currentUser && getStepReportSendCount(currentUser.id, dayIso) === 0;
+            });
+            if (reportsCenterFilter === 'finished') return list.filter(function(dayIso) {
+                return isReportDayFullyMarked(dayIso) && currentUser && getStepReportSendCount(currentUser.id, dayIso) > 0;
+            });
+            return list;
+        }
+        function toggleReportsDebtAccordion(dayIso) {
+            if (reportsDebtAccordionDayIso === dayIso) reportsDebtAccordionDayIso = null;
+            else reportsDebtAccordionDayIso = dayIso;
+            refreshReportsListUI();
+        }
+        function resolveDreamIdForReportStep(step) {
+            if (!step) return 0;
+            var d = step.dream_id != null && step.dream_id !== '' ? Number(step.dream_id) : 0;
+            if (d) return d;
+            var sid = Number(step.id);
+            if (!sid) return 0;
+            var row = stepsFlatCache.find(function(x) { return Number(x.id) === sid; });
+            return row && row.dream_id != null ? Number(row.dream_id) : 0;
+        }
+        function buildReportsDebtAccordionPanel(dayIso) {
+            var wrap = document.createElement('div');
+            wrap.className = 'reports-debt-panel';
+            var titleCounterMap = buildStepTitleCounterMapForAllSteps();
+            var steps = getAllPlannedStepsForCalendarDay(dayIso).filter(function(s) {
+                normalizeStepForUi(s);
+                return !s.completed && !s.waived;
+            });
+            sortStepsForDayReport(steps).forEach(function(s) {
+                var row = document.createElement('div');
+                row.className = 'reports-debt-step';
+                var ttl = document.createElement('span');
+                ttl.className = 'reports-debt-step-title';
+                ttl.textContent = stepTitleWithCounter(s, titleCounterMap);
+                var actions = document.createElement('div');
+                actions.className = 'reports-debt-step-actions';
+                var bDone = document.createElement('button');
+                bDone.type = 'button';
+                bDone.className = 'reports-express-done';
+                bDone.textContent = '✓';
+                bDone.title = 'Выполнить (с опозданием при необходимости)';
+                var dreamIdForStep = resolveDreamIdForReportStep(s);
+                bDone.setAttribute('data-dream-id', String(dreamIdForStep));
+                bDone.setAttribute('data-step-id', String(s.id));
+                var bWaive = document.createElement('button');
+                bWaive.type = 'button';
+                bWaive.className = 'reports-express-waive';
+                bWaive.textContent = '−';
+                bWaive.title = 'Пропустить (не выполнено)';
+                bWaive.setAttribute('data-dream-id', String(dreamIdForStep));
+                bWaive.setAttribute('data-step-id', String(s.id));
+                actions.appendChild(bDone);
+                actions.appendChild(bWaive);
+                row.appendChild(ttl);
+                row.appendChild(actions);
+                wrap.appendChild(row);
+            });
+            return wrap;
+        }
+        function refreshReportsListUI() {
+            var tbodyEl = document.getElementById('reports-days-tbody');
+            var tableWrap = document.getElementById('reports-table-wrap');
+            var emptyEl = document.getElementById('reports-empty');
+            if (!tbodyEl || !currentUser) return;
+            if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) {
+                reportsDebtAccordionDayIso = null;
+            }
+            var days = getReportDisciplineWindowDayIsoList();
+            var visibleDays = filterReportsDayIsoList(days);
+            syncReportsForgottenFilterAttention(days);
+            applyReportsFilterUi();
+            tbodyEl.innerHTML = '';
+            if (!visibleDays.length) {
+                if (emptyEl) {
+                    if (reportsCenterFilter === 'dobit') emptyEl.textContent = 'Нет отчётов для «Добить»: все дни закрыты.';
+                    else if (reportsCenterFilter === 'send') emptyEl.textContent = 'Нет отчётов в фильтре «Отправить».';
+                    else if (reportsCenterFilter === 'finished') emptyEl.textContent = 'Нет отчётов в фильтре «Завершены».';
+                    else emptyEl.textContent = 'За последние 30 дней нет дней с запланированными шагами.';
+                }
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (tableWrap) tableWrap.classList.add('hidden');
+                return;
+            }
+            if (emptyEl) emptyEl.classList.add('hidden');
+            if (tableWrap) tableWrap.classList.remove('hidden');
+            visibleDays.forEach(function(dayIso) {
+                var eff = computeDayEfficiencyPercent(dayIso);
+                var prog = computeDayProgressPercent(dayIso);
+                var closed = isReportDayFullyMarked(dayIso);
+                var sent = getStepReportSendCount(currentUser.id, dayIso) > 0;
+                var tr = document.createElement('tr');
+                tr.className = 'reports-data-row' + (closed ? '' : ' reports-data-row--debts');
+                tr.setAttribute('data-day-iso', dayIso);
+                tr.style.setProperty('--reports-progress-pct', prog + '%');
+                var tdD = document.createElement('td');
+                tdD.className = 'reports-td--date';
+                tdD.textContent = formatIsoDateLongRu(dayIso);
+                var tdE = document.createElement('td');
+                tdE.className = 'reports-td--eff ' + reportsEfficiencyHeatCellClass(eff, closed);
+                tdE.textContent = eff + '%';
+                var tdC = document.createElement('td');
+                tdC.className = 'reports-td--copy';
+                var btnCopy = document.createElement('button');
+                btnCopy.type = 'button';
+                btnCopy.setAttribute('data-day-iso', dayIso);
+                btnCopy.textContent = '📋';
+                btnCopy.setAttribute('aria-label', 'Скопировать отчёт в буфер');
+                if (!closed) {
+                    btnCopy.className = 'reports-day-icon-btn reports-day-action-copy reports-day-icon-btn--blocked';
+                    btnCopy.setAttribute('aria-disabled', 'true');
+                    btnCopy.tabIndex = reportsCenterFilter === 'dobit' ? 0 : -1;
+                    btnCopy.title = reportsCenterFilter === 'dobit' ? 'Сначала отметь шаги снизу' : 'День не закрыт — нажмите строку или разверните зачистку долгов';
+                } else if (sent) {
+                    btnCopy.className = 'reports-day-icon-btn reports-day-action-copy sent';
+                    btnCopy.removeAttribute('aria-disabled');
+                    btnCopy.tabIndex = 0;
+                    btnCopy.title = 'Уже копировали; можно снова';
+                } else {
+                    btnCopy.className = 'reports-day-icon-btn reports-day-action-copy ready';
+                    btnCopy.removeAttribute('aria-disabled');
+                    btnCopy.tabIndex = 0;
+                    btnCopy.title = 'Скопировать отчёт в буфер';
+                }
+                tdC.appendChild(btnCopy);
+                var tdS = document.createElement('td');
+                tdS.className = 'reports-td--send';
+                var btnShare = document.createElement('button');
+                btnShare.type = 'button';
+                btnShare.setAttribute('data-day-iso', dayIso);
+                btnShare.textContent = '✈️';
+                btnShare.setAttribute('aria-label', 'Отправить отчёт');
+                if (!closed) {
+                    btnShare.className = 'reports-day-icon-btn reports-day-action-share reports-day-icon-btn--blocked';
+                    btnShare.setAttribute('aria-disabled', 'true');
+                    btnShare.tabIndex = reportsCenterFilter === 'dobit' ? 0 : -1;
+                    btnShare.title = reportsCenterFilter === 'dobit' ? 'Сначала отметь шаги снизу' : 'День не закрыт — нажмите строку или эту кнопку, чтобы открыть зачистку';
+                } else if (sent) {
+                    btnShare.className = 'reports-day-icon-btn reports-day-action-share sent';
+                    btnShare.removeAttribute('aria-disabled');
+                    btnShare.tabIndex = 0;
+                    btnShare.title = 'Поделиться отчётом (повторно)';
+                } else {
+                    btnShare.className = 'reports-day-icon-btn reports-day-action-share';
+                    btnShare.removeAttribute('aria-disabled');
+                    btnShare.tabIndex = 0;
+                    btnShare.title = 'Отправить отчёт: меню «Поделиться» (мессенджер) или копирование, если недоступно';
+                }
+                tdS.appendChild(btnShare);
+                tr.appendChild(tdD);
+                tr.appendChild(tdE);
+                tr.appendChild(tdC);
+                tr.appendChild(tdS);
+                tbodyEl.appendChild(tr);
+                /* В фильтре «Добить» — все недобитые дни сразу с открытым аккордеоном; иначе — одна строка по reportsDebtAccordionDayIso. */
+                if (!closed && (reportsCenterFilter === 'dobit' || reportsDebtAccordionDayIso === dayIso)) {
+                    var trA = document.createElement('tr');
+                    trA.className = 'reports-accordion-row';
+                    var tdA = document.createElement('td');
+                    tdA.colSpan = 4;
+                    tdA.className = 'reports-accordion-cell';
+                    tdA.appendChild(buildReportsDebtAccordionPanel(dayIso));
+                    trA.appendChild(tdA);
+                    tbodyEl.appendChild(trA);
+                }
+            });
+        }
+        async function copySingleReportFromCenter(dayIso) {
+            if (!currentUser || !dayIso) return;
+            var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+            if (!daySteps.length) return;
+            var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
+            if (unmarked.length) {
+                showToast('Сначала отметьте все шаги за этот день');
+                return;
+            }
+            var titleCounterMap = buildStepTitleCounterMapForAllSteps();
+            var text = buildStepsDayReportText(dayIso, daySteps, titleCounterMap);
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    throw new Error('no clipboard');
+                }
+            } catch (e) {
+                showToast('Не удалось скопировать');
+                return;
+            }
+            incrementStepReportSendCount(currentUser.id, dayIso);
+            showToast('Отчёт скопирован ✈️');
+            refreshReportsListUI();
+            syncReportsMenuIndicator();
+        }
+        async function copyAllReadyReportsFromCenter() {
+            if (!currentUser) return;
+            var days = getReportDisciplineWindowDayIsoList();
+            var ready = days.filter(function(d) {
+                return isReportDayFullyMarked(d) && getStepReportSendCount(currentUser.id, d) === 0;
+            });
+            ready.sort(function(a, b) { return a.localeCompare(b); });
+            if (!ready.length) return;
+            var titleCounterMap = buildStepTitleCounterMapForAllSteps();
+            var parts = [];
+            ready.forEach(function(dayIso) {
+                var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+                var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
+                if (unmarked.length) return;
+                parts.push(buildStepsDayReportText(dayIso, daySteps, titleCounterMap));
+            });
+            if (!parts.length) return;
+            var text = parts.join('\n\n');
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (e) {
+                showToast('Не удалось скопировать');
+                return;
+            }
+            ready.forEach(function(dayIso) {
+                incrementStepReportSendCount(currentUser.id, dayIso);
+            });
+            showToast('Отчёты за ' + ready.length + ' ' + ruDaysWord(ready.length) + ' скопированы ✈️');
+            refreshReportsListUI();
+            syncReportsMenuIndicator();
         }
         function scheduleStepsForDayIso(list, dayIso) {
             return (list || []).filter(function(s) {
@@ -5432,7 +6318,7 @@
                 return dk === dayIso;
             });
         }
-        /** Счётчик 3/8: N — все шаги дня в кэше, 3 — с completed; не зависит от видимого фильтра. */
+        /** Счётчик X/Y: Y — все шаги дня; X — все шаги с финальным статусом (✓ или −). */
         function buildStepDayPlanStatsFromCache() {
             var stats = {};
             stepsFlatCacheNonDeleted().forEach(function(s) {
@@ -5440,7 +6326,7 @@
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(dk)) return;
                 if (!stats[dk]) stats[dk] = { total: 0, done: 0 };
                 stats[dk].total += 1;
-                if (s.completed) stats[dk].done += 1;
+                if (isStepFinalMarked(s)) stats[dk].done += 1;
             });
             return stats;
         }
@@ -5460,20 +6346,21 @@
         }
         function buildStepDayDividerRowHtml(dayIso, doneCount, totalCount, opts) {
             opts = opts || {};
-            var showShare = !!opts.showShare;
+            var canShare = !!opts.canShare;
             var sendCount = opts.sendCount != null ? opts.sendCount : 0;
             var dateLabel = escapeHtml(formatStepsListDayDivider(dayIso));
             var dN = Number(doneCount) || 0;
             var tN = Number(totalCount) || 0;
             var stats = '<span class="step-day-divider-stats"><span class="step-day-divider-done">' + String(dN) + '</span>/<span class="step-day-divider-total">' + String(tN) + '</span></span>';
-            var shareTitle = showShare ? 'Отправить отчёт за день (системное меню)' : 'Отчёт доступен только для сегодня и прошлых дней';
+            var state = sendCount > 0 ? 'sent' : (canShare ? 'ready' : 'disabled');
+            var shareTitle = canShare ? 'Скопировать отчёт за день' : 'Отчёт станет доступен, когда все шаги за день получат статус';
             if (opts.isBuddyView) shareTitle = 'Отчёт доступен только в «Мои шаги»';
-            var dis = (!showShare) ? ' disabled' : '';
+            var dis = (!canShare) ? ' disabled' : '';
             var badgeText = sendCount > 0 ? String(sendCount) : '0';
             return '<div class="step-day-divider-row">' +
                 '<span class="step-day-divider-date">' + dateLabel + '</span>' +
                 stats +
-                '<button type="button" class="step-day-share-btn"' + dis + ' data-day-iso="' + escapeAttr(dayIso) + '" title="' + escapeAttr(shareTitle) + '" aria-label="' + escapeAttr(shareTitle) + '" data-send-count="' + escapeAttr(String(sendCount)) + '">' +
+                '<button type="button" class="step-day-share-btn"' + dis + ' data-state="' + escapeAttr(state) + '" data-day-iso="' + escapeAttr(dayIso) + '" title="' + escapeAttr(shareTitle) + '" aria-label="' + escapeAttr(shareTitle) + '" data-send-count="' + escapeAttr(String(sendCount)) + '">' +
                 '<span class="step-day-share-icon" aria-hidden="true">✈️</span>' +
                 '<span class="step-day-share-badge">' + escapeHtml(badgeText) + '</span>' +
                 '</button></div>';
@@ -5484,8 +6371,13 @@
             sortStepsForDayReport(daySteps).forEach(function(s) {
                 normalizeStepForUi(s);
                 var title = stepTitleWithCounter(s, titleCounterMap || {});
-                var mark = s.completed ? '✅' : '❌';
-                lines.push(mark + ' — ' + title);
+                if (s.waived) {
+                    lines.push('❌ — ' + title + ' (не выполнено)');
+                } else if (s.completed && s.completed_late) {
+                    lines.push('🟡✅ — ' + title + ' (выполнено с опозданием)');
+                } else {
+                    lines.push('✅ — ' + title);
+                }
             });
             return lines.join('\n');
         }
@@ -5502,9 +6394,10 @@
             } catch (e) {}
         }
         async function shareStepsDayReportText(text) {
+            var titleLine = (text.split('\n')[0] || 'Отчёт').trim();
             if (navigator.share) {
                 try {
-                    await navigator.share({ title: (text.split('\n')[0] || 'Отчёт').trim(), text: text });
+                    await navigator.share({ title: titleLine, text: text });
                     return true;
                 } catch (e) {
                     if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return false;
@@ -5513,12 +6406,12 @@
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(text);
-                    alert('Текст отчёта скопирован в буфер обмена.');
+                    showToast(navigator.share ? 'Не удалось открыть «Поделиться» — отчёт скопирован в буфер' : 'Отчёт скопирован в буфер — вставьте в мессенджер');
                     return true;
                 }
             } catch (e2) {}
-            alert('Не удалось открыть системное меню «Поделиться». Скопируйте текст вручную:\n\n' + text);
-            return true;
+            showToast('Скопируйте отчёт вручную из раздела «Шаги» или откройте сайт по HTTPS для «Поделиться»');
+            return false;
         }
         var stepReportUnmarkedModal = { dayIso: '', titleCounterMap: null, isBuddy: false };
         function closeStepReportUnmarkedModal() {
@@ -5610,7 +6503,39 @@
                 var badge = btn.querySelector('.step-day-share-badge');
                 if (badge) badge.textContent = String(n);
             }
+            syncReportsMenuIndicator();
+            var repBlk = document.getElementById('reports-block');
+            if (repBlk && !repBlk.classList.contains('hidden')) refreshReportsListUI();
             return true;
+        }
+        function maybeAutoCopyClosedDayReports(isBuddy) {
+            if (isBuddy || !currentUser || !currentUser.id) return;
+            var today = stepsScheduleTodayIso();
+            var dayStats = buildStepDayPlanStatsFromCache();
+            Object.keys(dayStats).forEach(function(dayIso) {
+                var st = dayStats[dayIso] || { total: 0, done: 0 };
+                if (!st.total || dayIso > today || st.done < st.total) return;
+                if (getStepReportSendCount(currentUser.id, dayIso) > 0) return;
+                var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+                if (!daySteps.length) return;
+                var text = buildStepsDayReportText(dayIso, daySteps, buildStepTitleCounterMapForAllSteps());
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        incrementStepReportSendCount(currentUser.id, dayIso);
+                        showToast('Отчет скопирован в буфер обмена ✈️', {
+                            actionLabel: navigator.share ? 'Поделиться' : '',
+                            onAction: function() {
+                                if (!navigator.share) return;
+                                navigator.share({ title: (text.split('\n')[0] || 'Отчёт').trim(), text: text }).catch(function() {});
+                            }
+                        });
+                        renderStepsList(getStepsFilterActive(), !!isBuddy);
+                        syncReportsMenuIndicator();
+                        var repB = document.getElementById('reports-block');
+                        if (repB && !repB.classList.contains('hidden')) refreshReportsListUI();
+                    }).catch(function() {});
+                }
+            });
         }
         async function runShareStepsReportForDay(dayIso) {
             if (!currentUser || !dayIso) return;
@@ -6191,12 +7116,36 @@
                 var doneBtn = inner.querySelector('.step-done-btn');
                 if (doneBtn && !viewStep.completed) doneBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    if (g.overdueCount > 0) confirmRun('Отметить выполненными ' + overdueStepsPhraseRu(g.overdueCount) + ' серии «' + (g.title || '') + '»?', 'done_on');
+                    var bulkDone = compactSeriesBulkTargetSteps(g, 'done_on');
+                    if (bulkDone.length) {
+                        confirmRun('Отметить выполненными ' + overdueStepsPhraseRu(bulkDone.length) + ' серии «' + (g.title || '') + '»?', 'done_on');
+                        return;
+                    }
+                    var firstOd = (g.steps || []).find(function(st) {
+                        normalizeStepForUi(st);
+                        return stepIsOverdueUtc(st) && !st.completed && !st.waived;
+                    });
+                    if (firstOd) {
+                        var dOd = firstOd.dream_id != null && firstOd.dream_id !== '' ? firstOd.dream_id : dreamId;
+                        openStepDoneLateModal(dOd, firstOd.id, doneBtn);
+                    }
                 });
                 var wbtn = inner.querySelector('.step-waived-btn');
                 if (wbtn) wbtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    if (g.overdueCount > 0) confirmRun('Отметить ' + overdueStepsPhraseRu(g.overdueCount) + ' серии «' + (g.title || '') + '» как не выполненные?', 'waive_on');
+                    var bulkWaive = compactSeriesBulkTargetSteps(g, 'waive_on');
+                    if (bulkWaive.length) {
+                        confirmRun('Отметить ' + overdueStepsPhraseRu(bulkWaive.length) + ' серии «' + (g.title || '') + '» как не выполненные?', 'waive_on');
+                        return;
+                    }
+                    var firstOpen = (g.steps || []).find(function(st) {
+                        normalizeStepForUi(st);
+                        return !st.completed && !st.waived;
+                    });
+                    if (firstOpen) {
+                        var dw = firstOpen.dream_id != null && firstOpen.dream_id !== '' ? firstOpen.dream_id : dreamId;
+                        openStepWaivedModal(dw, firstOpen.id);
+                    }
                 });
                 var wclr = inner.querySelector('.step-waived-clear');
                 if (wclr) wclr.addEventListener('click', function(e) {
@@ -8431,6 +9380,49 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 throw e;
             }
         }
+        function mergeStepRowAfterPatchFromApi(row, dataStep) {
+            if (!row || !dataStep) return;
+            if (dataStep.completed !== undefined) row.completed = !!dataStep.completed;
+            if (dataStep.completed_late !== undefined) row.completed_late = !!dataStep.completed_late;
+            if (dataStep.waived !== undefined) row.waived = !!dataStep.waived;
+            if (dataStep.deadline !== undefined && dataStep.deadline !== null) row.deadline = dataStep.deadline;
+            normalizeStepForUi(row);
+        }
+        /** Если PATCH вернул только { ok: true } без step — обновляем кэш из тела запроса (БД уже сохранена). */
+        function mergeStepRowAfterPatchOptimistic(row, body) {
+            if (!row || !body || typeof body !== 'object') return;
+            if (body.waived === true) {
+                row.waived = true;
+                row.completed = false;
+                row.completed_late = false;
+            } else if (body.waived === false) {
+                row.waived = false;
+            }
+            if (body.completed === true) {
+                row.completed = true;
+                if (body.completed_late !== undefined) row.completed_late = !!body.completed_late;
+            } else if (body.completed === false) {
+                row.completed = false;
+                if (body.completed_late !== undefined) row.completed_late = !!body.completed_late;
+            }
+            if (body.deleted !== undefined) row.deleted = !!body.deleted;
+            if (body.deadline !== undefined) row.deadline = body.deadline || null;
+            normalizeStepForUi(row);
+        }
+        function syncDreamsNestedStepFromFlatRow(dreamId, stepId) {
+            var did = Number(dreamId), sid = Number(stepId);
+            var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === did && Number(x.id) === sid; });
+            if (!row) return;
+            var d = (currentUserDreamsCache || []).find(function(x) { return Number(x.id) === did; });
+            if (!d || !d.steps) return;
+            var st = d.steps.find(function(s) { return s && Number(s.id) === sid; });
+            if (!st) return;
+            st.completed = !!row.completed;
+            st.waived = !!row.waived;
+            st.completed_late = !!row.completed_late;
+            st.deadline = row.deadline;
+            if (row.deleted !== undefined) st.deleted = !!row.deleted;
+        }
         async function patchStep(dreamId, stepId, body) {
             try {
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -8438,16 +9430,55 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!res.ok) throw new Error(data.detail || 'Ошибка');
                 var did = Number(dreamId), sid = Number(stepId);
                 var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === did && Number(x.id) === sid; });
-                if (row && data.step) {
-                    if (data.step.completed !== undefined) row.completed = !!data.step.completed;
-                    if (data.step.completed_late !== undefined) row.completed_late = !!data.step.completed_late;
-                    if (data.step.waived !== undefined) row.waived = !!data.step.waived;
-                    if (data.step.deadline !== undefined && data.step.deadline !== null) row.deadline = data.step.deadline;
+                if (row) {
+                    if (data.step) {
+                        mergeStepRowAfterPatchFromApi(row, data.step);
+                    } else {
+                        mergeStepRowAfterPatchOptimistic(row, body);
+                    }
+                    syncDreamsNestedStepFromFlatRow(dreamId, stepId);
                 }
                 return data;
             } catch (e) {
                 if (e instanceof Error) throw e;
                 throw new Error('Ошибка сети');
+            }
+        }
+        /** Экспресс-зачистка долгов из центра отчётов: PATCH без модалок и без полного refreshAfterDreamChange. */
+        async function reportsExpressCompleteStep(dreamId, stepId) {
+            try {
+                var row = stepsFlatCache.find(function(x) {
+                    return Number(x.dream_id) === Number(dreamId) && Number(x.id) === Number(stepId);
+                });
+                var body = { completed: true };
+                if (row && row.deadline) {
+                    var bm = stepOverdueBoundaryUtcMs(row.deadline, row);
+                    if (bm != null) body.completed_late = Date.now() >= bm;
+                }
+                await patchStep(dreamId, stepId, body);
+                var sb = document.getElementById('steps-block');
+                if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
+                syncStepsFilterOverdueAttention(!!stepsViewIsBuddy);
+                maybeAutoCopyClosedDayReports(!!stepsViewIsBuddy);
+                if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) reportsDebtAccordionDayIso = null;
+                refreshReportsListUI();
+                syncReportsMenuIndicator();
+            } catch (err) {
+                alert((err && err.message) || 'Не удалось сохранить шаг');
+            }
+        }
+        async function reportsExpressWaiveStep(dreamId, stepId) {
+            try {
+                await patchStep(dreamId, stepId, { waived: true });
+                var sb = document.getElementById('steps-block');
+                if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
+                syncStepsFilterOverdueAttention(!!stepsViewIsBuddy);
+                maybeAutoCopyClosedDayReports(!!stepsViewIsBuddy);
+                if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) reportsDebtAccordionDayIso = null;
+                refreshReportsListUI();
+                syncReportsMenuIndicator();
+            } catch (err) {
+                alert((err && err.message) || 'Не удалось сохранить шаг');
             }
         }
 
