@@ -569,8 +569,8 @@
         .dream-edit-btn { background: none; border: none; cursor: pointer; padding: 4px; font-size: 1.1em; opacity: 0.7; }
         .dream-edit-btn:hover { opacity: 1; }
         /* Хедер и меню закреплены при скролле (как кол), ширина как у контента */
-        .app-sticky-top { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 95vw; max-width: 980px; box-sizing: border-box; z-index: 20; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-radius: 8px 8px 0 0; }
-        .app-sticky-inner { padding: 20px 20px 0 20px; box-sizing: border-box; }
+        .app-sticky-top { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 95vw; max-width: 980px; box-sizing: border-box; z-index: 50; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-radius: 8px 8px 0 0; }
+        .app-sticky-inner { padding: 20px 20px 0 20px; box-sizing: border-box; background: #fff; }
         #app-sticky-spacer { width: 100%; }
         /* Футер: ширина как у хедера и контента (95vw, max 980px), фиксирован внизу */
         /* pointer-events: нижняя полоса не крадёт клики у контента под собой (таблица отчётов, аккордеон долгов). Кликабельность у кнопок/счётчика включена явно. */
@@ -751,18 +751,7 @@
             box-shadow: 0 1px 4px rgba(46, 83, 60, 0.06);
             font-size: 14px;
         }
-        .reports-table thead th {
-            text-align: left;
-            padding: 10px 12px;
-            background: linear-gradient(180deg, #f1f8f1 0%, #e8f5e9 100%);
-            color: var(--island-accent-deep);
-            font-weight: 600;
-            font-size: 12px;
-            border-bottom: 1px solid rgba(165, 214, 167, 0.85);
-            white-space: nowrap;
-        }
-        .reports-table th.reports-th--date { min-width: 10.5em; }
-        .reports-table th.reports-th--eff { width: 4.8ch; padding: 0; }
+        /* Шапка таблицы отчётов убрана по UX: даты и действия понятны из строк и подсказок кнопок. */
         .reports-table td.reports-td--eff {
             text-align: right;
             font-variant-numeric: tabular-nums;
@@ -774,8 +763,6 @@
             padding-right: 8px;
             box-sizing: border-box;
         }
-        .reports-table th.reports-th--copy,
-        .reports-table th.reports-th--send,
         .reports-table td.reports-td--copy,
         .reports-table td.reports-td--send {
             text-align: center;
@@ -786,7 +773,11 @@
         }
         .reports-table tbody tr { border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
         .reports-table tbody tr:last-child { border-bottom: none; }
-        .reports-table tbody td { padding: 10px 12px; vertical-align: middle; }
+        .reports-table tbody td { padding: 8px 10px; vertical-align: middle; }
+        .reports-table tbody tr.reports-accordion-row + tr.reports-data-row > td,
+        .reports-table tbody tr.reports-data-row + tr.reports-data-row > td {
+            border-top: 10px solid rgba(236, 245, 236, 0.95);
+        }
         .reports-td--date { font-weight: 600; color: var(--island-accent-deep); font-variant-numeric: tabular-nums; background: transparent; }
         .reports-td--eff { color: #37474f; }
         .reports-data-row {
@@ -806,30 +797,28 @@
             border-bottom: 1px solid rgba(165, 214, 167, 0.45);
         }
         .reports-debt-panel {
-            padding: 10px 12px calc(12px + env(safe-area-inset-bottom)) 14px;
-            position: relative;
-            z-index: 21;
+            padding: 6px 10px calc(8px + env(safe-area-inset-bottom)) 12px;
         }
         .reports-debt-step {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
-            padding: 8px 0;
+            gap: 8px;
+            padding: 3px 0;
             border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-            font-size: 13px;
+            font-size: 12px;
             color: #37474f;
         }
         .reports-debt-step:last-child { border-bottom: none; }
-        .reports-debt-step-title { flex: 1; min-width: 0; word-break: break-word; line-height: 1.35; }
-        .reports-debt-step-actions { flex-shrink: 0; display: flex; gap: 8px; align-items: center; }
+        .reports-debt-step-title { flex: 1; min-width: 0; word-break: break-word; line-height: 1.25; }
+        .reports-debt-step-actions { flex-shrink: 0; display: flex; gap: 6px; align-items: center; }
         .reports-express-done,
         .reports-express-waive {
-            min-width: 40px;
-            min-height: 38px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 1.05em;
+            min-width: 30px;
+            min-height: 26px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.95em;
             font-weight: 700;
             cursor: pointer;
             border: 1px solid var(--island-accent-border);
@@ -1645,15 +1634,7 @@
                 </div>
                 <div id="reports-block" class="hidden">
                     <div id="reports-table-wrap" class="reports-table-wrap hidden">
-                        <table class="reports-table" id="reports-days-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="reports-th--date">Дата</th>
-                                    <th scope="col" class="reports-th--eff" title="Эффективность" aria-label="Эффективность"></th>
-                                    <th scope="col" class="reports-th--copy" title="Скопировать" aria-label="Скопировать"></th>
-                                    <th scope="col" class="reports-th--send" title="Отправить" aria-label="Отправить"></th>
-                                </tr>
-                            </thead>
+                        <table class="reports-table" id="reports-days-table" role="grid" aria-label="Отчёты по дням: дата, эффективность, копирование и отправка">
                             <tbody id="reports-days-tbody"></tbody>
                         </table>
                     </div>
@@ -2168,7 +2149,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">246</span>
+                    <span class="app-version" aria-hidden="true">247</span>
                 </div>
             </footer>
         </div>
