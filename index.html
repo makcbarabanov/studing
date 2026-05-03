@@ -2168,7 +2168,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">245</span>
+                    <span class="app-version" aria-hidden="true">246</span>
                 </div>
             </footer>
         </div>
@@ -6414,33 +6414,42 @@
             if (repBlk && !repBlk.classList.contains('hidden')) refreshReportsListUI();
             return true;
         }
+        var __maybeAutoCopyClipboardBusy = false;
+        /** Один самый свежий закрытый день за вызов + без повторного renderStepsList внутри (иначе лавина тостов и рекурсия). */
         function maybeAutoCopyClosedDayReports(isBuddy) {
             if (isBuddy || !currentUser || !currentUser.id) return;
+            if (__maybeAutoCopyClipboardBusy) return;
+            if (!navigator.clipboard || !navigator.clipboard.writeText) return;
             var today = stepsScheduleTodayIso();
             var dayStats = buildStepDayPlanStatsFromCache();
+            var candidates = [];
             Object.keys(dayStats).forEach(function(dayIso) {
                 var st = dayStats[dayIso] || { total: 0, done: 0 };
                 if (!st.total || dayIso > today || st.done < st.total) return;
                 if (getStepReportSendCount(currentUser.id, dayIso) > 0) return;
-                var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
-                if (!daySteps.length) return;
-                var text = buildStepsDayReportText(dayIso, daySteps, buildStepTitleCounterMapForAllSteps());
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        incrementStepReportSendCount(currentUser.id, dayIso);
-                        showToast('Отчет скопирован в буфер обмена ✈️', {
-                            actionLabel: navigator.share ? 'Поделиться' : '',
-                            onAction: function() {
-                                if (!navigator.share) return;
-                                navigator.share({ title: (text.split('\n')[0] || 'Отчёт').trim(), text: text }).catch(function() {});
-                            }
-                        });
-                        renderStepsList(getStepsFilterActive(), !!isBuddy);
-                        syncReportsMenuIndicator();
-                        var repB = document.getElementById('reports-block');
-                        if (repB && !repB.classList.contains('hidden')) refreshReportsListUI();
-                    }).catch(function() {});
-                }
+                if (!getAllPlannedStepsForCalendarDay(dayIso).length) return;
+                candidates.push(dayIso);
+            });
+            if (!candidates.length) return;
+            candidates.sort(function(a, b) { return b.localeCompare(a); });
+            var dayIso = candidates[0];
+            var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
+            var text = buildStepsDayReportText(dayIso, daySteps, buildStepTitleCounterMapForAllSteps());
+            __maybeAutoCopyClipboardBusy = true;
+            navigator.clipboard.writeText(text).then(function() {
+                incrementStepReportSendCount(currentUser.id, dayIso);
+                showToast('Отчет скопирован в буфер обмена ✈️', {
+                    actionLabel: navigator.share ? 'Поделиться' : '',
+                    onAction: function() {
+                        if (!navigator.share) return;
+                        navigator.share({ title: (text.split('\n')[0] || 'Отчёт').trim(), text: text }).catch(function() {});
+                    }
+                });
+                syncReportsMenuIndicator();
+                var repB = document.getElementById('reports-block');
+                if (repB && !repB.classList.contains('hidden')) refreshReportsListUI();
+            }).catch(function() {}).finally(function() {
+                __maybeAutoCopyClipboardBusy = false;
             });
         }
         function buildStepDateTimeHtml(stepObj, opts) {
@@ -9346,7 +9355,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var sb = document.getElementById('steps-block');
                 if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
                 syncStepsFilterOverdueAttention(!!stepsViewIsBuddy);
-                maybeAutoCopyClosedDayReports(!!stepsViewIsBuddy);
                 if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) reportsDebtAccordionDayIso = null;
                 refreshReportsListUI();
                 syncReportsMenuIndicator();
@@ -9360,7 +9368,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var sb = document.getElementById('steps-block');
                 if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
                 syncStepsFilterOverdueAttention(!!stepsViewIsBuddy);
-                maybeAutoCopyClosedDayReports(!!stepsViewIsBuddy);
                 if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) reportsDebtAccordionDayIso = null;
                 refreshReportsListUI();
                 syncReportsMenuIndicator();
