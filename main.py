@@ -26,6 +26,38 @@ def _step_title_series_key(title: Optional[str]) -> str:
     return re.sub(r"\s*\(\d+/\d+\)\s*$", "", t).strip()
 
 
+def _deadline_iso_db(val) -> Optional[str]:
+    if val is None:
+        return None
+    if hasattr(val, "isoformat"):
+        if hasattr(val, "date"):
+            return val.date().isoformat()
+        return str(val.isoformat())[:10]
+    s = str(val)
+    return s[:10] if len(s) >= 10 else None
+
+
+def _time_hhmm_db(v) -> str:
+    if v is None:
+        return ""
+    if hasattr(v, "strftime"):
+        return v.strftime("%H:%M")
+    s = str(v)
+    return s[:5] if len(s) >= 5 else s
+
+
+def _candidate_series_key_row(
+    dream_id: int, series_id: Optional[str], title: Optional[str], start_time, end_time
+) -> str:
+    """Ключ группы кандидата привязки книги — согласован с фронтом `stepSeriesCounterKey`."""
+    did = int(dream_id or 0)
+    sid = (series_id or "").strip() if series_id is not None else ""
+    if sid:
+        return f"d:{did}|sid:{sid}"
+    t = (_step_title_series_key(title) or "").lower()
+    return f"d:{did}|f:{t}|{_time_hhmm_db(start_time)}|{_time_hhmm_db(end_time)}"
+
+
 def _bcrypt_password(password: str) -> str:
     if not password:
         return password
@@ -246,6 +278,7 @@ class DreamBookCreate(BaseModel):
     started_at: Optional[str] = None   # YYYY-MM-DD
     deadline: Optional[str] = None
     finished_at: Optional[str] = None
+    linked_step_id: Optional[int] = None
 
 class DreamBookUpdate(BaseModel):
     title: Optional[str] = None
@@ -254,6 +287,7 @@ class DreamBookUpdate(BaseModel):
     started_at: Optional[str] = None
     deadline: Optional[str] = None
     finished_at: Optional[str] = None
+    linked_step_id: Optional[int] = None
 
 class DreamBookLogCreate(BaseModel):
     date: str  # YYYY-MM-DD
@@ -270,6 +304,21 @@ class RoadmapItemUpdate(BaseModel):
     text: Optional[str] = None
     section: Optional[str] = None
     initiator: Optional[str] = None
+
+BOOK_READING_KEYWORDS = (
+    "чита",       # читать, читаю
+    "чтен",       # чтение, чтения
+    "книг",       # книга, книги, книжный
+    "аудиокниг",  # аудиокнига, аудиокниги
+    "слуш",       # слушать, слушания, слушаю
+)
+ALLOWED_BOOK_STATUSES = {"planned", "reading", "listening", "finished"}
+
+def _normalize_book_status(value: Optional[str]) -> str:
+    st = (value or "planned").strip().lower()
+    if st not in ALLOWED_BOOK_STATUSES:
+        raise HTTPException(status_code=400, detail="status должен быть planned|reading|listening|finished")
+    return st
 
 def _step_row_to_dict(s):
     """Одна строка dreams_steps -> dict для API (единообразный набор полей)."""
@@ -418,30 +467,36 @@ def _load_books(cur, dream_ids):
     out = {}
     if not dream_ids:
         return out
-    try:
-        cur.execute(
-            """SELECT id, dream_id, title, author, status, started_at, deadline, finished_at
-               FROM dream_books WHERE dream_id = ANY(%s) ORDER BY dream_id, COALESCE(started_at, deadline, '9999-12-31'), id""",
-            (dream_ids,),
-        )
-        for r in cur.fetchall():
-            did = r["dream_id"]
-            if did not in out:
-                out[did] = []
-            out[did].append({
-                "id": r["id"],
-                "title": r["title"] or "",
-                "author": r["author"],
-                "status": r["status"] or "planned",
-                "started_at": str(r["started_at"]) if r.get("started_at") else None,
-                "deadline": str(r["deadline"]) if r.get("deadline") else None,
-                "finished_at": str(r["finished_at"]) if r.get("finished_at") else None,
-            })
-    except psycopg2.ProgrammingError:
+    queries = [
+        """SELECT id, dream_id, title, author, status, started_at, deadline, finished_at, linked_step_id
+           FROM dream_books WHERE dream_id = ANY(%s) ORDER BY dream_id, COALESCE(started_at, deadline, '9999-12-31'), id""",
+        """SELECT id, dream_id, title, author, status, started_at, deadline, finished_at
+           FROM dream_books WHERE dream_id = ANY(%s) ORDER BY dream_id, COALESCE(started_at, deadline, '9999-12-31'), id""",
+    ]
+    for sql in queries:
         try:
-            cur.connection.rollback()
-        except Exception:
-            pass
+            cur.execute(sql, (dream_ids,))
+            for r in cur.fetchall():
+                did = r["dream_id"]
+                if did not in out:
+                    out[did] = []
+                out[did].append({
+                    "id": r["id"],
+                    "title": r["title"] or "",
+                    "author": r["author"],
+                    "status": r["status"] or "planned",
+                    "started_at": str(r["started_at"]) if r.get("started_at") else None,
+                    "deadline": str(r["deadline"]) if r.get("deadline") else None,
+                    "finished_at": str(r["finished_at"]) if r.get("finished_at") else None,
+                    "linked_step_id": r.get("linked_step_id"),
+                })
+            return out
+        except psycopg2.ProgrammingError:
+            try:
+                cur.connection.rollback()
+            except Exception:
+                pass
+            continue
     return out
 
 def _schedule_items_standard(cur, user_id: int, date_from: str, date_to: str):
@@ -2886,19 +2941,42 @@ def create_dream_book(dream_id: int, body: DreamBookCreate, user_id: int, viewer
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
-            cur.execute(
-                """INSERT INTO dream_books (dream_id, title, author, status, started_at, deadline, finished_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, title, author, status, started_at, deadline, finished_at""",
-                (
-                    dream_id,
-                    body.title.strip(),
-                    body.author.strip() if body.author else None,
-                    body.status or "planned",
-                    body.started_at if body.started_at else None,
-                    body.deadline if body.deadline else None,
-                    body.finished_at if body.finished_at else None,
-                ),
-            )
+            status = _normalize_book_status(body.status)
+            linked_step_id = body.linked_step_id if (body.linked_step_id and body.linked_step_id > 0) else None
+            if status == "finished":
+                linked_step_id = None
+            try:
+                cur.execute(
+                    """INSERT INTO dream_books (dream_id, title, author, status, started_at, deadline, finished_at, linked_step_id)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                       RETURNING id, title, author, status, started_at, deadline, finished_at, linked_step_id""",
+                    (
+                        dream_id,
+                        body.title.strip(),
+                        body.author.strip() if body.author else None,
+                        status,
+                        body.started_at if body.started_at else None,
+                        body.deadline if body.deadline else None,
+                        body.finished_at if body.finished_at else None,
+                        linked_step_id,
+                    ),
+                )
+            except psycopg2.ProgrammingError:
+                conn.rollback()
+                cur.execute(
+                    """INSERT INTO dream_books (dream_id, title, author, status, started_at, deadline, finished_at)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s)
+                       RETURNING id, title, author, status, started_at, deadline, finished_at""",
+                    (
+                        dream_id,
+                        body.title.strip(),
+                        body.author.strip() if body.author else None,
+                        status,
+                        body.started_at if body.started_at else None,
+                        body.deadline if body.deadline else None,
+                        body.finished_at if body.finished_at else None,
+                    ),
+                )
             row = cur.fetchone()
             conn.commit()
             return {
@@ -2909,6 +2987,7 @@ def create_dream_book(dream_id: int, body: DreamBookCreate, user_id: int, viewer
                 "started_at": str(row["started_at"]) if row.get("started_at") else None,
                 "deadline": str(row["deadline"]) if row.get("deadline") else None,
                 "finished_at": str(row["finished_at"]) if row.get("finished_at") else None,
+                "linked_step_id": row.get("linked_step_id"),
             }
     except psycopg2.ProgrammingError as e:
         if conn:
@@ -2929,6 +3008,7 @@ def update_dream_book(dream_id: int, book_id: int, body: DreamBookUpdate, user_i
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             updates, vals = [], []
+            status_to_set = None
             if body.title is not None:
                 updates.append("title = %s")
                 vals.append(body.title.strip())
@@ -2936,8 +3016,9 @@ def update_dream_book(dream_id: int, book_id: int, body: DreamBookUpdate, user_i
                 updates.append("author = %s")
                 vals.append(body.author.strip() if body.author else None)
             if body.status is not None:
+                status_to_set = _normalize_book_status(body.status)
                 updates.append("status = %s")
-                vals.append(body.status)
+                vals.append(status_to_set)
             if body.started_at is not None:
                 updates.append("started_at = %s")
                 vals.append(body.started_at if body.started_at else None)
@@ -2947,16 +3028,90 @@ def update_dream_book(dream_id: int, book_id: int, body: DreamBookUpdate, user_i
             if body.finished_at is not None:
                 updates.append("finished_at = %s")
                 vals.append(body.finished_at if body.finished_at else None)
+            body_dump = body.model_dump(exclude_unset=True) if hasattr(body, "model_dump") else body.dict(exclude_unset=True)
+            if "linked_step_id" in body_dump:
+                updates.append("linked_step_id = %s")
+                vals.append(body.linked_step_id if body.linked_step_id and body.linked_step_id > 0 else None)
+            if status_to_set == "finished" and "linked_step_id = %s" not in updates:
+                updates.append("linked_step_id = NULL")
             if not updates:
                 return {"ok": True}
             vals.extend([book_id, dream_id])
-            cur.execute(
-                "UPDATE dream_books SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
-                vals,
-            )
+            try:
+                cur.execute(
+                    "UPDATE dream_books SET " + ", ".join(updates) + " WHERE id = %s AND dream_id = %s",
+                    vals,
+                )
+            except psycopg2.ProgrammingError:
+                conn.rollback()
+                updates_old, vals_old = [], []
+                for idx, u in enumerate(updates):
+                    if u.startswith("linked_step_id"):
+                        continue
+                    updates_old.append(u)
+                    vals_old.append(vals[idx])
+                if not updates_old:
+                    if any((u or "").startswith("linked_step_id") for u in updates):
+                        raise HTTPException(
+                            status_code=503,
+                            detail="Не удалось сохранить связь: в БД нет колонки linked_step_id. Примените миграцию dream_books (см. _sql/mig_dream_books_linked_step.sql).",
+                        )
+                    return {"ok": True}
+                vals_old.extend([book_id, dream_id])
+                cur.execute(
+                    "UPDATE dream_books SET " + ", ".join(updates_old) + " WHERE id = %s AND dream_id = %s",
+                    vals_old,
+                )
             if cur.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Книга не найдена")
             conn.commit()
+            # Одна строка dream_books: не трогаем другие книги. Несколько книг могут иметь один и тот же linked_step_id.
+            book_out = None
+            try:
+                cur.execute(
+                    """SELECT id, dream_id, title, author, status, started_at, deadline, finished_at, linked_step_id
+                       FROM dream_books WHERE id = %s AND dream_id = %s""",
+                    (book_id, dream_id),
+                )
+                br = cur.fetchone()
+                if br:
+                    book_out = {
+                        "id": br["id"],
+                        "title": (br.get("title") or "").strip(),
+                        "author": br.get("author"),
+                        "status": br.get("status") or "planned",
+                        "started_at": str(br["started_at"]) if br.get("started_at") else None,
+                        "deadline": str(br["deadline"]) if br.get("deadline") else None,
+                        "finished_at": str(br["finished_at"]) if br.get("finished_at") else None,
+                        "linked_step_id": br.get("linked_step_id"),
+                    }
+            except psycopg2.ProgrammingError:
+                try:
+                    cur.connection.rollback()
+                except Exception:
+                    pass
+                try:
+                    cur.execute(
+                        """SELECT id, dream_id, title, author, status, started_at, deadline, finished_at
+                           FROM dream_books WHERE id = %s AND dream_id = %s""",
+                        (book_id, dream_id),
+                    )
+                    br = cur.fetchone()
+                    if br:
+                        book_out = {
+                            "id": br["id"],
+                            "title": (br.get("title") or "").strip(),
+                            "author": br.get("author"),
+                            "status": br.get("status") or "planned",
+                            "started_at": str(br["started_at"]) if br.get("started_at") else None,
+                            "deadline": str(br["deadline"]) if br.get("deadline") else None,
+                            "finished_at": str(br["finished_at"]) if br.get("finished_at") else None,
+                            "linked_step_id": None,
+                        }
+                except psycopg2.ProgrammingError:
+                    pass
+            if book_out:
+                return {"ok": True, "book": book_out}
             return {"ok": True}
     except psycopg2.ProgrammingError as e:
         if conn:
@@ -2964,6 +3119,103 @@ def update_dream_book(dream_id: int, book_id: int, body: DreamBookUpdate, user_i
         raise HTTPException(status_code=500, detail=str(e))
     except HTTPException:
         raise
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/dreams/{dream_id}/books/{book_id}/step-candidates")
+def get_book_step_candidates(
+    dream_id: int,
+    book_id: int,
+    user_id: int,
+    viewer_id: Optional[int] = None,
+    limit: int = 30,
+    local_date: Optional[str] = None,
+):
+    """Кандидаты шагов чтения для привязки книги (keyword match).
+
+    Строки с одинаковой серией (series_id или базовое имя + время) схлопываются в одну:
+    в ответ попадает только итерация с дедлайном ``local_date`` (календарный день клиента, YYYY-MM-DD).
+    Если параметр не передан — используется дата сервера (UTC-календарь даты в Python).
+    """
+    lim = max(1, min(int(limit or 30), 100))
+    inner_lim = min(max(lim * 25, 200), 600)
+    target_iso: Optional[str] = None
+    if local_date and re.match(r"^\d{4}-\d{2}-\d{2}$", str(local_date).strip()):
+        target_iso = str(local_date).strip()
+    else:
+        target_iso = date.today().isoformat()
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            owner_id = _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute("SELECT id FROM dream_books WHERE id = %s AND dream_id = %s", (book_id, dream_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Книга не найдена")
+            like_parts = []
+            params = [owner_id]
+            for kw in BOOK_READING_KEYWORDS:
+                like_parts.append("LOWER(s.title) LIKE %s")
+                params.append(f"%{kw}%")
+            where_kw = " OR ".join(like_parts) if like_parts else "FALSE"
+            params.append(inner_lim)
+            cur.execute(
+                f"""SELECT s.id, s.dream_id, s.title, s.deadline, s.series_id, s.start_time, s.end_time,
+                           d.dream AS dream_title
+                    FROM dreams_steps s
+                    JOIN dreams d ON d.id = s.dream_id
+                    WHERE d.user_id = %s
+                      AND COALESCE(s.deleted, false) = false
+                      AND ({where_kw})
+                    ORDER BY s.deadline DESC NULLS LAST, s.id DESC
+                    LIMIT %s""",
+                tuple(params),
+            )
+            rows = cur.fetchall()
+            groups: dict = {}
+            for r in rows:
+                key = _candidate_series_key_row(
+                    int(r["dream_id"]),
+                    r.get("series_id"),
+                    r.get("title"),
+                    r.get("start_time"),
+                    r.get("end_time"),
+                )
+                groups.setdefault(key, []).append(r)
+            picked = []
+            for _key, grp in groups.items():
+                today_rows = [r for r in grp if _deadline_iso_db(r.get("deadline")) == target_iso]
+                if not today_rows:
+                    continue
+                best = max(today_rows, key=lambda x: int(x["id"] or 0))
+                dl = _deadline_iso_db(best.get("deadline"))
+                picked.append(
+                    {
+                        "step_id": best["id"],
+                        "dream_id": best["dream_id"],
+                        "dream_title": (best.get("dream_title") or "").strip(),
+                        "title": _step_title_series_key((best.get("title") or "").strip()),
+                        "deadline": dl,
+                        "series_id": (str(best.get("series_id")).strip() if best.get("series_id") else None)
+                        or None,
+                    }
+                )
+            picked.sort(
+                key=lambda x: (x.get("deadline") or "", int(x.get("step_id") or 0)),
+                reverse=True,
+            )
+            return {
+                "candidates": picked[:lim],
+                "keywords": list(BOOK_READING_KEYWORDS),
+                "local_date": target_iso,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
 

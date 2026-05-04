@@ -127,12 +127,13 @@
 | `dream_id`  | INT NOT NULL   | Мечта. REFERENCES `dreams(id)` ON DELETE CASCADE. |
 | `title`     | VARCHAR(500) NOT NULL | Название книги. |
 | `author`    | VARCHAR(300) NULL | Автор. |
-| `status`    | VARCHAR(20) NOT NULL DEFAULT 'planned' | planned, reading, listening, finished. |
+| `status`    | VARCHAR(20) NOT NULL DEFAULT 'planned' | planned, reading, listening, finished (в UI: «Планирую», «Читаю», «Слушаю», «Прочитано»). |
 | `started_at`| DATE NULL      | Дата перехода в «читаю»/«слушаю». |
 | `deadline`  | DATE NULL      | Планирую закончить до. |
 | `finished_at` | DATE NULL    | Фактическая дата завершения. |
+| `linked_step_id` | INT NULL REFERENCES `dreams_steps(id)` ON DELETE SET NULL | Явная связь с шагом чтения в расписании (опционально). Несколько книг могут указывать на один и тот же шаг; **UNIQUE** на это поле не предусмотрен (если вручную добавлен — несколько книг на один шаг ломаются). При статусе `finished` связь очищается. |
 
-Индексы: `idx_dream_books_dream_id`, `idx_dream_books_status`.
+Индексы: `idx_dream_books_dream_id`, `idx_dream_books_status`, `idx_dream_books_linked_step_id` (не уникальный).
 
 ---
 

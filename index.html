@@ -250,6 +250,20 @@
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.hidden { display: none; }
         .modal { background: var(--island-surface); padding: 24px; border-radius: 12px; min-width: 320px; max-width: 90%; box-shadow: 0 8px 32px rgba(46, 83, 60, 0.18); border: 1px solid rgba(165, 214, 167, 0.45); }
+        /* Библиотека — книга: один каркас по «самому широкому» состоянию, без скачка при Связать / смене статуса (см. UI-standards §2). */
+        #modal-library-book > .modal {
+            width: min(440px, 94vw);
+            max-width: 94vw;
+            box-sizing: border-box;
+            min-height: min(480px, 85vh);
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        .library-book-step-slot {
+            min-height: 52px;
+            margin-top: 8px;
+            box-sizing: border-box;
+        }
         /* Перенос шага — компактное окно: не растягивать на пол-экрана. */
         #modal-step-move .modal { width: 430px; max-width: 92vw; min-width: min(320px, 92vw); box-sizing: border-box; }
         .modal h3 { margin-top: 0; color: var(--island-accent-deep); font-weight: 600; }
@@ -311,17 +325,32 @@
         .library-section-title { margin: 0 0 7px; font-size: 14px; color: #355766; font-weight: 700; }
         .library-section-title--planned::before { content: "💡 "; }
         .library-section-title--reading::before { content: "🎧 "; }
+        .library-section-title--listening::before { content: "🎧 "; }
         .library-section-title--finished::before { content: "✅ "; }
         .library-list { list-style: none; margin: 0; padding: 0; }
         .library-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #e4ece6; }
         .library-item:last-child { border-bottom: none; }
+        .library-item-main { flex: 1; min-width: 0; }
         .library-item-title { min-width: 0; font-size: 14px; color: #23314d; }
+        .library-item-linked-hint { margin-top: 4px; font-size: 12px; color: #5d6e7b; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; }
+        .library-item-linked-hint .library-item-linked-dream { display: block; }
+        .library-item-meta { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; font-size: 12px; color: #5d6e7b; }
+        .library-item-meta.overdue { color: #c62828; font-weight: 700; }
+        .library-item-meta .library-item-deadline { font-variant-numeric: tabular-nums; }
         .library-empty { color: #8a959b; font-size: 13px; padding: 4px 0 8px; }
         .library-edit-btn {
             width: auto; margin: 0; padding: 4px 9px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600;
             background: var(--island-accent-soft); color: var(--island-accent-deep); border: 1px solid var(--island-accent-border);
         }
         .library-edit-btn:hover { background: #dff0e3; border-color: var(--island-accent-dark); opacity: 1; }
+        .library-step-inline-wrap { margin: 0; font-size: 13px; color: #607d8b; }
+        .library-step-inline-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; min-height: 40px; }
+        #modal-library-book .library-step-linked-label {
+            flex: 1 1 auto; min-width: 0; color: #37474f; font-size: 14px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .library-step-inline-select { flex: 1 1 140px; min-width: 120px; max-width: 100%; }
+        #library-step-inline-action { width: auto; max-width: 100%; flex-shrink: 0; }
         .modal-add-buddy .modal-add-buddy-hint { font-size: 13px; color: #666; margin-bottom: 16px; }
         .add-buddy-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
         .add-buddy-filter-btns { display: flex; gap: 4px; }
@@ -1647,10 +1676,9 @@
                 </div>
                 <div id="library-block" class="hidden">
                     <div class="library-head">
-                        <h3 class="library-title">Библиотека</h3>
                         <button type="button" id="library-add-btn" class="library-add-btn">+ Книга</button>
                     </div>
-                    <p class="library-subtitle">Личный список книг без привязки к шагам мечты.</p>
+                    <p class="library-subtitle">Личный список книг с возможностью привязки к шагам чтения.</p>
                     <p id="library-error" class="error hidden"></p>
                     <div id="library-sections"></div>
                 </div>
@@ -1707,13 +1735,24 @@
                     <input type="text" id="library-book-title" placeholder="Название книги">
                     <label for="library-book-author">Автор</label>
                     <input type="text" id="library-book-author" placeholder="Автор (необязательно)">
+                    <label for="library-book-deadline">Желаемая дата прочтения</label>
+                    <input type="text" id="library-book-deadline" class="island-date-field" inputmode="numeric" placeholder="дд.мм.гг" maxlength="10" autocomplete="off">
                     <label for="library-book-status">Статус</label>
                     <select id="library-book-status">
                         <option value="planned">Планирую</option>
-                        <option value="reading">Читаю / слушаю</option>
-                        <option value="listening">Читаю / слушаю</option>
+                        <option value="reading">Читаю</option>
+                        <option value="listening">Слушаю</option>
                         <option value="finished">Прочитано</option>
                     </select>
+                    <div class="library-book-step-slot">
+                        <div id="library-step-inline-wrap" class="library-step-inline-wrap hidden">
+                            <div class="library-step-inline-row">
+                                <span id="library-step-linked-label" class="library-step-linked-label hidden" aria-live="polite"></span>
+                                <select id="library-step-inline-select" class="library-step-inline-select hidden" aria-label="Шаг чтения для связи"></select>
+                                <button type="button" class="secondary" id="library-step-inline-action">Связать</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="library-book-cancel">Отмена</button>
                         <button type="button" class="secondary hidden" id="library-book-delete">Удалить</button>
@@ -2154,7 +2193,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">252</span>
+                    <span class="app-version" aria-hidden="true">264</span>
                 </div>
             </footer>
         </div>
@@ -2820,9 +2859,9 @@
             if (!steps || steps.length === 0) return steps || [];
             return steps.slice().sort(function(a, b) { return compareStepsByDeadlineTimeTitle(b, a); });
         }
-        /** Убирает суффикс « (3/12)» из заголовка — тот же смысл, что на бэкенде `_step_title_series_key`. */
+        /** Убирает суффикс « (3/12)» из заголовка — тот же смысл, что на бэкенде `_step_title_series_key`. Допускает «／» и дробный слэш. */
         function stripStepTitleCounterSuffix(t) {
-            return (t || '').toString().trim().replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+            return (t || '').toString().trim().replace(/\s*\(\d+(?:[/／\u2044]\d+)\)\s*$/u, '').trim();
         }
         function stepSeriesCounterKey(stepObj) {
             var did = Number((stepObj && stepObj.dream_id) || 0);
@@ -3135,6 +3174,95 @@
             updateCabinetNavActive(section);
         }
 
+        function normalizeBookLinkedStepId(raw) {
+            if (raw == null || raw === '') return null;
+            var n = Number(raw);
+            return Number.isFinite(n) && n > 0 ? n : null;
+        }
+        /** Если GET /dreams отдаёт книгу без linked_step_id, подставляем из успешного PATCH (иначе суффикс в шагах пустой). */
+        function patchLibraryBookLinkedStepInCache(dreamId, bookId, linkedStepIdOrNull) {
+            var did = Number(dreamId);
+            var bid = Number(bookId);
+            if (!Number.isFinite(did) || !Number.isFinite(bid)) return;
+            (currentUserDreamsCache || []).forEach(function(d) {
+                if (!d || Number(d.id) !== did || !Array.isArray(d.books)) return;
+                d.books.forEach(function(b) {
+                    if (b && Number(b.id) === bid) {
+                        b.linked_step_id = linkedStepIdOrNull == null ? null : normalizeBookLinkedStepId(linkedStepIdOrNull);
+                    }
+                });
+            });
+        }
+        /** Снимок связей books_reading до GET — чтобы не терять другие книги, если ответ временно без linked_step_id. */
+        function snapshotBooksReadingLinkedIds() {
+            var m = Object.create(null);
+            (currentUserDreamsCache || []).forEach(function(d) {
+                if (!d || d.rule_code !== 'books_reading' || !Array.isArray(d.books)) return;
+                d.books.forEach(function(b) {
+                    var lid = normalizeBookLinkedStepId(b.linked_step_id);
+                    if (!lid || !b.id) return;
+                    m[String(d.id) + ':' + String(b.id)] = lid;
+                });
+            });
+            return m;
+        }
+        function mergeBooksReadingLinksFromSnapshot(map) {
+            if (!map || typeof map !== 'object') return;
+            (currentUserDreamsCache || []).forEach(function(d) {
+                if (!d || d.rule_code !== 'books_reading' || !Array.isArray(d.books)) return;
+                d.books.forEach(function(b) {
+                    if (!b) return;
+                    var k = String(d.id) + ':' + String(b.id);
+                    var prevL = map[k];
+                    if (!prevL) return;
+                    if (!normalizeBookLinkedStepId(b.linked_step_id)) b.linked_step_id = prevL;
+                });
+            });
+        }
+        /** PATCH linked_step_id книги в модалке библиотеки; merge-снимок при отвязке без ключа книги — чтобы не вернулась старая связь из снимка. */
+        async function persistLibraryBookLinkedStep(linkedStepIdOrNull) {
+            if (!currentUser || !libraryDraft.dreamId || !libraryDraft.bookId) return false;
+            var did = libraryDraft.dreamId;
+            var bid = libraryDraft.bookId;
+            var snap = snapshotBooksReadingLinkedIds();
+            if (linkedStepIdOrNull == null) {
+                delete snap[String(did) + ':' + String(bid)];
+            }
+            try {
+                var bodyId = linkedStepIdOrNull == null ? null : normalizeBookLinkedStepId(linkedStepIdOrNull);
+                if (linkedStepIdOrNull != null && !bodyId) {
+                    alert('Некорректный шаг.');
+                    return false;
+                }
+                var res = await fetch(API_BASE_URL + '/dreams/' + did + '/books/' + bid + '?user_id=' + currentUser.id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ linked_step_id: bodyId })
+                });
+                var data = await res.json().catch(function() { return {}; });
+                if (!res.ok) {
+                    var det = data.detail;
+                    alert(typeof det === 'string' ? det : (det ? JSON.stringify(det) : ('Ошибка ' + res.status)));
+                    return false;
+                }
+                await libraryReloadDreamsCache({ mergeBooksReadingLinksSnapshot: snap });
+                if (linkedStepIdOrNull != null) {
+                    var mergedLink = normalizeBookLinkedStepId(data.book && data.book.linked_step_id != null ? data.book.linked_step_id : bodyId);
+                    var bchk = getLibraryBookByIds(did, bid);
+                    if (!bchk || !normalizeBookLinkedStepId(bchk.linked_step_id)) {
+                        patchLibraryBookLinkedStepInCache(did, bid, mergedLink);
+                    }
+                } else {
+                    patchLibraryBookLinkedStepInCache(did, bid, null);
+                }
+                renderLibrarySection();
+                syncStepsScheduleAfterLibraryLink();
+                return true;
+            } catch (e) {
+                alert(linkedStepIdOrNull == null ? 'Не удалось снять связь.' : 'Не удалось сохранить связь.');
+                return false;
+            }
+        }
         function extractLibraryBooks() {
             var out = [];
             currentUserDreamsCache.forEach(function(d) {
@@ -3145,11 +3273,254 @@
                         id: b.id,
                         title: b.title || '',
                         author: b.author || '',
-                        status: (b.status || 'planned').toLowerCase()
+                        status: (b.status || 'planned').toLowerCase(),
+                        deadline: b.deadline || null,
+                        linked_step_id: normalizeBookLinkedStepId(b.linked_step_id)
                     });
                 });
             });
             return out;
+        }
+
+        function getLibraryBookByIds(dreamId, bookId) {
+            return extractLibraryBooks().find(function(b) {
+                return Number(b.id) === Number(bookId) && Number(b.dream_id) === Number(dreamId);
+            }) || null;
+        }
+
+        function findStepInFlatCacheById(stepId) {
+            var sid = Number(stepId);
+            if (!Number.isFinite(sid) || sid <= 0) return null;
+            var row = stepsFlatCache.find(function(x) { return x && Number(x.id) === sid; });
+            return row || null;
+        }
+        /** Шаг для связки книги: сначала расписание, иначе шаги из кэша мечт (если вкладку «Шаги» ещё не открывали). */
+        function resolveStepObjForBookLink(stepId) {
+            var flat = findStepInFlatCacheById(stepId);
+            if (flat) return flat;
+            var sid = Number(stepId);
+            if (!Number.isFinite(sid) || sid <= 0) return null;
+            var hit = null;
+            (currentUserDreamsCache || []).some(function(d) {
+                if (!d || !Array.isArray(d.steps)) return false;
+                return d.steps.some(function(s) {
+                    if (!s || Number(s.id) !== sid) return false;
+                    var dreamTitle = (d.dream || d.title || '').trim().slice(0, 60) || 'Мечта';
+                    hit = {
+                        dream_id: d.id,
+                        dream_title: dreamTitle,
+                        id: s.id,
+                        title: s.title || '',
+                        deadline: s.deadline || null,
+                        start_time: s.start_time || null,
+                        end_time: s.end_time || null,
+                        series_id: s.series_id || null
+                    };
+                    return true;
+                });
+            });
+            return hit;
+        }
+        /** Одна мечта, одно базовое имя шага (без счётчика серии) — запасной матч, если время в ключе расходится. */
+        function readingStepSameLogicalTitle(L, stepObj) {
+            var lt = stripStepTitleCounterSuffix((L && L.title || '').trim()).toLowerCase();
+            var rt = stripStepTitleCounterSuffix((stepObj && stepObj.title || '').trim()).toLowerCase();
+            return lt.length > 0 && lt === rt;
+        }
+        /** Книга привязана к этому шагу: по id или по той же серии/логическому шагу (итерация на другой день). */
+        function bookMatchesLinkedReadingStep(book, stepObj) {
+            if (!book || !stepObj || !book.linked_step_id) return false;
+            var st = (book.status || '').toLowerCase();
+            if (st !== 'reading' && st !== 'listening') return false;
+            if (Number(book.linked_step_id) === Number(stepObj.id)) return true;
+            var L = resolveStepObjForBookLink(book.linked_step_id);
+            if (!L) return false;
+            var did = Number(stepObj.dream_id) || 0;
+            if (Number(L.dream_id) !== did) return false;
+            var ls = L.series_id && String(L.series_id).trim();
+            var rs = stepObj.series_id && String(stepObj.series_id).trim();
+            if (ls && rs && ls === rs) return true;
+            if (stepSeriesCounterKey(L) === stepSeriesCounterKey(stepObj)) return true;
+            if (!ls && !rs && readingStepSameLogicalTitle(L, stepObj)) return true;
+            return false;
+        }
+        /**
+         * Активные книги, показываемые у строки шага.
+         * forCalendarDayIso: день строки в отчёте; если null — якорь «сегодня» (для серии книга только у итерации этого дня).
+         */
+        function getLinkedActiveBooksForStep(stepRef, forCalendarDayIso) {
+            var stepObj = typeof stepRef === 'object' && stepRef && stepRef.id != null
+                ? stepRef
+                : findStepInFlatCacheById(stepRef);
+            if (!stepObj || !stepObj.id) return [];
+            var anchor = (forCalendarDayIso && /^\d{4}-\d{2}-\d{2}$/.test(forCalendarDayIso))
+                ? forCalendarDayIso
+                : localCalendarDateIso(new Date());
+            var stepDay = (stepObj.deadline || '').toString().slice(0, 10);
+            return extractLibraryBooks().filter(function(b) {
+                if (!bookMatchesLinkedReadingStep(b, stepObj)) return false;
+                if (Number(b.linked_step_id) === Number(stepObj.id)) return true;
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(stepDay)) return false;
+                return stepDay === anchor;
+            });
+        }
+
+        function formatBookAuthorTitle(bookObj) {
+            if (!bookObj) return '';
+            var t = (bookObj.title || '').trim();
+            var a = (bookObj.author || '').trim();
+            if (a && t) return a + ' «' + t + '»';
+            return t || a || 'книга';
+        }
+
+        function buildLinkedBooksTextSuffix(stepObj, dayIso) {
+            if (!stepObj || !stepObj.id) return '';
+            var stepDayIso = (stepObj.deadline || '').toString().slice(0, 10);
+            var ctxDay = (dayIso && /^\d{4}-\d{2}-\d{2}$/.test(dayIso)) ? dayIso : null;
+            if (ctxDay) {
+                if (!stepDayIso || stepDayIso !== ctxDay) return '';
+            }
+            var books = getLinkedActiveBooksForStep(stepObj, ctxDay);
+            if (!books.length) return '';
+            if (books.length === 1) return ' — ' + formatBookAuthorTitle(books[0]);
+            var labels = books.map(function(b) { return formatBookAuthorTitle(b); }).filter(Boolean);
+            return ' — читаю одну из ' + books.length + ' книг (' + labels.join('; ') + ')';
+        }
+
+        /** Строки подсказки в списке библиотеки: шаг и (отдельной строкой) мечта. */
+        function formatLibraryLinkedStepHintParts(book) {
+            if (!book || !book.linked_step_id) return null;
+            var st = (book.status || '').toLowerCase();
+            if (st !== 'reading' && st !== 'listening') return null;
+            var sid = Number(book.linked_step_id);
+            var L = resolveStepObjForBookLink(sid);
+            var t = '';
+            var dname = '';
+            if (L) {
+                t = stripStepTitleCounterSuffix((L.title || '').trim()) || (L.title || '').trim();
+                dname = (L.dream_title || '').trim();
+            }
+            return {
+                stepLine: 'Шаг: ' + (t || ('#' + String(sid))),
+                dreamLine: dname ? ('Мечта: ' + dname) : null
+            };
+        }
+
+        /** В модалке — только название шага (без мечты), чтобы не раздувать строку. */
+        function formatLibraryLinkedStepShortLabel(book) {
+            if (!book || !book.linked_step_id) return '';
+            var st = (book.status || '').toLowerCase();
+            if (st !== 'reading' && st !== 'listening') return '';
+            var sid = Number(book.linked_step_id);
+            var L = resolveStepObjForBookLink(sid);
+            if (L) {
+                var t = stripStepTitleCounterSuffix((L.title || '').trim()) || (L.title || '').trim();
+                if (t) return t;
+            }
+            return 'Шаг #' + String(sid);
+        }
+
+        function isLibraryBookOverdue(bookObj) {
+            if (!bookObj || !bookObj.deadline) return false;
+            var st = (bookObj.status || '').toLowerCase();
+            if (st === 'finished') return false;
+            var dl = String(bookObj.deadline).slice(0, 10);
+            return /^\d{4}-\d{2}-\d{2}$/.test(dl) && dl < localCalendarDateIso(new Date());
+        }
+
+        /** Схлопывание кандидатов по серии; в списке только итерация с дедлайном todayIso. */
+        function dedupeLibraryStepCandidates(rawRows, todayIso) {
+            var dayIso = todayIso;
+            if (!dayIso || !/^\d{4}-\d{2}-\d{2}$/.test(dayIso)) dayIso = localCalendarDateIso(new Date());
+            var groups = {};
+            (rawRows || []).forEach(function(c) {
+                if (!c || !c.step_id) return;
+                var stepLike = {
+                    id: c.step_id,
+                    dream_id: c.dream_id,
+                    title: c.title || '',
+                    series_id: c.series_id,
+                    start_time: c.start_time,
+                    end_time: c.end_time
+                };
+                var k = stepSeriesCounterKey(stepLike);
+                if (!groups[k]) groups[k] = [];
+                groups[k].push(c);
+            });
+            var out = [];
+            Object.keys(groups).forEach(function(k) {
+                var arr = groups[k];
+                var pick = arr.find(function(c) {
+                    var d = c.deadline ? String(c.deadline).slice(0, 10) : '';
+                    return d === dayIso;
+                });
+                if (!pick) return;
+                var baseTitle = stripStepTitleCounterSuffix((pick.title || '').trim());
+                if (!baseTitle) baseTitle = (pick.title || '').trim();
+                out.push({
+                    step_id: Number(pick.step_id) || 0,
+                    dream_id: Number(pick.dream_id) || 0,
+                    dream_title: (pick.dream_title || '').toString(),
+                    title: baseTitle,
+                    deadline: pick.deadline ? String(pick.deadline).slice(0, 10) : null
+                });
+            });
+            out.sort(function(a, b) {
+                var da = a.deadline || '';
+                var db = b.deadline || '';
+                if (da !== db) return db.localeCompare(da);
+                return (Number(b.step_id) || 0) - (Number(a.step_id) || 0);
+            });
+            return out;
+        }
+
+        function getLibraryStepCandidatesFromCache(limit) {
+            var lim = Math.max(1, Number(limit) || 30);
+            var todayIso = localCalendarDateIso(new Date());
+            var keywords = ['чита', 'чтен', 'книг', 'аудиокниг', 'слуш'];
+            var rows = [];
+            (currentUserDreamsCache || []).forEach(function(d) {
+                if (!d || !Array.isArray(d.steps)) return;
+                (d.steps || []).forEach(function(s) {
+                    if (!s || s.deleted) return;
+                    var t = (s.title || '').toString().toLowerCase();
+                    if (!t) return;
+                    if (!keywords.some(function(k) { return t.indexOf(k) >= 0; })) return;
+                    rows.push({
+                        step_id: Number(s.id) || 0,
+                        dream_id: Number(d.id) || 0,
+                        dream_title: (d.dream || d.title || '').toString(),
+                        title: (s.title || '').toString(),
+                        deadline: s.deadline ? String(s.deadline).slice(0, 10) : null,
+                        series_id: s.series_id,
+                        start_time: s.start_time,
+                        end_time: s.end_time
+                    });
+                });
+            });
+            rows.sort(function(a, b) {
+                var da = a.deadline || '';
+                var db = b.deadline || '';
+                if (da !== db) return db.localeCompare(da);
+                return (Number(b.step_id) || 0) - (Number(a.step_id) || 0);
+            });
+            return dedupeLibraryStepCandidates(rows, todayIso).slice(0, lim);
+        }
+
+        async function fetchLibraryStepCandidates(dreamId, bookId) {
+            if (!currentUser || !currentUser.id || !dreamId || !bookId) return [];
+            var todayIso = localCalendarDateIso(new Date());
+            try {
+                var url = API_BASE_URL + '/dreams/' + dreamId + '/books/' + bookId + '/step-candidates?user_id=' + currentUser.id + '&limit=30&local_date=' + encodeURIComponent(todayIso);
+                var res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) return getLibraryStepCandidatesFromCache(30);
+                var data = await res.json().catch(function() { return {}; });
+                var fromApi = Array.isArray(data.candidates) ? data.candidates : [];
+                if (!fromApi.length) return getLibraryStepCandidatesFromCache(30);
+                return dedupeLibraryStepCandidates(fromApi, todayIso).slice(0, 30);
+            } catch (e) {
+                return getLibraryStepCandidatesFromCache(30);
+            }
         }
 
         function renderLibrarySection() {
@@ -3160,15 +3531,30 @@
             var books = extractLibraryBooks();
             var groups = [
                 { key: 'planned', title: 'Планирую', statuses: ['planned'] },
-                { key: 'reading', title: 'Читаю/Слушаю', statuses: ['reading', 'listening'] },
+                { key: 'reading', title: 'Читаю', statuses: ['reading'] },
+                { key: 'listening', title: 'Слушаю', statuses: ['listening'] },
                 { key: 'finished', title: 'Прочитано', statuses: ['finished'] }
             ];
             sectionsEl.innerHTML = groups.map(function(g) {
                 var rows = books.filter(function(b) { return g.statuses.indexOf(b.status) >= 0; });
                 var items = rows.length ? rows.map(function(b) {
                     var author = b.author ? (' — ' + escapeHtml(b.author)) : '';
+                    var dIso = b.deadline ? String(b.deadline).slice(0, 10) : '';
+                    var dUi = dIso && /^\d{4}-\d{2}-\d{2}$/.test(dIso) ? formatDeadlineDisplay(dIso) : '';
+                    var deadlineMeta = dUi
+                        ? '<span class="library-item-meta' + (isLibraryBookOverdue(b) ? ' overdue' : '') + '"><span class="library-item-deadline">📅 ' + escapeHtml(dUi) + '</span></span>'
+                        : '';
+                    var linkParts = formatLibraryLinkedStepHintParts(b);
+                    var hintHtml = linkParts
+                        ? '<div class="library-item-linked-hint"><span class="library-item-linked-step">' + escapeHtml(linkParts.stepLine) + '</span>'
+                            + (linkParts.dreamLine ? '<span class="library-item-linked-dream">' + escapeHtml(linkParts.dreamLine) + '</span>' : '')
+                            + '</div>'
+                        : '';
                     return '<li class="library-item">'
-                        + '<div class="library-item-title">' + escapeHtml(b.title) + author + '</div>'
+                        + '<div class="library-item-main">'
+                        + '<div class="library-item-title">' + escapeHtml(b.title) + author + deadlineMeta + '</div>'
+                        + hintHtml
+                        + '</div>'
                         + '<button type="button" class="library-edit-btn" data-dream-id="' + b.dream_id + '" data-book-id="' + b.id + '">Изм.</button>'
                         + '</li>';
                 }).join('') : '<li class="library-empty">Пока пусто.</li>';
@@ -3205,12 +3591,23 @@
             return did;
         }
 
-        async function libraryReloadDreamsCache() {
+        async function libraryReloadDreamsCache(opts) {
+            opts = opts || {};
             var res = await fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.id, { cache: 'no-store' });
             if (!res.ok) throw new Error('reload_failed');
             var data = await res.json();
             currentUserDreamsCache = (data && data.dreams) ? data.dreams.slice() : [];
+            if (opts.mergeBooksReadingLinksSnapshot) {
+                mergeBooksReadingLinksFromSnapshot(opts.mergeBooksReadingLinksSnapshot);
+            }
             renderLibrarySection();
+        }
+        /** После смены связи книги обновить расписание шагов, если вкладка открыта. */
+        function syncStepsScheduleAfterLibraryLink() {
+            var sb = document.getElementById('steps-block');
+            if (!sb || sb.classList.contains('hidden') || !currentUser) return;
+            var uid = Number(stepsViewUserId) || Number(currentUser.id);
+            if (uid) loadSteps(uid, !!stepsViewIsBuddy);
         }
 
         function openLibraryBookModal(dreamId, bookId) {
@@ -3218,23 +3615,29 @@
             if (!modal) return;
             var titleEl = document.getElementById('library-book-title');
             var authorEl = document.getElementById('library-book-author');
+            var deadlineEl = document.getElementById('library-book-deadline');
             var statusEl = document.getElementById('library-book-status');
             var hEl = document.getElementById('library-book-modal-title');
             var delBtn = document.getElementById('library-book-delete');
+            var stepInlineWrap = document.getElementById('library-step-inline-wrap');
             libraryDraft = { dreamId: Number(dreamId) || 0, bookId: Number(bookId) || 0 };
             if (hEl) hEl.textContent = libraryDraft.bookId ? 'Редактировать книгу' : 'Добавить книгу';
             if (delBtn) delBtn.classList.toggle('hidden', !libraryDraft.bookId);
+            if (stepInlineWrap) stepInlineWrap.classList.add('hidden');
             if (libraryDraft.bookId) {
-                var book = extractLibraryBooks().find(function(b) { return Number(b.id) === libraryDraft.bookId && Number(b.dream_id) === libraryDraft.dreamId; });
+                var book = getLibraryBookByIds(libraryDraft.dreamId, libraryDraft.bookId);
                 if (titleEl) titleEl.value = book ? (book.title || '') : '';
                 if (authorEl) authorEl.value = book ? (book.author || '') : '';
+                if (deadlineEl) deadlineEl.value = (book && book.deadline) ? isoToUiDate(String(book.deadline).slice(0, 10)) : '';
                 if (statusEl) statusEl.value = (book && book.status) ? book.status : 'planned';
             } else {
                 if (titleEl) titleEl.value = '';
                 if (authorEl) authorEl.value = '';
+                if (deadlineEl) deadlineEl.value = '';
                 if (statusEl) statusEl.value = 'planned';
             }
             modal.classList.remove('hidden');
+            refreshLibraryBookStepInline().catch(function() {});
         }
 
         function loadProfileEditForm() {
@@ -5136,6 +5539,69 @@
         var librarySaveBtn = document.getElementById('library-book-save');
         var libraryCancelBtn = document.getElementById('library-book-cancel');
         var libraryDeleteBtn = document.getElementById('library-book-delete');
+        var libraryStatusEl = document.getElementById('library-book-status');
+        async function refreshLibraryBookStepInline() {
+            var wrap = document.getElementById('library-step-inline-wrap');
+            var sel = document.getElementById('library-step-inline-select');
+            var linkedLab = document.getElementById('library-step-linked-label');
+            var btn = document.getElementById('library-step-inline-action');
+            if (!wrap || !sel || !linkedLab || !btn) return;
+            wrap.classList.add('hidden');
+            sel.classList.add('hidden');
+            linkedLab.classList.add('hidden');
+            btn.classList.add('hidden');
+            btn.disabled = false;
+            sel.innerHTML = '';
+            linkedLab.textContent = '';
+            if (!libraryDraft.bookId || !libraryDraft.dreamId) return;
+            var statusVal = ((libraryStatusEl && libraryStatusEl.value) || '').toLowerCase();
+            if (statusVal !== 'reading' && statusVal !== 'listening') return;
+            var bookNow = getLibraryBookByIds(libraryDraft.dreamId, libraryDraft.bookId);
+            var linkedId = bookNow && normalizeBookLinkedStepId(bookNow.linked_step_id);
+            var candidates = await fetchLibraryStepCandidates(libraryDraft.dreamId, libraryDraft.bookId);
+            if (linkedId) {
+                wrap.classList.remove('hidden');
+                linkedLab.textContent = formatLibraryLinkedStepShortLabel(bookNow) || ('Шаг #' + String(linkedId));
+                linkedLab.classList.remove('hidden');
+                btn.textContent = 'Отвязать';
+                btn.classList.remove('hidden');
+                btn.dataset.libraryStepAction = 'unlink';
+                return;
+            }
+            if (!candidates.length) return;
+            wrap.classList.remove('hidden');
+            sel.innerHTML = candidates.map(function(c) {
+                var text = (c.title || 'Без названия').trim() || 'Без названия';
+                return '<option value="' + escapeAttr(String(c.step_id)) + '">' + escapeHtml(text) + '</option>';
+            }).join('');
+            sel.classList.remove('hidden');
+            btn.textContent = 'Связать';
+            btn.classList.remove('hidden');
+            btn.dataset.libraryStepAction = 'link';
+        }
+        if (libraryStatusEl) libraryStatusEl.addEventListener('change', function() {
+            refreshLibraryBookStepInline().catch(function() {});
+        });
+        var libraryStepInlineAction = document.getElementById('library-step-inline-action');
+        if (libraryStepInlineAction) libraryStepInlineAction.addEventListener('click', async function() {
+            var mode = this.dataset.libraryStepAction || '';
+            if (mode === 'unlink') {
+                this.disabled = true;
+                var ok = await persistLibraryBookLinkedStep(null);
+                this.disabled = false;
+                if (ok) await refreshLibraryBookStepInline();
+                return;
+            }
+            if (mode === 'link') {
+                var selEl = document.getElementById('library-step-inline-select');
+                var sid = Number(selEl && selEl.value ? selEl.value : 0);
+                if (!sid) return;
+                this.disabled = true;
+                var ok2 = await persistLibraryBookLinkedStep(sid);
+                this.disabled = false;
+                if (ok2) await refreshLibraryBookStepInline();
+            }
+        });
         if (libraryCancelBtn) libraryCancelBtn.addEventListener('click', function() { if (libraryModal) libraryModal.classList.add('hidden'); });
         if (libraryModal) libraryModal.addEventListener('click', function(e) { if (e.target === libraryModal) libraryModal.classList.add('hidden'); });
         if (librarySaveBtn) librarySaveBtn.addEventListener('click', async function() {
@@ -5143,18 +5609,34 @@
             var titleEl = document.getElementById('library-book-title');
             var authorEl = document.getElementById('library-book-author');
             var statusEl = document.getElementById('library-book-status');
+            var deadlineEl = document.getElementById('library-book-deadline');
             var errEl = document.getElementById('library-error');
             var title = (titleEl && titleEl.value || '').trim();
             if (!title) { alert('Введите название книги'); return; }
-            var body = { title: title, author: (authorEl && authorEl.value || '').trim(), status: (statusEl && statusEl.value) || 'planned' };
+            var statusValue = ((statusEl && statusEl.value) || 'planned').toLowerCase();
+            var dlIso = uiDateToIso((deadlineEl && deadlineEl.value || '').trim());
+            if ((deadlineEl && deadlineEl.value || '').trim() && !dlIso) { alert('Проверьте формат даты: дд.мм.гг'); return; }
+            var body = { title: title, author: (authorEl && authorEl.value || '').trim(), status: statusValue, deadline: dlIso || null };
             try {
                 var dreamId = libraryDraft.dreamId || await ensureLibraryDreamId();
                 var url = API_BASE_URL + '/dreams/' + dreamId + '/books' + (libraryDraft.bookId ? ('/' + libraryDraft.bookId) : '') + '?user_id=' + currentUser.id;
                 var method = libraryDraft.bookId ? 'PATCH' : 'POST';
+                var bookIdBeforeSave = libraryDraft.bookId;
                 var res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 if (!res.ok) throw new Error('book_save_failed');
+                var rawSave = await res.json().catch(function() { return {}; });
                 if (libraryModal) libraryModal.classList.add('hidden');
-                await libraryReloadDreamsCache();
+                var snapSave = snapshotBooksReadingLinkedIds();
+                await libraryReloadDreamsCache({ mergeBooksReadingLinksSnapshot: snapSave });
+                if (bookIdBeforeSave && rawSave.book) {
+                    var lidFromPatch = normalizeBookLinkedStepId(rawSave.book.linked_step_id);
+                    var bAfter = getLibraryBookByIds(dreamId, bookIdBeforeSave);
+                    if (lidFromPatch && (!bAfter || !normalizeBookLinkedStepId(bAfter.linked_step_id))) {
+                        patchLibraryBookLinkedStepInCache(dreamId, bookIdBeforeSave, lidFromPatch);
+                        renderLibrarySection();
+                    }
+                }
+                /* Связь со шагом — в этой же модалке; после «Сохранить» снимок связей + ответ PATCH подмешивают linked_step_id, если GET /dreams отдал книгу без связи. */
             } catch (e) {
                 if (errEl) { errEl.textContent = 'Не удалось сохранить книгу'; errEl.classList.remove('hidden'); }
             }
@@ -6271,7 +6753,7 @@
             var lines = [head, ''];
             sortStepsForDayReport(daySteps).forEach(function(s) {
                 normalizeStepForUi(s);
-                var title = stepTitleWithCounter(s, titleCounterMap || {});
+                var title = stepTitleWithCounter(s, titleCounterMap || {}) + buildLinkedBooksTextSuffix(s, dayIso);
                 if (s.waived) {
                     lines.push('❌ — ' + title + ' (не выполнено)');
                 } else if (s.completed && s.completed_late) {
@@ -6791,7 +7273,8 @@
                 }
             }
             var inlineTime = buildStepTimeInlineHtml(s);
-            var main = '<span class="step-title-wrap">' + inlineTime + seriesPrefix + '<span class="step-title-text">' + escapeHtml(displayTitle) + '</span>' + seriesCount + badges + seriesRange + '</span>';
+            var titleWithBooks = displayTitle + buildLinkedBooksTextSuffix(s);
+            var main = '<span class="step-title-wrap">' + inlineTime + seriesPrefix + '<span class="step-title-text">' + escapeHtml(titleWithBooks) + '</span>' + seriesCount + badges + seriesRange + '</span>';
             var mobileMenu = '';
             if (!isReadOnly && canManage && mobileItems.length) {
                 mobileMenu = '<div class="step-mobile-menu-wrap">' +

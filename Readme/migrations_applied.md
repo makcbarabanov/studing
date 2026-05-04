@@ -12,6 +12,12 @@
 
 ---
 
+## mig_dream_books_linked_step (явная связь книги со шагом)
+
+Файл: `_sql/mig_dream_books_linked_step.sql` — добавляет `dream_books.linked_step_id` (FK на `dreams_steps.id`, `ON DELETE SET NULL`) и индекс `idx_dream_books_linked_step_id`.
+
+---
+
 ## mig_showcase_tables (витрина: просмотры, избранное, контакты)
 
 ```sql
