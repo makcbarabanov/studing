@@ -31,6 +31,7 @@
 | **[Readme/tables.md](Readme/tables.md)** | Схема БД |
 | **[Readme/rules.md](Readme/rules.md)** | Правила по типам мечт / `steps_rules` |
 | **[Readme/structure.md](Readme/structure.md)** | ЛК, вёрстка, логика экранов |
+| **[Readme/business_logic.md](Readme/business_logic.md)** | Фрагменты бизнес-логики (дневник, шаги) |
 | **[Readme/stable/README.md](Readme/stable/README.md)** | Снимки одобренной разметки (бэкап-якорь вне Git-археологии) |
 | **[Readme/STABLE_BASELINE.md](Readme/STABLE_BASELINE.md)** | Стабильная baseline, тег, счётчик версии |
 
@@ -39,3 +40,9 @@
 ---
 
 *Счётчик сборки в UI: элемент `.app-version` в `index.html` (текущая **стабильная веха** — [Readme/STABLE_BASELINE.md](Readme/STABLE_BASELINE.md)).*
+
+## Правило дневника шагов
+
+- `dreams_steps_events` хранит только рефлексию и явные комментарии.
+- «Успешные» события (`completed`, `series_completed`) в дневнике не хранятся и очищаются сервером.
+- Подробности и примеры: [Readme/business_logic.md](Readme/business_logic.md), [Readme/tables.md](Readme/tables.md).

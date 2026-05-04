@@ -1071,7 +1071,11 @@
         /* Единая строка шага: слева ✓ − 💬, центр название + время, справа ⇢ ✏️ 🗑️ */
         .step-item-plain.step-unified-line { display: block; }
         .step-unified-inner { display: flex; align-items: flex-start; gap: 0; width: 100%; min-width: 0; position: relative; }
-        .step-actions-left, .step-actions-right { display: flex; flex-direction: row; gap: 6px; flex: 0 0 auto; align-items: center; justify-content: flex-start; padding-top: 2px; }
+        .step-actions-left, .step-actions-right {
+            display: flex; flex-direction: row; gap: 6px; flex: 0 0 auto; align-items: center; justify-content: flex-start; padding-top: 2px;
+            position: relative;
+            z-index: 1;
+        }
         .step-actions-left { padding-right: 6px; }
         .step-actions-right { padding-left: 6px; border-left: 1px solid #eee; }
         .step-main-col { flex: 1; min-width: 0; padding: 0 8px; border-left: none; }
@@ -1123,6 +1127,8 @@
         .step-move-btn { color: #1565c0; font-size: 1.1em; }
         .step-item-plain .step-delete, .step-item-plain .step-edit { flex: 0 0 auto; width: auto; min-width: 1.75em; max-width: 2.25em; }
         .step-item-plain .step-title-wrap { min-width: 200px; }
+        /* Иначе 200px перебивает .step-unified-inner .step-title-wrap { min-width: 0 } — центр наезжает на ✓ − при узкой строке. */
+        .step-item-plain.step-unified-line .step-title-wrap { min-width: 0; }
         .step-item-plain .step-title-text { cursor: pointer; }
         .step-item-plain .step-restore { font-size: 12px; color: #2196F3; cursor: pointer; flex: 0 0 auto; width: auto; align-self: center; }
         .step-series-quality { display: inline-block; margin-right: 6px; font-size: 13px; vertical-align: middle; }
@@ -2149,7 +2155,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">248</span>
+                    <span class="app-version" aria-hidden="true">251</span>
                 </div>
             </footer>
         </div>
@@ -9400,6 +9406,30 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
 
         document.addEventListener('click', function(ev) {
             if (!ev.target.closest('.status-picker')) document.querySelectorAll('.status-picker-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+        });
+        /**
+         * Фолбэк для кнопки «−» в расписании (#steps-list):
+         * если строковый обработчик не успел привязаться после перерисовки,
+         * всё равно открываем/выполняем действие по шагу.
+         */
+        document.addEventListener('click', function(ev) {
+            var btn = ev.target && ev.target.closest ? ev.target.closest('#steps-list .step-waived-btn') : null;
+            if (!btn) return;
+            if (ev.defaultPrevented) return;
+            if (btn.disabled) return;
+            var row = btn.closest('.step-item-plain');
+            if (!row) return;
+            var dreamId = Number(row.dataset.dreamId);
+            var stepId = Number(row.dataset.stepId);
+            if (!Number.isFinite(dreamId) || !Number.isFinite(stepId)) return;
+            var stepRow = stepsFlatCache.find(function(x) {
+                return Number(x.dream_id) === dreamId && Number(x.id) === stepId;
+            });
+            if (!stepRow) return;
+            normalizeStepForUi(stepRow);
+            if (stepRow.completed || stepRow.waived || stepRow.isFinStep) return;
+            ev.preventDefault();
+            openStepWaivedModal(dreamId, stepId);
         });
         document.addEventListener('keydown', function(ev) {
             if (ev.key !== 'Escape') return;

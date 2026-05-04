@@ -119,6 +119,8 @@ def startup_event():
                 maxconn=20,
                 **conn_kw,
             )
+            # Политика дневника: успешные отметки шагов не храним в events (только рефлексия/комментарии).
+            _purge_success_step_events()
             return
         except OperationalError as e:
             if attempt < 2 and ("SSL" in str(e) or "closed" in str(e).lower()):
@@ -334,6 +336,26 @@ def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, ev
         cur.execute("RELEASE SAVEPOINT sp_step_evt")
     except Exception:
         cur.execute("ROLLBACK TO SAVEPOINT sp_step_evt")
+
+
+def _purge_success_step_events() -> None:
+    """Удаляет из dreams_steps_events «удачные» события (completed / series_completed)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM dreams_steps_events WHERE event_type IN ('completed', 'series_completed')"
+            )
+        conn.commit()
+    except Exception:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+    finally:
+        _return_conn(conn)
 
 
 def _load_steps(cur, dream_ids):
@@ -2753,22 +2775,11 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                         break
 
             if body.waived is True:
-                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived", note_trim)
+                if note_trim:
+                    _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived", note_trim)
             elif body.waived is False:
-                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived_cleared", note_trim)
-
-            if body.completed is True and not multi_row:
-                dl = body.deadline if body.deadline is not None else cur_step.get("deadline")
-                st = body.start_time if body.start_time is not None else cur_step.get("start_time")
-                et = body.end_time if body.end_time is not None else cur_step.get("end_time")
-                if late_for_diary is not None:
-                    late_ev = late_for_diary
-                else:
-                    late_ev = step_should_mark_completed_late(dl, st, et, now_utc)
-                msg = "Выполнил с опозданием" if late_ev else "Выполнил вовремя"
-                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "completed", msg if not note_trim else f"{msg}: {note_trim}")
-            elif body.completed is True and multi_row:
-                _insert_step_event_safe(cur, step_id, dream_id, editor_id, "series_completed", note_trim)
+                if note_trim:
+                    _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived_cleared", note_trim)
 
             deadline_touched = any(u.startswith("deadline") for u in updates)
             if deadline_touched and not multi_row and "deadline" in patch_fields:
@@ -2787,11 +2798,10 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                         return None
                     return str(v)[:10]
 
-                if _dl_key(old_deadline) != _dl_key(new_dl):
-                    old_s = _dl_key(old_deadline) or "—"
-                    new_s = _dl_key(new_dl) or "—"
-                    msg = note_trim if note_trim else f"Перенос: {old_s} → {new_s}"
-                    _insert_step_event_safe(cur, step_id, dream_id, editor_id, "deadline_changed", msg)
+                if _dl_key(old_deadline) != _dl_key(new_dl) and note_trim:
+                    _insert_step_event_safe(
+                        cur, step_id, dream_id, editor_id, "deadline_changed", note_trim
+                    )
 
             conn.commit()
             if not multi_row:
@@ -2837,6 +2847,7 @@ def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = 
                        JOIN dreams d ON d.id = e.dream_id
                        JOIN dreams_steps s ON s.id = e.step_id
                        WHERE d.user_id = %s
+                        AND e.event_type NOT IN ('completed', 'series_completed')
                        ORDER BY e.created_at DESC
                        LIMIT %s""",
                     (user_id, lim),

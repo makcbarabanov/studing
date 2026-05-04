@@ -101,7 +101,7 @@
 
 ### 4c. `dreams_steps_events`
 
-**Назначение:** дневник событий по шагам (переносы, отметка «не выполнен», выполнение с опозданием и т.д.). Миграция `_sql/mig_dreams_steps_waived_events_late.sql`.
+**Назначение:** дневник событий по шагам (переносы, отметка «не выполнен», явные комментарии). В ленту UI попадают записи с **непустым** пользовательским текстом; «успешные» события выполнения (`completed`, `series_completed`) в дневнике не хранятся (очищаются сервером) — см. [business_logic.md](business_logic.md). Миграция `_sql/mig_dreams_steps_waived_events_late.sql`.
 
 | Колонка     | Тип            | Описание |
 |-------------|----------------|----------|
@@ -109,7 +109,7 @@
 | `step_id`   | INT NOT NULL REFERENCES `dreams_steps(id)` ON DELETE CASCADE | Шаг. |
 | `dream_id`  | INT NOT NULL REFERENCES `dreams(id)` ON DELETE CASCADE | Мечта (денормализация для выборок). |
 | `user_id`   | INT NOT NULL REFERENCES `users(id)` ON DELETE CASCADE | Кто совершил действие. |
-| `event_type`| VARCHAR(40) NOT NULL | Например: `waived`, `waived_cleared`, `completed`, `series_completed`, `comment`, `deadline_changed`. |
+| `event_type`| VARCHAR(40) NOT NULL | Например: `waived`, `waived_cleared`, `comment`, `deadline_changed` (типы `completed`/`series_completed` считаются legacy и удаляются серверной политикой дневника). |
 | `message`   | TEXT NULL      | Текст для дневника / комментарий. |
 | `created_at`| TIMESTAMPTZ NOT NULL DEFAULT NOW() | |
 
