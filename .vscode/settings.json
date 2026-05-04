@@ -1,0 +1,11 @@
+{
+  "workbench.colorCustomizations": {
+    "editor.background": "#0F172A",
+    "sideBar.background": "#111827",
+    "activityBar.background": "#0B1220",
+    "statusBar.background": "#D6A85D",
+    "titleBar.activeBackground": "#C9973E",
+    "titleBar.activeForeground": "#FFFFFF"
+  },
+  "window.title": "FORGE ENVIRONMENT - ${dirty}${activeEditorShort}"
+}

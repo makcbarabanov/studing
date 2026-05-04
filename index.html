@@ -2149,7 +2149,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">247</span>
+                    <span class="app-version" aria-hidden="true">248</span>
                 </div>
             </footer>
         </div>
@@ -4618,6 +4618,7 @@
                     btn.addEventListener('click', function() {
                         var next = btn.getAttribute('data-report-filter') || 'all';
                         reportsCenterFilter = next;
+                        reportsDobitCollapsedDays = Object.create(null);
                         if (reportsDebtAccordionDayIso && reportsCenterFilter !== 'all' && reportsCenterFilter !== 'dobit') reportsDebtAccordionDayIso = null;
                         refreshReportsListUI();
                     });
@@ -5817,6 +5818,8 @@
         var REPORT_DISCIPLINE_WINDOW_DAYS = 30;
         /** Развёрнутая строка «экспресс-зачистки долгов» в таблице отчётов (ISO дня или null). */
         var reportsDebtAccordionDayIso = null;
+        /** В фильтре «Добить»: дни, которые пользователь свернул (остальные недобитые по умолчанию развёрнуты). */
+        var reportsDobitCollapsedDays = Object.create(null);
         /** Активный фильтр центра отчётов: all | dobit | send | finished. */
         var reportsCenterFilter = 'all';
         /** Красная подпись «Долги», если есть неотмеченные после дня дедлайна (см. stepIsOverdueUtc). */
@@ -5984,8 +5987,14 @@
             return list;
         }
         function toggleReportsDebtAccordion(dayIso) {
-            if (reportsDebtAccordionDayIso === dayIso) reportsDebtAccordionDayIso = null;
-            else reportsDebtAccordionDayIso = dayIso;
+            if (!dayIso) return;
+            if (reportsCenterFilter === 'dobit') {
+                if (reportsDobitCollapsedDays[dayIso]) delete reportsDobitCollapsedDays[dayIso];
+                else reportsDobitCollapsedDays[dayIso] = true;
+            } else {
+                if (reportsDebtAccordionDayIso === dayIso) reportsDebtAccordionDayIso = null;
+                else reportsDebtAccordionDayIso = dayIso;
+            }
             refreshReportsListUI();
         }
         function resolveDreamIdForReportStep(step) {
