@@ -1,14 +1,16 @@
 import os
 import time
 import calendar
+from collections import defaultdict, deque
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 import re
+from threading import Lock
 import psycopg2
 from psycopg2 import OperationalError
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor, Json
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -304,6 +306,20 @@ class RoadmapItemUpdate(BaseModel):
     text: Optional[str] = None
     section: Optional[str] = None
     initiator: Optional[str] = None
+
+
+class BotReportSaveBody(BaseModel):
+    telegram_id: int
+    user_id: Optional[int] = None
+    report_date: str
+    source: str
+    raw: Optional[dict] = None
+    daily: Optional[dict] = None
+    manifest_items: Optional[List[dict]] = None
+    matches: Optional[List[dict]] = None
+    review_items: Optional[List[dict]] = None
+    patterns: Optional[List[dict]] = None
+    snapshot: Optional[dict] = None
 
 BOOK_READING_KEYWORDS = (
     "чита",       # читать, читаю
@@ -629,6 +645,84 @@ def get_db_connection():
                 continue
             raise
     return None
+
+
+BOT_RATE_LIMIT_PER_SEC = 5
+BOT_RATE_WINDOW_SECONDS = 1.0
+_bot_rate_lock = Lock()
+_bot_rate_hits = defaultdict(deque)
+
+
+def _require_bot_api_key(request: Request) -> str:
+    expected = (os.getenv("BOT_API_KEY") or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="BOT_API_KEY не задан в окружении")
+    provided = (request.headers.get("X-Api-Key") or "").strip()
+    if not provided or provided != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return provided
+
+
+def _enforce_bot_rate_limit(request: Request, api_key: str) -> None:
+    client_ip = (request.client.host if request.client else "") or "unknown"
+    source_key = f"{api_key}:{client_ip}:{request.url.path}"
+    now = time.monotonic()
+    with _bot_rate_lock:
+        bucket = _bot_rate_hits[source_key]
+        threshold = now - BOT_RATE_WINDOW_SECONDS
+        while bucket and bucket[0] <= threshold:
+            bucket.popleft()
+        if len(bucket) >= BOT_RATE_LIMIT_PER_SEC:
+            raise HTTPException(
+                status_code=429,
+                detail="Too Many Requests",
+                headers={"Retry-After": "1"},
+            )
+        bucket.append(now)
+
+
+def _parse_iso_date_or_400(value: str, field_name: str = "report_date") -> str:
+    iso = (value or "").strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", iso):
+        raise HTTPException(status_code=400, detail=f"Некорректный формат {field_name}: YYYY-MM-DD")
+    try:
+        datetime.strptime(iso, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Некорректная дата {field_name}")
+    return iso
+
+
+def _parse_marathon_month_or_400(value: str) -> str:
+    month = (value or "").strip()
+    if not re.match(r"^\d{4}-\d{2}$", month):
+        raise HTTPException(status_code=400, detail="marathon_month должен быть в формате YYYY-MM")
+    y, m = month.split("-")
+    if int(m) < 1 or int(m) > 12:
+        raise HTTPException(status_code=400, detail="marathon_month содержит неверный месяц")
+    return f"{y}-{m}"
+
+
+def _resolve_user_by_telegram(cur, telegram_id: int, forced_user_id: Optional[int]) -> int:
+    tg = str(int(telegram_id))
+    if forced_user_id is not None:
+        cur.execute("SELECT id, telegram FROM users WHERE id = %s", (forced_user_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        if (str(row.get("telegram") or "").strip() or "") != tg:
+            raise HTTPException(status_code=400, detail="Конфликт user_id и telegram_id")
+        return int(row["id"])
+    cur.execute("SELECT id FROM users WHERE telegram = %s", (tg,))
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Пользователь с таким telegram_id не найден")
+    return int(row["id"])
+
+
+def _to_bool_flag(value: Optional[bool], default: bool) -> bool:
+    if value is None:
+        return default
+    return bool(value)
 
 @app.get("/", response_class=FileResponse)
 def root_page():
@@ -3293,6 +3387,300 @@ def delete_dream_book_log(dream_id: int, book_id: int, date: str, user_id: int, 
         raise HTTPException(status_code=500, detail=str(e))
     except HTTPException:
         raise
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/api/v1/bot/reports/save")
+def bot_reports_save(body: BotReportSaveBody, request: Request):
+    api_key = _require_bot_api_key(request)
+    _enforce_bot_rate_limit(request, api_key)
+    report_date = _parse_iso_date_or_400(body.report_date)
+    if (body.source or "").strip().lower() != "telegram":
+        raise HTTPException(status_code=400, detail="source должен быть telegram")
+    if not any([
+        body.raw,
+        body.daily,
+        body.manifest_items,
+        body.matches,
+        body.review_items,
+        body.patterns,
+        body.snapshot,
+    ]):
+        raise HTTPException(status_code=400, detail="Пустой body: нечего сохранять")
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        conn.autocommit = False
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            user_id = _resolve_user_by_telegram(cur, body.telegram_id, body.user_id)
+            saved = {}
+            manifest_key_to_id = {}
+
+            if body.raw is not None:
+                cur.execute(
+                    """
+                    INSERT INTO _educ_reports_raw (user_id, report_date, source, payload)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (user_id, report_date, "telegram", Json(dict(body.raw))),
+                )
+                raw_row = cur.fetchone()
+                if raw_row:
+                    saved["raw_id"] = raw_row["id"]
+
+            if body.daily is not None:
+                daily = dict(body.daily)
+                cur.execute(
+                    """
+                    INSERT INTO _educ_reports_daily (user_id, report_date, status, submitted_at, source_detail)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (user_id, report_date)
+                    DO UPDATE SET
+                        status = COALESCE(EXCLUDED.status, _educ_reports_daily.status),
+                        submitted_at = COALESCE(EXCLUDED.submitted_at, _educ_reports_daily.submitted_at),
+                        source_detail = COALESCE(EXCLUDED.source_detail, _educ_reports_daily.source_detail)
+                    RETURNING id
+                    """,
+                    (user_id, report_date, daily.get("status"), daily.get("submitted_at"), daily.get("source_detail")),
+                )
+                daily_row = cur.fetchone()
+                if daily_row:
+                    saved["daily_id"] = daily_row["id"]
+
+            if body.manifest_items:
+                upserted = 0
+                for item in body.manifest_items:
+                    item = item or {}
+                    month = _parse_marathon_month_or_400(item.get("marathon_month") or report_date[:7])
+                    item_key = str(item.get("item_key") or "").strip()
+                    title = str(item.get("title") or "").strip()
+                    if not item_key or not title:
+                        continue
+                    cur.execute(
+                        """
+                        INSERT INTO _educ_manifest_items (user_id, marathon_month, item_key, title, sort_order, meta)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (user_id, marathon_month, item_key)
+                        DO UPDATE SET
+                            title = EXCLUDED.title,
+                            sort_order = COALESCE(EXCLUDED.sort_order, _educ_manifest_items.sort_order),
+                            meta = COALESCE(EXCLUDED.meta, _educ_manifest_items.meta)
+                        RETURNING id
+                        """,
+                        (user_id, month, item_key, title, item.get("sort_order"), Json(item.get("meta") or {})),
+                    )
+                    m_row = cur.fetchone()
+                    if m_row:
+                        manifest_key_to_id[item_key] = int(m_row["id"])
+                        upserted += 1
+                saved["manifest_items_upserted"] = upserted
+
+            if body.matches:
+                inserted = 0
+                for mt in body.matches:
+                    mt = mt or {}
+                    manifest_item_id = mt.get("manifest_item_id")
+                    if not manifest_item_id and mt.get("manifest_item_key"):
+                        manifest_item_id = manifest_key_to_id.get(str(mt.get("manifest_item_key")).strip())
+                    cur.execute(
+                        """
+                        INSERT INTO _educ_report_matches (
+                            user_id, report_date, fragment_text, manifest_item_id, match_type, confidence, needs_review
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            user_id,
+                            report_date,
+                            mt.get("fragment_text"),
+                            manifest_item_id,
+                            mt.get("match_type"),
+                            mt.get("confidence"),
+                            bool(mt.get("needs_review", False)),
+                        ),
+                    )
+                    inserted += 1
+                saved["matches_inserted"] = inserted
+
+            if body.review_items:
+                queued = 0
+                for rv in body.review_items:
+                    rv = rv or {}
+                    cur.execute(
+                        """
+                        INSERT INTO _educ_review_queue (user_id, report_date, payload, status)
+                        VALUES (%s, %s, %s, COALESCE(%s, 'pending'))
+                        """,
+                        (user_id, report_date, Json(rv), rv.get("status")),
+                    )
+                    queued += 1
+                saved["review_queued"] = queued
+
+            if body.patterns:
+                for p in body.patterns:
+                    p = p or {}
+                    pattern_type = str(p.get("pattern_type") or "").strip()
+                    pattern_value = str(p.get("pattern_value") or "").strip()
+                    if not pattern_type or not pattern_value:
+                        continue
+                    cur.execute(
+                        """
+                        INSERT INTO _educ_user_patterns (user_id, pattern_type, pattern_value, maps_to, meta)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (user_id, pattern_type, pattern_value)
+                        DO UPDATE SET
+                            maps_to = COALESCE(EXCLUDED.maps_to, _educ_user_patterns.maps_to),
+                            meta = COALESCE(EXCLUDED.meta, _educ_user_patterns.meta)
+                        """,
+                        (user_id, pattern_type, pattern_value, p.get("maps_to"), Json(p.get("meta") or {})),
+                    )
+
+            if body.snapshot is not None:
+                cur.execute(
+                    """
+                    INSERT INTO _educ_daily_snapshots (user_id, report_date, payload)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (user_id, report_date)
+                    DO UPDATE SET payload = EXCLUDED.payload
+                    """,
+                    (user_id, report_date, Json(dict(body.snapshot))),
+                )
+
+        conn.commit()
+        return {"ok": True, "user_id": user_id, "report_date": report_date, "saved": saved}
+    except HTTPException:
+        if conn:
+            conn.rollback()
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/api/v1/bot/users/by-telegram/{telegram_id}")
+def bot_user_by_telegram(
+    telegram_id: int,
+    request: Request,
+    marathon_month: Optional[str] = None,
+    include_patterns: Optional[bool] = True,
+    include_recent_reports: Optional[bool] = False,
+):
+    api_key = _require_bot_api_key(request)
+    _enforce_bot_rate_limit(request, api_key)
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            tg = str(int(telegram_id))
+            cur.execute("SELECT id, telegram, name, surname, gender FROM users WHERE telegram = %s", (tg,))
+            user_row = cur.fetchone()
+            if not user_row:
+                raise HTTPException(status_code=404, detail="Пользователь с таким telegram_id не найден")
+            user_id = int(user_row["id"])
+
+            selected_month = (marathon_month or "").strip() or None
+            if selected_month:
+                selected_month = _parse_marathon_month_or_400(selected_month)
+            else:
+                cur.execute(
+                    """
+                    SELECT COALESCE(
+                        MAX(marathon_month),
+                        TO_CHAR(MAX(report_date), 'YYYY-MM'),
+                        TO_CHAR(CURRENT_DATE, 'YYYY-MM')
+                    ) AS mm
+                    FROM (
+                        SELECT marathon_month, NULL::date AS report_date
+                        FROM _educ_manifest_items
+                        WHERE user_id = %s
+                        UNION ALL
+                        SELECT NULL::text AS marathon_month, report_date
+                        FROM _educ_reports_daily
+                        WHERE user_id = %s
+                    ) t
+                    """,
+                    (user_id, user_id),
+                )
+                month_row = cur.fetchone() or {}
+                selected_month = month_row.get("mm") or datetime.now().strftime("%Y-%m")
+
+            cur.execute(
+                """
+                SELECT item_key, title, sort_order
+                FROM _educ_manifest_items
+                WHERE user_id = %s AND marathon_month = %s
+                ORDER BY sort_order NULLS LAST, id
+                """,
+                (user_id, selected_month),
+            )
+            manifest_items = [
+                {"item_key": r.get("item_key"), "title": r.get("title"), "sort_order": r.get("sort_order")}
+                for r in (cur.fetchall() or [])
+            ]
+
+            patterns = []
+            if _to_bool_flag(include_patterns, True):
+                cur.execute(
+                    """
+                    SELECT pattern_type, pattern_value, maps_to
+                    FROM _educ_user_patterns
+                    WHERE user_id = %s
+                    ORDER BY id DESC
+                    """,
+                    (user_id,),
+                )
+                patterns = [
+                    {"pattern_type": p.get("pattern_type"), "pattern_value": p.get("pattern_value"), "maps_to": p.get("maps_to")}
+                    for p in (cur.fetchall() or [])
+                ]
+
+            recent_daily = []
+            if _to_bool_flag(include_recent_reports, False):
+                cur.execute(
+                    """
+                    SELECT report_date, status, submitted_at, source_detail
+                    FROM _educ_reports_daily
+                    WHERE user_id = %s
+                    ORDER BY report_date DESC
+                    LIMIT 7
+                    """,
+                    (user_id,),
+                )
+                for d in (cur.fetchall() or []):
+                    recent_daily.append(
+                        {
+                            "report_date": str(d.get("report_date")) if d.get("report_date") else None,
+                            "status": d.get("status"),
+                            "submitted_at": d.get("submitted_at"),
+                            "source_detail": d.get("source_detail"),
+                        }
+                    )
+
+            return {
+                "ok": True,
+                "user": {
+                    "id": user_id,
+                    "telegram_id": int(tg),
+                    "display_name": _full_name(user_row),
+                    "gender": user_row.get("gender"),
+                },
+                "marathon_month": selected_month,
+                "manifest_items": manifest_items,
+                "patterns": patterns,
+                "recent_daily": recent_daily,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
 
