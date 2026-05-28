@@ -2,6 +2,11 @@
 
 Старые пункты могут ссылаться на прежний монолитный `Readme/Readme.md`; актуальная структура — корневой [README.md](../README.md), [PROJECT.md](PROJECT.md), [RUNBOOK.md](RUNBOOK.md).
 
+## 2026-05-28 — Docker hotfix: зеркало apt для RU-сервера
+
+- В `Dockerfile` для `python:3.11-slim` добавлена замена Debian mirror на `mirror.yandex.ru` перед `apt-get update`, чтобы обойти `502 Gateway Error` на прод-сервере.
+- Установка системных пакетов (`libpq-dev`, `gcc`) оставлена прежней, меняется только источник репозиториев. Версия **266**.
+
 ## 2026-05-28 — Bloom API-мост: bot v1 save/user + защита
 
 - В `main.py` добавлены новые ручки бота: `POST /api/v1/bot/reports/save` (запись отчётов в `_educ_*`) и `GET /api/v1/bot/users/by-telegram/{telegram_id}` (контекст пользователя, манифест, паттерны, опционально последние отчёты).
