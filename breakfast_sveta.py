@@ -308,7 +308,22 @@ def _call_ai(history: List[Dict[str, str]], user_text: str, system: str) -> Opti
     return None
 
 
-def _dreams_block(dreams: List[str]) -> str:
+def _normalize_guest_name(raw: str) -> str:
+    s = (raw or "").strip()
+    if not s:
+        return "Гость"
+    m = re.search(r"(?:меня\s+зовут|this\s+is)\s+([a-zA-Zа-яА-ЯёЁ\-]+)", s, re.I)
+    if m:
+        s = m.group(1)
+    elif re.match(r"^я\s+", s, re.I):
+        m2 = re.match(r"^я\s+([a-zA-Zа-яА-ЯёЁ\-]+)", s, re.I)
+        if m2:
+            s = m2.group(1)
+    if len(s.split()) > 2:
+        parts = s.split()
+        if parts[-1].isalpha() and 2 <= len(parts[-1]) <= 20:
+            s = parts[-1]
+    return s[:1].upper() + s[1:].lower() if s else "Гость"
     return "\n".join(f"• {d}" for d in dreams) if dreams else "—"
 
 
@@ -358,7 +373,7 @@ def _ai_system_extra(kind: AiKind, name: str, dreams: List[str], barriers: List[
 def _handle_ai(body: BreakfastChatRequest) -> BreakfastChatResponse:
     if not body.ai_kind:
         raise HTTPException(status_code=400, detail="Нужен ai_kind")
-    name = (body.user_name or "Гость").strip()
+    name = _normalize_guest_name(body.user_name or "Гость")
     dreams = list(body.dreams or [])
     barriers = list(body.barriers or [])
 
@@ -435,7 +450,7 @@ def _persist_lead(body: BreakfastChatRequest) -> tuple[int, List[int]]:
 
     from main import _bcrypt_password, _return_conn, get_db_connection
 
-    name = (body.name or "").strip()
+    name = _normalize_guest_name(body.name or "")
     city = (body.city or "").strip()
     phone = (body.phone or "").strip()
     dreams = [d.strip() for d in (body.dreams or []) if d and d.strip()]
