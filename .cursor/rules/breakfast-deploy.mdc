@@ -1,0 +1,31 @@
+# Деплой «Завтрак» (sites/breakfast)
+
+## Build-версия
+
+- Файл: `sites/breakfast/version.json` → `{"version": N}`
+- Отображение: футер лендинга (`v.N`, мелкий шрифт справа)
+- **Перед каждым деплоем фронта:** `./scripts/bump-version.sh` (или `deploy-prod.sh`, который бампит сам)
+
+## Команда «Задеплой» от Макса
+
+1. Выполнить правки в `sites/breakfast/` (+ `web-app/` если бэкенд).
+2. **`cd sites/breakfast && ./scripts/bump-version.sh`** — записать новый N в `version.json`.
+3. **Фронт (обязательно rsync):**
+   ```bash
+   ./scripts/deploy-prod.sh
+   ```
+   Или вручную: `version.json`, `index.html`, `css/main.css`, `js/sveta-fsm.js`, `js/main.js`.
+4. **Бэкенд (если менялся web-app):** commit + push → на проде `git pull && docker compose up -d --build`.
+5. В ответе Максу: **«Версия обновлена до N, деплой выполнен»** + smoke (GET /breakfast/, версия в футере).
+
+## Почему рассинхрон возможен
+
+- Фронт **не в git** web-app — только rsync. Push бэкенда **не обновляет** лендинг.
+- Кэш браузера: `?v=` у скриптов + Ctrl+Shift+R после деплоя.
+
+## Smoke
+
+```bash
+curl -sk https://islanddream.ru/breakfast/version.json
+curl -sk https://islanddream.ru/breakfast/ | grep site-build-version
+```
