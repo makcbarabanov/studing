@@ -12,6 +12,10 @@ db_backups*/
 db_backups_safe/
 *.tar.gz
 
+# Экспорт Telegram — только локальный источник медиа
+sites/breakfast/ChatExport_*/
+sites/breakfast/.promo-screenshot.png
+
 # Логи диалогов «Завтрак» (JSONL на диске, не в git)
 logs/*.jsonl
 !logs/.gitkeep

@@ -1,27 +1,25 @@
 # Деплой «Завтрак» (sites/breakfast)
 
+## Золотой стандарт (обязательно)
+
+- **Никакого деплоя без Git.** Сначала commit + `git push origin main`, потом deploy.
+- **Канон в репозитории:** `web-app/sites/breakfast/` (не rsync «мимо кассы»).
+- Если PO просит deploy без push — **отказать** и напомнить порядок (см. `.cursorrules`, `deploy-git-golden-standard.mdc`).
+
 ## Build-версия
 
 - Файл: `sites/breakfast/version.json` → `{"version": N}`
-- Отображение: футер лендинга (`v.N`, мелкий шрифт справа)
-- **Перед каждым деплоем фронта:** `./scripts/bump-version.sh` (или `deploy-prod.sh`, который бампит сам)
+- Отображение: футер лендинга (`v.N`)
+- Перед деплоем: `./sites/breakfast/scripts/bump-version.sh` (или `deploy-prod.sh` бампит сам)
 
 ## Команда «Задеплой» от Макса
 
-1. Выполнить правки в `sites/breakfast/` (+ `web-app/` если бэкенд).
-2. **`cd sites/breakfast && ./scripts/bump-version.sh`** — записать новый N в `version.json`.
-3. **Фронт (обязательно rsync):**
-   ```bash
-   ./scripts/deploy-prod.sh
-   ```
-   Или вручную: `version.json`, `index.html`, `css/main.css`, `js/sveta-fsm.js`, `js/main.js`.
-4. **Бэкенд (если менялся web-app):** commit + push → на проде `git pull && docker compose up -d --build`.
-5. В ответе Максу: **«Версия обновлена до N, деплой выполнен»** + smoke (GET /breakfast/, версия в футере).
-
-## Почему рассинхрон возможен
-
-- Фронт **не в git** web-app — только rsync. Push бэкенда **не обновляет** лендинг.
-- Кэш браузера: `?v=` у скриптов + Ctrl+Shift+R после деплоя.
+1. Правки в `web-app/sites/breakfast/` (+ бэкенд при необходимости).
+2. `git add` → `git commit` → **`git push origin main`**
+3. `./sites/breakfast/scripts/bump-version.sh` (если deploy-prod.sh не бампит сам)
+4. **`./sites/breakfast/scripts/deploy-prod.sh`** — только после push
+5. Бэкенд на проде: `[ПРОД]` → `git pull && docker compose up -d --build`
+6. Ответ: **«Версия обновлена до N, деплой выполнен»** + hash коммита
 
 ## Smoke
 

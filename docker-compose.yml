@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     volumes:
-      # Прод: /home/makc/Apps/sites/breakfast → /app/sites/breakfast
-      # Песок (OSTROV): ../sites/breakfast
-      - ../sites/breakfast:/app/sites/breakfast:ro
+      # Прод: /home/makc/Apps/sites/breakfast → /app/sites/breakfast (после git pull + rsync/copy)
+      # Песок / git-канон: web-app/sites/breakfast
+      - ./sites/breakfast:/app/sites/breakfast:ro
       - ./logs:/app/logs
