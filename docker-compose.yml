@@ -12,3 +12,4 @@ services:
       # Прод: /home/makc/Apps/sites/breakfast → /app/sites/breakfast
       # Песок (OSTROV): ../sites/breakfast
       - ../sites/breakfast:/app/sites/breakfast:ro
+      - ./logs:/app/logs

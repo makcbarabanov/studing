@@ -9,6 +9,7 @@ import re
 import time
 import uuid
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any, Deque, Dict, List, Literal, Optional, TypedDict
@@ -40,6 +41,31 @@ def sveta_prompt_path() -> Path:
 
 _rate: Dict[str, Deque[float]] = defaultdict(deque)
 _rate_lock = Lock()
+_log_lock = Lock()
+
+CHAT_LOG_PATH = Path(
+    os.getenv("BREAKFAST_CHAT_LOG", str(_APP_DIR / "logs" / "chat_sessions.jsonl"))
+).expanduser()
+
+
+def _save_to_db_enabled() -> bool:
+    return (os.getenv("BREAKFAST_SAVE_TO_DB") or "").strip().lower() in ("1", "true", "yes")
+
+
+def _append_chat_log(record: Dict[str, Any]) -> None:
+    text = record.get("text")
+    if text is not None and not str(text).strip():
+        return
+    line = dict(record)
+    line.setdefault("ts", datetime.now(timezone.utc).isoformat())
+    path = CHAT_LOG_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import json
+
+    payload = json.dumps(line, ensure_ascii=False)
+    with _log_lock:
+        with path.open("a", encoding="utf-8") as f:
+            f.write(payload + "\n")
 
 RATE_LIMIT = 30
 RATE_WINDOW_SEC = 60.0
@@ -114,6 +140,7 @@ class ContactItem(BaseModel):
 
 class BreakfastChatRequest(BaseModel):
     action: Literal["ai", "save"]
+    session_id: Optional[str] = Field(None, max_length=64)
     ai_kind: Optional[AiKind] = None
     user_name: Optional[str] = Field(None, max_length=80)
     dreams: Optional[List[str]] = None
@@ -133,6 +160,15 @@ class BreakfastChatRequest(BaseModel):
 class BreakfastChatResponse(BaseModel):
     reply: Optional[str] = None
     ok: bool = True
+
+
+class BreakfastLogRequest(BaseModel):
+    session_id: str = Field(..., max_length=64)
+    event: Literal["user_message", "bot_message", "state_change", "button"]
+    state: Optional[int] = Field(None, ge=1, le=7)
+    text: Optional[str] = Field(None, max_length=4000)
+    button: Optional[str] = Field(None, max_length=80)
+    meta: Optional[Dict[str, Any]] = None
 
 
 def _enforce_rate(request: Request) -> None:
@@ -398,7 +434,39 @@ def _handle_ai(body: BreakfastChatRequest) -> BreakfastChatResponse:
         reply = None
     if not reply:
         reply = _fallback_reply(body.ai_kind, name, dreams)
+    sid = (body.session_id or "").strip() or "unknown"
+    if body.message and body.message.strip():
+        _append_chat_log(
+            {
+                "session_id": sid,
+                "event": "user_message",
+                "state": _ai_kind_state(body.ai_kind),
+                "role": "user",
+                "text": body.message.strip(),
+                "meta": {"ai_kind": body.ai_kind, "dreams": dreams, "barriers": barriers},
+            }
+        )
+    _append_chat_log(
+        {
+            "session_id": sid,
+            "event": "bot_message",
+            "state": _ai_kind_state(body.ai_kind),
+            "role": "bot",
+            "text": reply,
+            "meta": {"ai_kind": body.ai_kind, "user_name": name},
+        }
+    )
     return BreakfastChatResponse(reply=reply, ok=True)
+
+
+def _ai_kind_state(ai_kind: Optional[AiKind]) -> int:
+    if ai_kind == "dreams_reaction":
+        return 3
+    if ai_kind == "barriers_open":
+        return 4
+    if ai_kind == "barriers_reaction":
+        return 5
+    return 0
 
 
 def _apply_contacts(
@@ -544,9 +612,67 @@ def _persist_lead(body: BreakfastChatRequest) -> tuple[int, List[int]]:
             _return_conn(conn)
 
 
+def _lead_log_payload(body: BreakfastChatRequest) -> Dict[str, Any]:
+    telegram, vk, _need_phone = _apply_contacts(body)
+    contacts_out: List[Dict[str, Any]] = []
+    for item in body.contacts or []:
+        contacts_out.append(
+            {
+                "channel": item.channel,
+                "value": item.value,
+                "phone_linked": item.phone_linked,
+            }
+        )
+    return {
+        "name": _normalize_guest_name(body.name or ""),
+        "city": (body.city or "").strip(),
+        "phone": (body.phone or "").strip(),
+        "dreams": list(body.dreams or []),
+        "barriers": list(body.barriers or []),
+        "telegram": telegram,
+        "vk": vk,
+        "contacts": contacts_out,
+    }
+
+
 def _handle_save(body: BreakfastChatRequest) -> BreakfastChatResponse:
-    _persist_lead(body)
+    sid = (body.session_id or "").strip() or "unknown"
+    lead = _lead_log_payload(body)
+    _append_chat_log(
+        {
+            "session_id": sid,
+            "event": "form_submit",
+            "state": 6,
+            "role": "user",
+            "text": f"Форма: {lead.get('name')}, {lead.get('city')}",
+            "meta": lead,
+        }
+    )
+    if _save_to_db_enabled():
+        _persist_lead(body)
     return BreakfastChatResponse(ok=True)
+
+
+def breakfast_log_event(body: BreakfastLogRequest, request: Request) -> None:
+    _enforce_rate(request)
+    record: Dict[str, Any] = {
+        "session_id": body.session_id,
+        "event": body.event,
+        "ip": (request.client.host if request.client else "unknown") or "unknown",
+    }
+    if body.state is not None:
+        record["state"] = body.state
+    if body.text is not None:
+        record["text"] = body.text
+        if body.event == "user_message":
+            record["role"] = "user"
+        elif body.event == "bot_message":
+            record["role"] = "bot"
+    if body.button:
+        record["button"] = body.button
+    if body.meta:
+        record["meta"] = body.meta
+    _append_chat_log(record)
 
 
 def breakfast_chat(body: BreakfastChatRequest, request: Request) -> BreakfastChatResponse:

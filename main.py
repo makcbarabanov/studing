@@ -22,7 +22,9 @@ from passlib.hash import bcrypt
 from breakfast_sveta import (
     BreakfastChatRequest,
     BreakfastChatResponse,
+    BreakfastLogRequest,
     breakfast_chat,
+    breakfast_log_event,
     resolve_breakfast_dir,
 )
 
@@ -3956,6 +3958,13 @@ def admin_update_user(user_id: int, user: UserUpdate):
 def funnel_breakfast_chat(body: BreakfastChatRequest, request: Request):
     """Диалог со Светой (Gemini). Сессии в памяти, без БД — этап 3."""
     return breakfast_chat(body, request)
+
+
+@app.post("/api/v1/funnel/breakfast/log")
+def funnel_breakfast_log(body: BreakfastLogRequest, request: Request):
+    """JSONL-лог событий чата (кнопки, state, сообщения с фронта)."""
+    breakfast_log_event(body, request)
+    return {"ok": True}
 
 
 @app.delete("/admin/users/{user_id}")

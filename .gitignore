@@ -11,3 +11,7 @@ _trash/
 db_backups*/
 db_backups_safe/
 *.tar.gz
+
+# Логи диалогов «Завтрак» (JSONL на диске, не в git)
+logs/*.jsonl
+!logs/.gitkeep
