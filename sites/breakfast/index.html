@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=6">
+  <link rel="stylesheet" href="css/main.css?v=7">
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
@@ -175,30 +175,6 @@
       <div id="sveta-form-view">
         <h3 id="sveta-overlay-title">Почти всё! Оставь свои данные.</h3>
         <form class="sveta-overlay__form" id="sveta-contact-form">
-          <p class="sveta-form__label">Как с тобой связаться?</p>
-          <div class="sveta-channels" role="group" aria-label="Способ связи">
-            <button type="button" class="sveta-channels__btn" data-channel="telegram" aria-pressed="false">
-              <span class="sveta-channels__label">Telegram</span>
-              <span class="sveta-channels__check" aria-hidden="true"></span>
-            </button>
-            <button type="button" class="sveta-channels__btn" data-channel="max" aria-pressed="false">
-              <span class="sveta-channels__label">Макс</span>
-              <span class="sveta-channels__check" aria-hidden="true"></span>
-            </button>
-            <button type="button" class="sveta-channels__btn" data-channel="vk" aria-pressed="false">
-              <span class="sveta-channels__label">VK</span>
-              <span class="sveta-channels__check" aria-hidden="true"></span>
-            </button>
-            <button type="button" class="sveta-channels__btn" data-channel="whatsapp" aria-pressed="false">
-              <span class="sveta-channels__label">WhatsApp</span>
-              <span class="sveta-channels__check" aria-hidden="true"></span>
-            </button>
-            <button type="button" class="sveta-channels__btn" data-channel="email" aria-pressed="false">
-              <span class="sveta-channels__label">Email</span>
-              <span class="sveta-channels__check" aria-hidden="true"></span>
-            </button>
-          </div>
-
           <div class="sveta-form-grid">
             <div class="sveta-form-grid__col">
               <label class="sveta-form-row sveta-chat__field--warm">
@@ -215,17 +191,43 @@
                 <span class="sveta-form-row__label">Телефон</span>
                 <input type="tel" id="sveta-form-phone" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__">
               </label>
-              <div class="sveta-channel-slot" id="sveta-channel-slot">
-                <label class="sveta-form-row sveta-chat__field--warm" id="sveta-channel-input-row" hidden>
-                  <span class="sveta-form-row__label" id="sveta-channel-input-label">Контакт</span>
-                  <input type="text" id="sveta-channel-input" autocomplete="off">
-                </label>
-                <label class="sveta-check" id="sveta-channel-phone-linked" hidden>
-                  <input type="checkbox" id="sveta-channel-phone-linked-cb" name="phone_linked">
-                  <span>Привязано к номеру телефона</span>
-                </label>
-                <p class="sveta-channel-hint" id="sveta-channel-hint" hidden></p>
-              </div>
+            </div>
+          </div>
+
+          <div class="sveta-form-contacts">
+            <p class="sveta-form__label">Как с тобой связаться?</p>
+            <div class="sveta-channels" role="group" aria-label="Способ связи">
+              <button type="button" class="sveta-channels__btn" data-channel="telegram" aria-pressed="false">
+                <span class="sveta-channels__label">Telegram</span>
+                <span class="sveta-channels__check" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="sveta-channels__btn" data-channel="max" aria-pressed="false">
+                <span class="sveta-channels__label">Макс</span>
+                <span class="sveta-channels__check" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="sveta-channels__btn" data-channel="vk" aria-pressed="false">
+                <span class="sveta-channels__label">VK</span>
+                <span class="sveta-channels__check" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="sveta-channels__btn" data-channel="whatsapp" aria-pressed="false">
+                <span class="sveta-channels__label">WhatsApp</span>
+                <span class="sveta-channels__check" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="sveta-channels__btn" data-channel="email" aria-pressed="false">
+                <span class="sveta-channels__label">Email</span>
+                <span class="sveta-channels__check" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="sveta-channel-slot" id="sveta-channel-slot">
+              <label class="sveta-form-row sveta-chat__field--warm" id="sveta-channel-input-row" hidden>
+                <span class="sveta-form-row__label" id="sveta-channel-input-label">Контакт</span>
+                <input type="text" id="sveta-channel-input" autocomplete="off">
+              </label>
+              <label class="sveta-check" id="sveta-channel-phone-linked" hidden>
+                <input type="checkbox" id="sveta-channel-phone-linked-cb" name="phone_linked">
+                <span>Привязано к номеру телефона</span>
+              </label>
+              <p class="sveta-channel-hint" id="sveta-channel-hint" hidden></p>
             </div>
           </div>
 

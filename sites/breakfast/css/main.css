@@ -1079,6 +1079,21 @@ video {
   box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.18);
 }
 
+.sveta-form-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.sveta-form-contacts .sveta-form__label {
+  margin: 0;
+}
+
+.sveta-form-contacts .sveta-channels {
+  margin-top: 0.1rem;
+}
+
 .sveta-channel-slot {
   display: flex;
   flex-direction: column;
@@ -1107,6 +1122,10 @@ video {
 
 @media (min-width: 640px) {
   #sveta-channel-phone-linked {
+    margin-left: 5.9rem;
+  }
+
+  .sveta-form-contacts .sveta-channel-hint {
     margin-left: 5.9rem;
   }
 }
