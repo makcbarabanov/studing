@@ -324,6 +324,9 @@ def _normalize_guest_name(raw: str) -> str:
         if parts[-1].isalpha() and 2 <= len(parts[-1]) <= 20:
             s = parts[-1]
     return s[:1].upper() + s[1:].lower() if s else "Гость"
+
+
+def _dreams_block(dreams: List[str]) -> str:
     return "\n".join(f"• {d}" for d in dreams) if dreams else "—"
 
 
@@ -391,10 +394,8 @@ def _handle_ai(body: BreakfastChatRequest) -> BreakfastChatResponse:
 
     try:
         reply = _call_ai([], user_text, system)
-    except HTTPException as e:
-        if e.status_code == 503:
-            return BreakfastChatResponse(reply=GEMINI_ERROR_REPLY, ok=False)
-        raise
+    except HTTPException:
+        reply = None
     if not reply:
         reply = _fallback_reply(body.ai_kind, name, dreams)
     return BreakfastChatResponse(reply=reply, ok=True)
