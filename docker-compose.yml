@@ -8,3 +8,7 @@ services:
       - "127.0.0.1:8000:8000"
     env_file:
       - .env
+    volumes:
+      # Прод: /home/makc/Apps/sites/breakfast → /app/sites/breakfast
+      # Песок (OSTROV): ../sites/breakfast
+      - ../sites/breakfast:/app/sites/breakfast:ro

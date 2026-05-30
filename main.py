@@ -19,6 +19,13 @@ from typing import Optional, List
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
+from breakfast_sveta import (
+    BreakfastChatRequest,
+    BreakfastChatResponse,
+    breakfast_chat,
+    resolve_breakfast_dir,
+)
+
 # bcrypt принимает пароль не длиннее 72 байт; длинные обрезаем, чтобы не было 500 при входе/регистрации
 def _step_title_series_key(title: Optional[str]) -> str:
     """Базовое имя шага без суффикса вида « (3/12)» — для группировки серий и mass-update без series_id."""
@@ -96,6 +103,16 @@ if ASSETS_UI_DIR.is_dir():
 LANDING_DIR = BASE_DIR / "landing"
 if LANDING_DIR.is_dir():
     app.mount("/landing", StaticFiles(directory=str(LANDING_DIR), html=True), name="landing")
+BREAKFAST_DIR = resolve_breakfast_dir()
+
+
+@app.get("/breakfast", include_in_schema=False)
+def breakfast_root_redirect():
+    return RedirectResponse(url="/breakfast/", status_code=307)
+
+
+if BREAKFAST_DIR.is_dir():
+    app.mount("/breakfast", StaticFiles(directory=str(BREAKFAST_DIR), html=True), name="breakfast")
 
 # --- БЛОК БЕЗОПАСНОСТИ (CORS) ---
 app.add_middleware(
@@ -3934,6 +3951,12 @@ def admin_update_user(user_id: int, user: UserUpdate):
         raise HTTPException(status_code=400, detail="Телефон уже занят")
     finally:
         _return_conn(conn)
+
+@app.post("/api/v1/funnel/breakfast/chat", response_model=BreakfastChatResponse)
+def funnel_breakfast_chat(body: BreakfastChatRequest, request: Request):
+    """Диалог со Светой (Gemini). Сессии в памяти, без БД — этап 3."""
+    return breakfast_chat(body, request)
+
 
 @app.delete("/admin/users/{user_id}")
 def admin_delete_user(user_id: int):
