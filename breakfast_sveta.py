@@ -5,6 +5,7 @@ UI state machine живёт на фронте; бэк: action=ai | save.
 from __future__ import annotations
 
 import os
+import re
 import time
 import uuid
 from collections import defaultdict, deque
@@ -50,6 +51,54 @@ ContactChannel = Literal["telegram", "max", "vk", "whatsapp", "email"]
 HF_ROUTER_BASE = "https://router.huggingface.co/v1"
 
 GEMINI_ERROR_REPLY = "Ой, магия немного зависла. Можешь отправить еще раз?"
+
+# CJK / иероглифы — Qwen и др. fallback-модели
+_CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]")
+# Хвост с «добавишь ещё» — дублирует кнопки на сайте
+_BTN_DUP_RE = re.compile(
+    r'[.\s]*[«"]?(?:Добавишь|добавишь|Хочешь что-то еще|ид[её]м дальше)[^.\n!?]*[»"]?[.!?]?\s*$',
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _sanitize_sveta_reply(reply: str) -> str:
+    """Обрезает иероглифы и мусор; пользователь не должен видеть CJK."""
+    if not reply:
+        return ""
+    cut = _CJK_RE.search(reply)
+    if cut:
+        reply = reply[: cut.start()]
+    reply = _CJK_RE.sub("", reply)
+    reply = _BTN_DUP_RE.sub("", reply.strip())
+    reply = re.sub(r"\s{2,}", " ", reply).strip()
+    return reply
+
+
+def _reply_language_ok(reply: str) -> bool:
+    if not reply or len(reply.strip()) < 12:
+        return False
+    return _CJK_RE.search(reply) is None
+
+
+def _fallback_reply(kind: AiKind, name: str, dreams: List[str]) -> str:
+    """Русская заглушка, если все LLM недоступны или ответ испорчен."""
+    n = name or "друг"
+    dream_hint = dreams[0] if dreams else "твоей мечте"
+    if kind == "dreams_reaction":
+        return (
+            f"Как здорово, {n}! Слышу, как важны для тебя эти желания — "
+            f"особенно про {dream_hint.lower()}. Я рядом."
+        )
+    if kind == "barriers_open":
+        return (
+            f"Рад, что делишься, {n}. Чтобы двигаться к мечтам, "
+            f"расскажи: что сейчас больше всего мешает и какая поддержка или ресурс нужны?"
+        )
+    if kind == "barriers_reaction":
+        return (
+            f"Спасибо, что откровенно, {n}. Слышу тебя — это уже большой шаг к переменам."
+        )
+    return GEMINI_ERROR_REPLY
 
 
 class RouteState(TypedDict):
@@ -209,10 +258,11 @@ def _all_routes() -> List[RouteState]:
     routes: List[RouteState] = []
     for i in range(len(_gemini_keys())):
         routes.append({"provider": "gemini", "key_index": i})
-    for i in range(len(_hf_keys())):
-        routes.append({"provider": "huggingface", "key_index": i})
     for i in range(len(_openai_keys())):
         routes.append({"provider": "openai", "key_index": i})
+    if (os.getenv("BREAKFAST_AI_USE_HF") or "").strip().lower() in ("1", "true", "yes"):
+        for i in range(len(_hf_keys())):
+            routes.append({"provider": "huggingface", "key_index": i})
     return routes
 
 
@@ -238,11 +288,16 @@ def _call_route(route: RouteState, history: List[Dict[str, str]], user_text: str
     return _openai_reply(api_key, history, user_text, system)
 
 
-def _call_ai(history: List[Dict[str, str]], user_text: str, system: str) -> str:
+def _call_ai(history: List[Dict[str, str]], user_text: str, system: str) -> Optional[str]:
     errors: List[str] = []
     for route in _all_routes():
         try:
-            return _call_route(route, history, user_text, system)
+            raw = _call_route(route, history, user_text, system)
+            reply = _sanitize_sveta_reply(raw)
+            if not _reply_language_ok(reply):
+                errors.append(f"{route['provider']}#{route['key_index']}: bad reply after sanitize")
+                continue
+            return reply
         except HTTPException:
             raise
         except Exception as e:
@@ -250,10 +305,7 @@ def _call_ai(history: List[Dict[str, str]], user_text: str, system: str) -> str:
             errors.append(f"{route['provider']}#{route['key_index']}: {err[:160]}")
             if not _is_rotatable(err):
                 break
-    detail = "Все ключи недоступны."
-    if errors:
-        detail += " " + " | ".join(errors[:3])
-    raise HTTPException(status_code=503, detail=detail)
+    return None
 
 
 def _dreams_block(dreams: List[str]) -> str:
@@ -271,25 +323,32 @@ def _ai_system_extra(kind: AiKind, name: str, dreams: List[str], barriers: List[
     if kind == "dreams_reaction":
         user = f"Гость {name} написал о мечтах:\n{dreams_txt}"
         extra = (
-            "Ответь воодушевлённо на мечты гостя. Реагируй на конкретику. "
-            "В конце сообщения ОБЯЗАТЕЛЬНО задай вопрос дословно или очень близко: "
-            "«Добавишь что-нибудь еще или идем дальше?»"
+            "Кратко и тепло отреагируй на мечты (2–4 предложения). Реагируй на конкретику. "
+            "К мужчине — «рад», к женщине — «рада». "
+            "ЗАПРЕЩЕНО спрашивать «добавишь ещё», «идём дальше», «какую мечту выбрать» — "
+            "на сайте уже есть кнопки «Добавить мечту» и «Идём дальше». Не дублируй их текстом."
         )
         return user, extra
 
     if kind == "barriers_open":
-        user = f"Гость {name}. Его мечты:\n{dreams_txt}\n\nНачни новый этап разговора."
+        user = (
+            f"Гость {name} нажал «Идём дальше» и перешёл к обсуждению барьеров.\n"
+            f"Его мечты:\n{dreams_txt}"
+        )
         extra = (
-            "Мягко спроси, что нужно для осуществления этих мечт и что сейчас мешает. "
-            "Один вопрос, 2–4 предложения."
+            "Сначала одним-двумя предложениями тепло прокомментируй мечты. "
+            "Затем одним вопросом спроси, что сейчас мешает на пути к ним и какие ресурсы нужны. "
+            "2–4 предложения всего, один вопрос в конце. "
+            "ЗАПРЕЩЕНО просить добавить ещё мечты, выбрать одну мечту или спрашивать «идём дальше»."
         )
         return user, extra
 
     if kind == "barriers_reaction":
         user = f"Гость {name} написал о барьерах и ресурсах:\n{barriers_txt}\n\nМечты:\n{dreams_txt}"
         extra = (
-            "Дай эмпатичный комментарий по сути написанного. "
-            "В конце ОБЯЗАТЕЛЬНО спроси: «Хочешь что-то еще добавить?»"
+            "Дай эмпатичный комментарий по сути (2–4 предложения). "
+            "ЗАПРЕЩЕНО спрашивать «добавить ещё», «идём дальше» — "
+            "на сайте кнопки «Добавить комментарий» и «Дальше». Не дублируй их."
         )
         return user, extra
 
@@ -311,7 +370,9 @@ def _handle_ai(body: BreakfastChatRequest) -> BreakfastChatResponse:
             raise HTTPException(status_code=400, detail="Нужен message")
 
     user_text, extra = _ai_system_extra(body.ai_kind, name, dreams, barriers)
-    system = _load_system_prompt() + f"\n\n---\nИмя гостя: {name}.\n\n{extra}\n\nОтвечай ТОЛЬКО на русском языке."
+    if body.message and body.message.strip() and body.ai_kind in ("dreams_reaction", "barriers_reaction"):
+        user_text += f"\n\nПоследнее сообщение гостя:\n{body.message.strip()}"
+    system = _load_system_prompt() + f"\n\n---\nИмя гостя: {name}.\n\n{extra}\n\nОтвечай ТОЛЬКО на русском языке. Никаких иероглифов и английского."
 
     try:
         reply = _call_ai([], user_text, system)
@@ -319,6 +380,8 @@ def _handle_ai(body: BreakfastChatRequest) -> BreakfastChatResponse:
         if e.status_code == 503:
             return BreakfastChatResponse(reply=GEMINI_ERROR_REPLY, ok=False)
         raise
+    if not reply:
+        reply = _fallback_reply(body.ai_kind, name, dreams)
     return BreakfastChatResponse(reply=reply, ok=True)
 
 
