@@ -296,8 +296,7 @@ def _openai_reply(
     return reply
 
 
-def _openrouter_reply(api_key: str, history: List[Dict[str, str]], user_text: str, system: str) -> str:
-    model = (os.getenv("OPENROUTER_MODEL") or "google/gemini-flash-1.5").strip()
+def _openrouter_headers() -> Dict[str, str]:
     headers: Dict[str, str] = {}
     referer = (os.getenv("OPENROUTER_HTTP_REFERER") or "https://islanddream.ru").strip()
     title = (os.getenv("OPENROUTER_APP_TITLE") or "OSTROV Breakfast").strip()
@@ -305,15 +304,47 @@ def _openrouter_reply(api_key: str, history: List[Dict[str, str]], user_text: st
         headers["HTTP-Referer"] = referer
     if title:
         headers["X-Title"] = title
-    return _openai_reply(
-        api_key,
-        history,
-        user_text,
-        system,
-        base_url=OPENROUTER_BASE,
-        model_name=model,
-        default_headers=headers or None,
-    )
+    return headers
+
+
+def _openrouter_primary_model() -> str:
+    return (os.getenv("OPENROUTER_MODEL") or "google/gemini-2.0-flash-001").strip()
+
+
+def _openrouter_fallback_models() -> List[str]:
+    env = (os.getenv("OPENROUTER_FALLBACK_MODEL") or "").strip()
+    if env:
+        return [m.strip() for m in env.split(",") if m.strip()]
+    return ["google/gemma-4-26b-a4b-it:free", "openrouter/free"]
+
+
+def _openrouter_reply(api_key: str, history: List[Dict[str, str]], user_text: str, system: str) -> str:
+    headers = _openrouter_headers()
+    primary = _openrouter_primary_model()
+    models = [primary]
+    for fb in _openrouter_fallback_models():
+        if fb and fb not in models:
+            models.append(fb)
+
+    last_err: Optional[Exception] = None
+    for i, model in enumerate(models):
+        try:
+            return _openai_reply(
+                api_key,
+                history,
+                user_text,
+                system,
+                base_url=OPENROUTER_BASE,
+                model_name=model,
+                default_headers=headers or None,
+            )
+        except Exception as e:
+            last_err = e
+            if i >= len(models) - 1:
+                break
+    if last_err:
+        raise last_err
+    raise RuntimeError("OpenRouter недоступен")
 
 
 def _huggingface_reply(api_key: str, history: List[Dict[str, str]], user_text: str, system: str) -> str:
