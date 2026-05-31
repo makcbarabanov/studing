@@ -947,10 +947,6 @@ video {
     width: min(100%, 44rem);
     padding: 1.5rem 1.65rem 1.35rem;
   }
-
-  #sveta-form-view {
-    min-height: 19.5rem;
-  }
 }
 
 .sveta-overlay__close {
@@ -966,42 +962,94 @@ video {
 }
 
 .sveta-overlay__lead {
-  display: none;
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
-.sveta-overlay__form .sveta-form-row {
+.sveta-overlay__form {
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
 }
 
-.sveta-overlay__form .sveta-form-row__label {
-  text-align: left;
+.sveta-overlay__form .sveta-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
 }
 
-.sveta-overlay__form .sveta-form-row input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.sveta-overlay__form .sveta-form-row span,
-.sveta-overlay__form .sveta-form-row__label {
+.sveta-overlay__form .sveta-form-group__label {
+  margin: 0;
+  padding: 0;
   font-weight: 600;
   color: var(--heading);
   font-size: 0.86rem;
+  line-height: 1.25;
+  text-align: left;
+  flex: none;
+  width: auto;
 }
 
-.sveta-overlay__form .sveta-form-row input {
+.sveta-overlay__form .sveta-form-group__input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid rgba(61, 46, 31, 0.14);
   border-radius: 0.75rem;
   padding: 0.62rem 0.85rem;
   background: #fff;
   box-shadow: 0 1px 0 rgba(61, 46, 31, 0.06);
+  font: inherit;
   font-size: 0.92rem;
 }
 
-.sveta-overlay__form .sveta-chat__field--warm span {
+.sveta-overlay__form .sveta-form-group__input:focus {
+  outline: 2px solid rgba(196, 92, 38, 0.35);
+  outline-offset: 1px;
+}
+
+.sveta-overlay__form .sveta-form-group.is-field-error .sveta-form-group__label {
+  color: var(--accent);
+}
+
+.sveta-overlay__form .sveta-form-group.is-field-error .sveta-form-group__input,
+.sveta-overlay__form .sveta-form-group__input.is-invalid {
+  border-color: var(--accent);
+}
+
+.sveta-overlay__form .sveta-form__label {
+  margin: 0.15rem 0 0;
   font-weight: 600;
   color: var(--heading);
-  font-size: 0.86rem;
+}
+
+.sveta-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+}
+
+.sveta-form-stack .sveta-form-group {
+  gap: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  .sveta-overlay__form .sveta-form-group,
+  .sveta-overlay__form .sveta-form-group__label,
+  .sveta-overlay__form .sveta-form-group__input {
+    flex-direction: column;
+    align-items: stretch;
+    flex: none;
+    min-height: unset;
+  }
 }
 
 .sveta-overlay__form .sveta-chat__field--warm input {
@@ -1009,40 +1057,6 @@ video {
   padding: 0.72rem 1rem;
   background: #fff;
   box-shadow: 0 1px 0 rgba(61, 46, 31, 0.06);
-}
-
-.sveta-overlay__form .sveta-form__label {
-  margin-top: 0.35rem;
-  font-weight: 600;
-  color: var(--heading);
-}
-
-.sveta-overlay__form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-height: 17.5rem;
-}
-
-.sveta-form-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.sveta-form-stack .sveta-form-row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.3rem;
-}
-
-.sveta-form-stack .sveta-form-row__label {
-  text-align: left;
-}
-
-.sveta-form-stack .sveta-form-row input {
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .sveta-form-grid {
@@ -1165,7 +1179,7 @@ video {
 }
 
 .sveta-overlay__panel h3 {
-  margin: 0;
+  margin: 0 0 0.5rem;
   font-size: 1.2rem;
   text-align: center;
   font-family: var(--font-serif);

@@ -21,7 +21,7 @@
       `Очень приятно, ${name}! Поделись, о чем ты мечтаешь? Напиши одну или несколько своих мечт, и я отправлю их в нашу копилку.`,
     s2more: "Внимательно слушаю, что еще добавим?",
     s4more: "Что еще может помешать или чего не хватает?",
-    s6: "Почти всё! Оставь свои данные — команда уже ждёт твои мечты.",
+    s6: "Остался всего один шаг! Подскажи, как мне лучше с тобой связаться? Мне очень важно не потерять нашу связь, чтобы передать твои мечты в работу.",
     s7: "Спасибо тебе! Скоро с тобой свяжется наш творец мечты, возьмёт тебя за руку, и вы вместе пойдёте реализовывать задуманное.",
     aiError: "Ой, магия немного зависла. Можешь отправить еще раз?",
     dbError: "Не удалось сохранить, попробуй еще раз",
@@ -171,9 +171,13 @@
   }
 
   const PLACEHOLDERS = {
-    step1: 'Напиши своё имя…',
-    step2: 'Напиши мечту (или нажми «Дальше», если готово)…',
-    step3: 'Опиши, что тебе мешает и что может помочь…',
+    greeting: "Напиши своё имя…",
+    dreams: "Напиши свою мечту, одну или несколько",
+    reactionDreams:
+      "Можешь добавить ещё мечт, или нажать «Идём дальше» для следующего шага",
+    barriers: "Опиши, что тебе мешает и что может помочь…",
+    reactionBarriers:
+      "Можешь дописать что хочешь в произвольной форме или нажать «Дальше» для следующего шага",
   };
 
   const FORM_SUBMIT_HINT = 'Заполните все поля и укажите способ связи';
@@ -342,9 +346,11 @@
         if (btn) btn.disabled = loading;
       });
 
-      if (uiState === S.GREETING) input.placeholder = PLACEHOLDERS.step1;
-      else if (uiState === S.DREAMS || uiState === S.REACTION_1) input.placeholder = PLACEHOLDERS.step2;
-      else if (uiState === S.BARRIERS || uiState === S.REACTION_2) input.placeholder = PLACEHOLDERS.step3;
+      if (uiState === S.GREETING) input.placeholder = PLACEHOLDERS.greeting;
+      else if (uiState === S.DREAMS) input.placeholder = PLACEHOLDERS.dreams;
+      else if (uiState === S.REACTION_1) input.placeholder = PLACEHOLDERS.reactionDreams;
+      else if (uiState === S.BARRIERS) input.placeholder = PLACEHOLDERS.barriers;
+      else if (uiState === S.REACTION_2) input.placeholder = PLACEHOLDERS.reactionBarriers;
     }
 
     function syncUi() {
@@ -360,7 +366,7 @@
     }
 
     function syncPhoneField() {
-      const wrap = formPhone?.closest(".sveta-form-row");
+      const wrap = formPhone?.closest(".sveta-form-group");
       const missing = phoneDigits(formPhone).length < 10;
       wrap?.classList.toggle("is-field-error", missing);
       formPhone?.classList.toggle("is-invalid", missing);

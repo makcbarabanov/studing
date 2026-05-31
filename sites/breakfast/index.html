@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=8">
+  <link rel="stylesheet" href="css/main.css?v=9">
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
@@ -173,21 +173,22 @@
       <button type="button" class="sveta-overlay__close" id="sveta-overlay-close" aria-label="Закрыть">×</button>
 
       <div id="sveta-form-view">
-        <h3 id="sveta-overlay-title">Почти всё! Оставь свои данные.</h3>
+        <h3 id="sveta-overlay-title">Остался всего один шаг! Подскажи, как мне лучше с тобой связаться?</h3>
+        <p class="sveta-overlay__lead">Мне очень важно не потерять нашу связь, чтобы передать твои мечты в работу.</p>
         <form class="sveta-overlay__form" id="sveta-contact-form">
           <div class="sveta-form-stack">
-              <label class="sveta-form-row sveta-chat__field--warm">
-                <span class="sveta-form-row__label">Имя</span>
-                <input type="text" id="sveta-form-name" name="name" autocomplete="name" required>
-              </label>
-              <label class="sveta-form-row sveta-chat__field--warm">
-                <span class="sveta-form-row__label">Город</span>
-                <input type="text" id="sveta-form-city" name="city" autocomplete="address-level2">
-              </label>
-              <label class="sveta-form-row sveta-chat__field--warm">
-                <span class="sveta-form-row__label">Телефон</span>
-                <input type="tel" id="sveta-form-phone" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
-              </label>
+            <div class="sveta-form-group">
+              <label class="sveta-form-group__label" for="sveta-form-name">Имя</label>
+              <input class="sveta-form-group__input sveta-chat__field--warm" type="text" id="sveta-form-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="sveta-form-group">
+              <label class="sveta-form-group__label" for="sveta-form-city">Город</label>
+              <input class="sveta-form-group__input sveta-chat__field--warm" type="text" id="sveta-form-city" name="city" autocomplete="address-level2">
+            </div>
+            <div class="sveta-form-group">
+              <label class="sveta-form-group__label" for="sveta-form-phone">Телефон</label>
+              <input class="sveta-form-group__input sveta-chat__field--warm" type="tel" id="sveta-form-phone" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
+            </div>
           </div>
 
           <div class="sveta-form-contacts">
@@ -211,10 +212,10 @@
               </button>
             </div>
             <div class="sveta-channel-slot" id="sveta-channel-slot">
-              <label class="sveta-form-row sveta-chat__field--warm" id="sveta-channel-input-row" hidden>
-                <span class="sveta-form-row__label" id="sveta-channel-input-label">Контакт</span>
-                <input type="text" id="sveta-channel-input" autocomplete="off">
-              </label>
+              <div class="sveta-form-group" id="sveta-channel-input-row" hidden>
+                <label class="sveta-form-group__label" for="sveta-channel-input" id="sveta-channel-input-label">Контакт</label>
+                <input class="sveta-form-group__input sveta-chat__field--warm" type="text" id="sveta-channel-input" autocomplete="off">
+              </div>
               <label class="sveta-check" id="sveta-channel-phone-linked" hidden>
                 <input type="checkbox" id="sveta-channel-phone-linked-cb" name="phone_linked">
                 <span>Привязано к номеру телефона</span>
@@ -251,7 +252,7 @@
       }
     })();
   </script>
-  <script src="js/sveta-fsm.js?v=9" defer></script>
+  <script src="js/sveta-fsm.js?v=10" defer></script>
   <script src="js/main.js?v=4" defer></script>
 </body>
 </html>
