@@ -969,6 +969,20 @@ video {
   display: none;
 }
 
+.sveta-overlay__form .sveta-form-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sveta-overlay__form .sveta-form-row__label {
+  text-align: left;
+}
+
+.sveta-overlay__form .sveta-form-row input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .sveta-overlay__form .sveta-form-row span,
 .sveta-overlay__form .sveta-form-row__label {
   font-weight: 600;
@@ -1010,6 +1024,27 @@ video {
   min-height: 17.5rem;
 }
 
+.sveta-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.sveta-form-stack .sveta-form-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.sveta-form-stack .sveta-form-row__label {
+  text-align: left;
+}
+
+.sveta-form-stack .sveta-form-row input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .sveta-form-grid {
   display: flex;
   flex-direction: column;
@@ -1018,10 +1053,9 @@ video {
 
 @media (min-width: 640px) {
   .sveta-form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.65rem 1.1rem;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
   }
 }
 

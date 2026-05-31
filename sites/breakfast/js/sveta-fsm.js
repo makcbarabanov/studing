@@ -170,9 +170,16 @@
     };
   }
 
+  const PLACEHOLDERS = {
+    step1: 'Напиши своё имя…',
+    step2: 'Напиши мечту (или нажми «Дальше», если готово)…',
+    step3: 'Опиши, что тебе мешает и что может помочь…',
+  };
+
+  const FORM_SUBMIT_HINT = 'Заполните все поля и укажите способ связи';
+
   const CHANNEL_LABELS = {
     telegram: "Telegram",
-    max: "Макс",
     vk: "VK",
     whatsapp: "WhatsApp",
     email: "Email",
@@ -183,12 +190,6 @@
     telegram: {
       fieldLabel: "Юзернейм",
       placeholder: "Введите ваш @telegram",
-      inputType: "text",
-      mode: "username",
-    },
-    max: {
-      fieldLabel: "Юзернейм",
-      placeholder: "Введите username в Макс",
       inputType: "text",
       mode: "username",
     },
@@ -341,32 +342,26 @@
         if (btn) btn.disabled = loading;
       });
 
-      if (uiState === S.GREETING) input.placeholder = "Твоё имя…";
-      else if (uiState === S.DREAMS) input.placeholder = "Твоя мечта…";
-      else if (uiState === S.REACTION_1) input.placeholder = "Или напиши ещё мечту…";
-      else if (uiState === S.BARRIERS) input.placeholder = "Напиши от сердца…";
-      else if (uiState === S.REACTION_2) input.placeholder = "Или добавь комментарий…";
+      if (uiState === S.GREETING) input.placeholder = PLACEHOLDERS.step1;
+      else if (uiState === S.DREAMS || uiState === S.REACTION_1) input.placeholder = PLACEHOLDERS.step2;
+      else if (uiState === S.BARRIERS || uiState === S.REACTION_2) input.placeholder = PLACEHOLDERS.step3;
     }
 
     function syncUi() {
       syncComposer();
       updateChannelButtons();
       syncPhoneField();
-      if (formSubmit) formSubmit.disabled = loading || !formValid();
-    }
-
-    function phoneRequired() {
-      if (!activeChannel) return false;
-      if (activeChannel === "whatsapp") return true;
-      const stored = channelStore[activeChannel] || {};
-      return (
-        (activeChannel === "telegram" || activeChannel === "max") && !!stored.phoneLinked
-      );
+      if (formSubmit) {
+        const valid = formValid();
+        formSubmit.disabled = loading || !valid;
+        if (formSubmit.disabled && !loading) formSubmit.title = FORM_SUBMIT_HINT;
+        else formSubmit.removeAttribute("title");
+      }
     }
 
     function syncPhoneField() {
       const wrap = formPhone?.closest(".sveta-form-row");
-      const missing = phoneRequired() && phoneDigits(formPhone).length < 10;
+      const missing = phoneDigits(formPhone).length < 10;
       wrap?.classList.toggle("is-field-error", missing);
       formPhone?.classList.toggle("is-invalid", missing);
     }
@@ -393,27 +388,20 @@
 
     function isChannelValid(id) {
       const stored = channelStore[id] || {};
-      if (id === "whatsapp") {
-        return phoneDigits(formPhone).length >= 10;
-      }
-      if (id === "email") {
-        return isEmailValid(stored.email || "");
-      }
-      if (id === "vk") {
-        return (stored.vk || "").trim().length >= 2;
-      }
-      if (id === "telegram" || id === "max") {
+      if (id === "whatsapp") return true;
+      if (id === "email") return isEmailValid(stored.email || "");
+      if (id === "vk") return (stored.vk || "").trim().length >= 2;
+      if (id === "telegram") {
         const hasUser = (stored.username || "").trim().length >= 2;
-        if (stored.phoneLinked) return phoneDigits(formPhone).length >= 10;
-        return hasUser;
+        return hasUser || !!stored.phoneLinked;
       }
       return false;
     }
 
     function formValid() {
-      if (!formName?.value.trim() || !formCity?.value.trim()) return false;
+      if (!formName?.value.trim()) return false;
+      if (phoneDigits(formPhone).length < 10) return false;
       if (!activeChannel) return false;
-      if (phoneRequired() && phoneDigits(formPhone).length < 10) return false;
       return isChannelValid(activeChannel);
     }
 
@@ -711,7 +699,7 @@
       if (activeChannel) {
         const id = activeChannel;
         const stored = channelStore[id] || {};
-        if (id === "telegram" || id === "max") {
+        if (id === "telegram") {
           contacts.push({
             channel: id,
             value: (stored.username || "").trim() || undefined,

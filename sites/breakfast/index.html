@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=7">
+  <link rel="stylesheet" href="css/main.css?v=8">
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
@@ -158,7 +158,7 @@
 
           <form class="sveta-chat__composer" id="sveta-composer">
             <label class="visually-hidden" for="sveta-input">Ваш ответ</label>
-            <input type="text" id="sveta-input" name="message" autocomplete="off" placeholder="Твоё имя…">
+            <input type="text" id="sveta-input" name="message" autocomplete="off" placeholder="Напиши своё имя…">
             <button type="submit" class="sveta-chat__send" id="sveta-send" aria-label="Отправить" disabled>
               <span aria-hidden="true">→</span>
             </button>
@@ -175,23 +175,19 @@
       <div id="sveta-form-view">
         <h3 id="sveta-overlay-title">Почти всё! Оставь свои данные.</h3>
         <form class="sveta-overlay__form" id="sveta-contact-form">
-          <div class="sveta-form-grid">
-            <div class="sveta-form-grid__col">
+          <div class="sveta-form-stack">
               <label class="sveta-form-row sveta-chat__field--warm">
                 <span class="sveta-form-row__label">Имя</span>
                 <input type="text" id="sveta-form-name" name="name" autocomplete="name" required>
               </label>
               <label class="sveta-form-row sveta-chat__field--warm">
                 <span class="sveta-form-row__label">Город</span>
-                <input type="text" id="sveta-form-city" name="city" autocomplete="address-level2" required>
+                <input type="text" id="sveta-form-city" name="city" autocomplete="address-level2">
               </label>
-            </div>
-            <div class="sveta-form-grid__col">
               <label class="sveta-form-row sveta-chat__field--warm">
                 <span class="sveta-form-row__label">Телефон</span>
-                <input type="tel" id="sveta-form-phone" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__">
+                <input type="tel" id="sveta-form-phone" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
               </label>
-            </div>
           </div>
 
           <div class="sveta-form-contacts">
@@ -199,10 +195,6 @@
             <div class="sveta-channels" role="group" aria-label="Способ связи">
               <button type="button" class="sveta-channels__btn" data-channel="telegram" aria-pressed="false">
                 <span class="sveta-channels__label">Telegram</span>
-                <span class="sveta-channels__check" aria-hidden="true"></span>
-              </button>
-              <button type="button" class="sveta-channels__btn" data-channel="max" aria-pressed="false">
-                <span class="sveta-channels__label">Макс</span>
                 <span class="sveta-channels__check" aria-hidden="true"></span>
               </button>
               <button type="button" class="sveta-channels__btn" data-channel="vk" aria-pressed="false">
@@ -259,7 +251,7 @@
       }
     })();
   </script>
-  <script src="js/sveta-fsm.js?v=8" defer></script>
+  <script src="js/sveta-fsm.js?v=9" defer></script>
   <script src="js/main.js?v=4" defer></script>
 </body>
 </html>
