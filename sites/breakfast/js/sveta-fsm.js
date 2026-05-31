@@ -534,7 +534,7 @@
       goState(S.GREETING);
     }
 
-    async function callAi(kind, message) {
+    async function callAi(kind, message, fsmOpts = {}) {
       setLoading(true);
       avatar.playListen();
       try {
@@ -545,6 +545,8 @@
           dreams: data.dreams,
           barriers: data.barriers,
           message: message || undefined,
+          fsm_step: fsmOpts.fsm_step,
+          fsm_signal: fsmOpts.fsm_signal,
         });
         if (!res.reply) {
           appendBot(TEXT.aiError);
@@ -572,7 +574,7 @@
       if (loading) return;
       const chunks = splitLines(text);
       data.dreams.push(...chunks.filter((c) => !data.dreams.includes(c)));
-      const ok = await callAi("dreams_reaction", text);
+      const ok = await callAi("dreams_reaction", text, { fsm_step: 2 });
       if (ok) {
         avatar.playClap();
         goState(S.REACTION_1);
@@ -583,7 +585,7 @@
       if (loading) return;
       const chunks = splitLines(text);
       data.barriers.push(...chunks.filter((c) => !data.barriers.includes(c)));
-      const ok = await callAi("barriers_reaction", text);
+      const ok = await callAi("barriers_reaction", text, { fsm_step: 3 });
       if (ok) goState(S.REACTION_2);
     }
 
@@ -599,6 +601,8 @@
           user_name: data.userName,
           dreams: data.dreams,
           barriers: data.barriers,
+          fsm_step: 3,
+          fsm_signal: "go_on",
         });
         if (!res.ok || !res.reply) appendBot(TEXT.aiError);
         else appendBot(res.reply);

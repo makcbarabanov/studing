@@ -118,7 +118,7 @@ def _fallback_reply(kind: AiKind, name: str, dreams: List[str]) -> str:
         )
     if kind == "barriers_open":
         return (
-            f"Рад, что делишься, {n}. Чтобы двигаться к мечтам, "
+            f"Рада, что делишься, {n}. Чтобы двигаться к мечтам, "
             f"расскажи: что сейчас больше всего мешает и какая поддержка или ресурс нужны?"
         )
     if kind == "barriers_reaction":
@@ -143,6 +143,8 @@ class BreakfastChatRequest(BaseModel):
     action: Literal["ai", "save"]
     session_id: Optional[str] = Field(None, max_length=64)
     ai_kind: Optional[AiKind] = None
+    fsm_step: Optional[int] = Field(None, ge=1, le=4)
+    fsm_signal: Optional[str] = Field(None, max_length=32)
     user_name: Optional[str] = Field(None, max_length=80)
     dreams: Optional[List[str]] = None
     barriers: Optional[List[str]] = None
@@ -438,36 +440,86 @@ def _barriers_block(barriers: List[str]) -> str:
     return "\n".join(f"• {b}" for b in barriers) if barriers else "—"
 
 
-def _ai_system_extra(kind: AiKind, name: str, dreams: List[str], barriers: List[str]) -> tuple[str, str]:
+_SVETA_FEMALE_RULE = (
+    "ЖЁСТКО: Ты — Светлана, женщина, автор проекта. "
+    "Все глаголы о себе только женского рода (рада, подумала, представила, услышала). "
+    "Никогда «рад, что заглянул» — это ошибка."
+)
+
+
+def _fsm_step_hint(step: Optional[int], signal: Optional[str]) -> str:
+    if step == 1:
+        return "Шаг 1: приветствие и знакомство. Имя уже есть — не спрашивай снова."
+    if step == 2:
+        return (
+            "Шаг 2: мечты. Тепло отреагируй на мечты гостя. "
+            "Не переходи к барьерам и не спрашивай «идём дальше» — на сайте есть кнопки."
+        )
+    if step == 3:
+        hint = (
+            "Шаг 3: барьеры и помощники. Гость перешёл к этому шагу. "
+            "ПРЕКРАТИ обсуждать детали мечты. "
+            "Спроси: что мешает достичь мечты и что может помочь."
+        )
+        if (signal or "").strip() == "go_on":
+            hint += " Сигнал с фронта: нажата кнопка «Идём дальше» — только тема барьеров/ресурсов."
+        return hint
+    if step == 4:
+        return "Шаг 4: контакты. Форма на сайте — кратко поддержи и пообещай скорую связь."
+    return ""
+
+
+def _resolve_fsm_step(body: BreakfastChatRequest) -> Optional[int]:
+    if body.fsm_step is not None:
+        return body.fsm_step
+    if body.ai_kind == "dreams_reaction":
+        return 2
+    if body.ai_kind in ("barriers_open", "barriers_reaction"):
+        return 3
+    return None
+
+
+def _ai_system_extra(
+    kind: AiKind,
+    name: str,
+    dreams: List[str],
+    barriers: List[str],
+    *,
+    fsm_step: Optional[int] = None,
+    fsm_signal: Optional[str] = None,
+) -> tuple[str, str]:
     dreams_txt = _dreams_block(dreams)
     barriers_txt = _barriers_block(barriers)
+    step_hint = _fsm_step_hint(fsm_step, fsm_signal)
 
     if kind == "dreams_reaction":
         user = f"Гость {name} написал о мечтах:\n{dreams_txt}"
         extra = (
+            f"{step_hint}\n"
             "Кратко и тепло отреагируй на мечты (2–4 предложения). Реагируй на конкретику. "
-            "К мужчине — «рад», к женщине — «рада». "
-            "ЗАПРЕЩЕНО спрашивать «добавишь ещё», «идём дальше», «какую мечту выбрать» — "
-            "на сайте уже есть кнопки «Добавить мечту» и «Идём дальше». Не дублируй их текстом."
+            "ЗАПРЕЩЕНО спрашивать «добавишь ещё», «идём дальше» — "
+            "на сайте кнопки «Добавить мечту» и «Идём дальше». Не дублируй их текстом."
         )
         return user, extra
 
     if kind == "barriers_open":
         user = (
-            f"Гость {name} нажал «Идём дальше» и перешёл к обсуждению барьеров.\n"
-            f"Его мечты:\n{dreams_txt}"
+            f"Гость {name} нажал «Идём дальше» и перешёл к шагу 3 (барьеры).\n"
+            f"Его мечты (уже обсуждены, не углубляйся):\n{dreams_txt}"
         )
         extra = (
-            "Сначала одним-двумя предложениями тепло прокомментируй мечты. "
-            "Затем одним вопросом спроси, что сейчас мешает на пути к ним и какие ресурсы нужны. "
-            "2–4 предложения всего, один вопрос в конце. "
-            "ЗАПРЕЩЕНО просить добавить ещё мечты, выбрать одну мечту или спрашивать «идём дальше»."
+            f"{step_hint}\n"
+            "Максимум 1–2 коротких предложения поддержки — без новых вопросов про мечты. "
+            "Затем одним вопросом: что мешает и что поможет. "
+            "2–4 предложения всего. "
+            "ЗАПРЕЩЕНО просить добавить мечты или «идём дальше»."
         )
         return user, extra
 
     if kind == "barriers_reaction":
         user = f"Гость {name} написал о барьерах и ресурсах:\n{barriers_txt}\n\nМечты:\n{dreams_txt}"
         extra = (
+            f"{step_hint}\n"
             "Дай эмпатичный комментарий по сути (2–4 предложения). "
             "ЗАПРЕЩЕНО спрашивать «добавить ещё», «идём дальше» — "
             "на сайте кнопки «Добавить комментарий» и «Дальше». Не дублируй их."
@@ -491,10 +543,21 @@ def _handle_ai(body: BreakfastChatRequest) -> BreakfastChatResponse:
         if not body.message or not body.message.strip():
             raise HTTPException(status_code=400, detail="Нужен message")
 
-    user_text, extra = _ai_system_extra(body.ai_kind, name, dreams, barriers)
+    user_text, extra = _ai_system_extra(
+        body.ai_kind,
+        name,
+        dreams,
+        barriers,
+        fsm_step=_resolve_fsm_step(body),
+        fsm_signal=body.fsm_signal,
+    )
     if body.message and body.message.strip() and body.ai_kind in ("dreams_reaction", "barriers_reaction"):
         user_text += f"\n\nПоследнее сообщение гостя:\n{body.message.strip()}"
-    system = _load_system_prompt() + f"\n\n---\nИмя гостя: {name}.\n\n{extra}\n\nОтвечай ТОЛЬКО на русском языке. Никаких иероглифов и английского."
+    system = (
+        _load_system_prompt()
+        + f"\n\n---\n{_SVETA_FEMALE_RULE}\n\nИмя гостя: {name}.\n\n{extra}\n\n"
+        "Отвечай ТОЛЬКО на русском языке. Никаких иероглифов и английского."
+    )
 
     try:
         reply = _call_ai([], user_text, system)
