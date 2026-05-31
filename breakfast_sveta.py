@@ -70,10 +70,11 @@ def _append_chat_log(record: Dict[str, Any]) -> None:
 RATE_LIMIT = 30
 RATE_WINDOW_SEC = 60.0
 
-ProviderKind = Literal["gemini", "huggingface", "openai"]
+ProviderKind = Literal["openrouter", "gemini", "huggingface", "openai"]
 AiKind = Literal["dreams_reaction", "barriers_open", "barriers_reaction"]
 ContactChannel = Literal["telegram", "max", "vk", "whatsapp", "email"]
 
+OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 HF_ROUTER_BASE = "https://router.huggingface.co/v1"
 
 GEMINI_ERROR_REPLY = "Ой, магия немного зависла. Можешь отправить еще раз?"
@@ -205,6 +206,10 @@ def _env_keys(prefix: str) -> List[str]:
     return keys
 
 
+def _openrouter_keys() -> List[str]:
+    return _env_keys("OPENROUTER_API_KEY")
+
+
 def _gemini_keys() -> List[str]:
     return _env_keys("GEMINI_API_KEY")
 
@@ -270,10 +275,16 @@ def _openai_reply(
     *,
     base_url: Optional[str] = None,
     model_name: Optional[str] = None,
+    default_headers: Optional[Dict[str, str]] = None,
 ) -> str:
     from openai import OpenAI
 
-    client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
+    kwargs: Dict[str, Any] = {"api_key": api_key}
+    if base_url:
+        kwargs["base_url"] = base_url
+    if default_headers:
+        kwargs["default_headers"] = default_headers
+    client = OpenAI(**kwargs)
     model = model_name or (os.getenv("OPENAI_MODEL") or "gpt-4o-mini").strip()
     response = client.chat.completions.create(
         model=model,
@@ -285,6 +296,26 @@ def _openai_reply(
     return reply
 
 
+def _openrouter_reply(api_key: str, history: List[Dict[str, str]], user_text: str, system: str) -> str:
+    model = (os.getenv("OPENROUTER_MODEL") or "google/gemini-flash-1.5").strip()
+    headers: Dict[str, str] = {}
+    referer = (os.getenv("OPENROUTER_HTTP_REFERER") or "https://islanddream.ru").strip()
+    title = (os.getenv("OPENROUTER_APP_TITLE") or "OSTROV Breakfast").strip()
+    if referer:
+        headers["HTTP-Referer"] = referer
+    if title:
+        headers["X-Title"] = title
+    return _openai_reply(
+        api_key,
+        history,
+        user_text,
+        system,
+        base_url=OPENROUTER_BASE,
+        model_name=model,
+        default_headers=headers or None,
+    )
+
+
 def _huggingface_reply(api_key: str, history: List[Dict[str, str]], user_text: str, system: str) -> str:
     model_name = (os.getenv("HF_MODEL") or "Qwen/Qwen2.5-7B-Instruct").strip()
     return _openai_reply(api_key, history, user_text, system, base_url=HF_ROUTER_BASE, model_name=model_name)
@@ -292,6 +323,8 @@ def _huggingface_reply(api_key: str, history: List[Dict[str, str]], user_text: s
 
 def _all_routes() -> List[RouteState]:
     routes: List[RouteState] = []
+    for i in range(len(_openrouter_keys())):
+        routes.append({"provider": "openrouter", "key_index": i})
     for i in range(len(_gemini_keys())):
         routes.append({"provider": "gemini", "key_index": i})
     for i in range(len(_openai_keys())):
@@ -303,7 +336,9 @@ def _all_routes() -> List[RouteState]:
 
 
 def _route_key(route: RouteState) -> str:
-    if route["provider"] == "gemini":
+    if route["provider"] == "openrouter":
+        keys = _openrouter_keys()
+    elif route["provider"] == "gemini":
         keys = _gemini_keys()
     elif route["provider"] == "huggingface":
         keys = _hf_keys()
@@ -317,6 +352,8 @@ def _route_key(route: RouteState) -> str:
 
 def _call_route(route: RouteState, history: List[Dict[str, str]], user_text: str, system: str) -> str:
     api_key = _route_key(route)
+    if route["provider"] == "openrouter":
+        return _openrouter_reply(api_key, history, user_text, system)
     if route["provider"] == "gemini":
         return _gemini_reply(api_key, history, user_text, system)
     if route["provider"] == "huggingface":

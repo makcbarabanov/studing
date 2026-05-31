@@ -134,8 +134,11 @@ docker compose up --build
 
 | Переменная | Назначение |
 |------------|------------|
-| `GEMINI_API_KEY` | Ключ Google AI (основной) |
-| `GEMINI_API_KEY_2`, … | Ротация при 429/quota |
+| `OPENROUTER_API_KEY` | **Основной** ключ OpenRouter (Gemini через прокси) |
+| `OPENROUTER_API_KEY_2`, … | Ротация при 429 |
+| `OPENROUTER_MODEL` | По умолчанию `google/gemini-flash-1.5` |
+| `OPENROUTER_HTTP_REFERER` | Заголовок для OpenRouter (default: `https://islanddream.ru`) |
+| `GEMINI_API_KEY` | Fallback: прямой Google AI (если нужен) |
 | `GEMINI_MODEL` | По умолчанию `gemini-2.0-flash` |
 | `BREAKFAST_SAVE_TO_DB` | `1` — писать лиды в PostgreSQL; **по умолчанию выкл.** (только JSONL) |
 | `BREAKFAST_CHAT_LOG` | Путь к JSONL (default: `web-app/logs/chat_sessions.jsonl`) |
