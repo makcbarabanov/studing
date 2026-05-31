@@ -261,6 +261,10 @@
       document.getElementById("sveta-inline-video"),
       document.getElementById("sveta-inline-avatar")
     );
+    const successAvatar = createSvetaAvatar(
+      document.getElementById("sveta-success-video"),
+      document.getElementById("sveta-success-avatar")
+    );
 
     const form = /** @type {HTMLFormElement} */ (document.getElementById("sveta-contact-form"));
     const formName = /** @type {HTMLInputElement} */ (document.getElementById("sveta-form-name"));
@@ -331,6 +335,10 @@
       return input.value.trim().length >= inputMinLen();
     }
 
+    function canProceedToContact() {
+      return data.dreams.length >= 1 && data.barriers.length >= 1;
+    }
+
     function syncComposer() {
       const showComposer = INLINE_STATES.includes(uiState);
       if (composer) composer.hidden = !showComposer;
@@ -342,9 +350,12 @@
       input.disabled = loading || !showComposer;
       sendBtn.disabled = loading || !showComposer || !canSendText();
 
-      [btnAddDream, btnGoOn, btnAddDream2, btnAddComment, btnNext].forEach((btn) => {
+      [btnAddDream, btnGoOn, btnAddDream2, btnAddComment].forEach((btn) => {
         if (btn) btn.disabled = loading;
       });
+      if (btnNext) {
+        btnNext.disabled = uiState !== S.REACTION_2 || !canProceedToContact();
+      }
 
       if (uiState === S.GREETING) input.placeholder = PLACEHOLDERS.greeting;
       else if (uiState === S.DREAMS) input.placeholder = PLACEHOLDERS.dreams;
@@ -504,6 +515,7 @@
       document.body.style.overflow = "hidden";
       if (formView) formView.hidden = mode !== "form";
       if (successView) successView.hidden = mode !== "success";
+      if (mode === "success") successAvatar.playClap();
     }
 
     function closeOverlay() {
@@ -609,7 +621,7 @@
     }
 
     function openContactForm() {
-      if (loading) return;
+      if (!canProceedToContact()) return;
       appendBot(TEXT.s6);
       if (formName) formName.value = data.userName;
       goState(S.FORM);
@@ -735,7 +747,6 @@
         if (successText) successText.textContent = TEXT.s7;
         goState(S.SUCCESS);
         openOverlay("success");
-        avatar.playHello();
       } catch {
         if (formError) {
           formError.textContent = TEXT.dbError;

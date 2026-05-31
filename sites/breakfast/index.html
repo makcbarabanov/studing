@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=9">
+  <link rel="stylesheet" href="css/main.css?v=10">
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
@@ -230,8 +230,21 @@
       </div>
 
       <div id="sveta-success-view" hidden>
-        <p class="sveta-overlay__success" id="sveta-success-text"></p>
-        <button type="button" class="btn btn--primary btn--block" id="sveta-btn-close">Закрыть окно</button>
+        <div class="sveta-success-view__inner">
+          <div class="sveta-avatar sveta-avatar--modal sveta-avatar--success" id="sveta-success-avatar" aria-hidden="true">
+            <video
+              class="sveta-avatar__video"
+              id="sveta-success-video"
+              muted
+              playsinline
+              preload="auto"
+              disablePictureInPicture
+            ></video>
+            <span class="sveta-avatar__fallback">С</span>
+          </div>
+          <p class="sveta-overlay__success" id="sveta-success-text"></p>
+          <button type="button" class="btn btn--primary btn--block" id="sveta-btn-close">Закрыть окно</button>
+        </div>
       </div>
     </div>
   </div>
@@ -252,7 +265,7 @@
       }
     })();
   </script>
-  <script src="js/sveta-fsm.js?v=10" defer></script>
+  <script src="js/sveta-fsm.js?v=11" defer></script>
   <script src="js/main.js?v=4" defer></script>
 </body>
 </html>
