@@ -34,7 +34,7 @@ FastAPI монтирует лендинг на `/breakfast/` и отдаёт API
 - `POST /api/v1/funnel/breakfast/chat` — ответы Светы и финальное сохранение
 - `POST /api/v1/funnel/breakfast/log` — события с фронта (сообщения, кнопки, state)
 
-На проде статика лежит в `/home/makc/Apps/sites/breakfast/` и подключается в Docker volume.
+На проде статика лежит в **`/home/makc/Apps/island/sites/breakfast/`** (в git) и монтируется в Docker. Legacy-папка `/home/makc/Apps/sites/breakfast/` **не используется** — см. [Readme/sites-architecture.md](../../Readme/sites-architecture.md).
 
 ---
 
@@ -196,47 +196,28 @@ docker compose up --build
 
 ## Сборка и деплой
 
-### Build-версия
+### Деплой (git + Docker)
 
-Файл [`version.json`](version.json) — `{"version": N}`. Число видно в **футере** лендинга (`v.N`).
-
-Перед деплоем:
+**Актуально:** только через git, без rsync.
 
 ```bash
-cd sites/breakfast
-./scripts/bump-version.sh    # N → N+1
-./scripts/deploy-prod.sh     # bump + rsync на прод
-```
-
-Если на сайте `v.11`, а локально `12` — фронт на прод **не обновился**.
-
-### Деплой состоит из двух шагов
-
-### 1. Бэкенд (git, на сервере)
-
-```bash
+# Forge: после push в main
+# Продагент [ПРОД]:
 cd /home/makc/Apps/island
 git pull --ff-only origin main
 docker compose up -d --build
-mkdir -p logs
 ```
 
-### 2. Фронт (rsync с ноута)
+Фронт breakfast подхватывается из `sites/breakfast/` в образе/volume. Build-версия — [`version.json`](version.json), футер `v.N`.
 
 ```bash
-rsync -avz sites/breakfast/js/sveta-fsm.js \
-  makc@188.225.44.48:/home/makc/Apps/sites/breakfast/js/
-
-rsync -avz sites/breakfast/css/main.css \
-  makc@188.225.44.48:/home/makc/Apps/sites/breakfast/css/
-
-rsync -avz sites/breakfast/index.html \
-  makc@188.225.44.48:/home/makc/Apps/sites/breakfast/
+cd sites/breakfast
+./scripts/bump-version.sh    # перед коммитом, если менялся фронт
 ```
 
-После деплоя — **Ctrl+Shift+R** в браузере (кэш `?v=` у скриптов).
+Скрипт `scripts/deploy-prod.sh` — **legacy rsync**, оставлен для справки; не использовать для текущего конвейера.
 
-Подробнее: `web-app/Readme/RUNBOOK.md`.
+Подробнее: `web-app/Readme/RUNBOOK.md`, `web-app/Readme/sites-architecture.md`.
 
 ---
 

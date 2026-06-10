@@ -11,7 +11,7 @@
 1. `/home/makc/Apps/OSTROV/CONTEXT.md`
 2. `/home/makc/Apps/OSTROV/AGENTS.md`
 3. Этот файл + `sites/breakfast/README.md`
-4. Прецедент лендинга: `web-app/landing/` (mount `/landing/` в `main.py`)
+4. Прецедент лендинга: `web-app/sites/landing/` (mount `/landing/` в `main.py`)
 
 ---
 

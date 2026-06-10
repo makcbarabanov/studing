@@ -9,7 +9,8 @@ services:
     env_file:
       - .env
     volumes:
-      # Прод: /home/makc/Apps/sites/breakfast → /app/sites/breakfast (после git pull + rsync/copy)
-      # Песок / git-канон: web-app/sites/breakfast
+      # Внутренние подсайты Острова — канон в git: web-app/sites/{breakfast,landing}
+      # Прод: git pull в /home/makc/Apps/island → volume из репозитория (не /home/makc/Apps/sites/)
       - ./sites/breakfast:/app/sites/breakfast:ro
+      - ./sites/landing:/app/sites/landing:ro
       - ./logs:/app/logs

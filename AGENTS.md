@@ -2,7 +2,8 @@
 
 > **Канонический справочник ролей:** [Readme/AGENTS.md](Readme/AGENTS.md)  
 > **Маршрутизатор личности:** `.cursor/rules/identity.mdc`  
-> **Инструкция Продагента:** [Readme/Prodagent.md](Readme/Prodagent.md)
+> **Инструкция Продагента:** [Readme/Prodagent.md](Readme/Prodagent.md)  
+> **Подсайты Острова (`/breakfast`, `/landing`):** [Readme/sites-architecture.md](Readme/sites-architecture.md)
 
 ## Почему можно «отправить не тому»
 

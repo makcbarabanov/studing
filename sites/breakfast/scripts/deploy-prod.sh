@@ -1,35 +1,23 @@
 #!/usr/bin/env bash
-# Деплой лендинга «Завтрак» на прод (rsync). Требует SSH на makc@188.225.44.48
+# DEPRECATED: rsync в /home/makc/Apps/sites/breakfast больше не используется.
+# Актуальный деплой: git push (Forge) → git pull + docker compose up (Продагент).
+# См. Readme/sites-architecture.md и sites/breakfast/README.md
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-HOST="${BREAKFAST_DEPLOY_HOST:-makc@188.225.44.48}"
-REMOTE="${BREAKFAST_DEPLOY_PATH:-/home/makc/Apps/sites/breakfast}"
 
-if ! git -C "$ROOT/.." rev-parse --git-dir >/dev/null 2>&1; then
-  echo "✗ Git не найден в web-app — деплой только после push в main" >&2
-  exit 1
+echo "⚠ deploy-prod.sh (rsync) устарел." >&2
+echo "" >&2
+echo "Конвейер:" >&2
+echo "  1. Forge: commit + push origin main" >&2
+echo "  2. [ПРОД] cd /home/makc/Apps/island && git pull --ff-only origin main" >&2
+echo "  3. [ПРОД] docker compose up -d --build" >&2
+echo "" >&2
+
+if [[ "${1:-}" == "--bump-only" ]]; then
+  echo "→ bump version.json only"
+  "$ROOT/scripts/bump-version.sh"
+  exit 0
 fi
 
-branch="$(git -C "$ROOT/.." rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
-if [[ "$branch" != "main" ]]; then
-  echo "⚠ Ветка $branch — золотой стандарт: deploy только с main после push" >&2
-fi
-
-echo "→ bump version.json"
-NEW="$("$ROOT/scripts/bump-version.sh")"
-echo "→ build v.$NEW"
-
-RSYNC=(rsync -avz --delete-excluded)
-for path in version.json index.html css/main.css js/sveta-fsm.js js/main.js; do
-  if [[ -f "$ROOT/$path" ]]; then
-    case "$path" in
-      css/*) dest="$REMOTE/css/" ;;
-      js/*) dest="$REMOTE/js/" ;;
-      *) dest="$REMOTE/" ;;
-    esac
-    echo "→ $path → $dest"
-    "${RSYNC[@]}" "$ROOT/$path" "$HOST:$dest"
-  fi
-done
-
-echo "✓ Deployed breakfast build v.$NEW to $HOST:$REMOTE"
+echo "Для bump версии без rsync: $0 --bump-only" >&2
+exit 1

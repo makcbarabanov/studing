@@ -10,16 +10,17 @@
 
 - Файл: `sites/breakfast/version.json` → `{"version": N}`
 - Отображение: футер лендинга (`v.N`)
-- Перед деплоем: `./sites/breakfast/scripts/bump-version.sh` (или `deploy-prod.sh` бампит сам)
+- Перед деплоем: `./sites/breakfast/scripts/bump-version.sh` (или `$0 --bump-only` у deploy-prod.sh)
 
 ## Команда «Задеплой» от Макса
 
 1. Правки в `web-app/sites/breakfast/` (+ бэкенд при необходимости).
 2. `git add` → `git commit` → **`git push origin main`**
-3. `./sites/breakfast/scripts/bump-version.sh` (если deploy-prod.sh не бампит сам)
-4. **`./sites/breakfast/scripts/deploy-prod.sh`** — только после push
-5. Бэкенд на проде: `[ПРОД]` → `git pull && docker compose up -d --build`
-6. Ответ: **«Версия обновлена до N, деплой выполнен»** + hash коммита
+3. `./sites/breakfast/scripts/bump-version.sh` (если менялся фронт)
+4. **[ПРОД]** `git pull --ff-only origin main` → `docker compose up -d --build`
+5. Ответ: **«Версия обновлена до N, деплой выполнен»** + hash коммита
+
+**Не использовать:** `deploy-prod.sh` (legacy rsync в `/home/makc/Apps/sites/`). См. `Readme/sites-architecture.md`.
 
 ## Smoke
 

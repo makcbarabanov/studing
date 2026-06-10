@@ -102,7 +102,7 @@ if EXAMPLES_DIR.is_dir():
 ASSETS_UI_DIR = BASE_DIR / "assets" / "ui"
 if ASSETS_UI_DIR.is_dir():
     app.mount("/assets/ui", StaticFiles(directory=str(ASSETS_UI_DIR)), name="assets_ui")
-LANDING_DIR = BASE_DIR / "landing"
+LANDING_DIR = BASE_DIR / "sites" / "landing"
 if LANDING_DIR.is_dir():
     app.mount("/landing", StaticFiles(directory=str(LANDING_DIR), html=True), name="landing")
 BREAKFAST_DIR = resolve_breakfast_dir()
