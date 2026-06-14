@@ -1,46 +1,33 @@
--- Buddy links v1: directed viewer→subject permissions (replaces users.buddy_id over time)
--- Branch: feat/buddy-system | Additive only — users.buddy_id kept for fallback
--- Run: psql -f _sql/mig_user_buddy_links.sql (sandbox first)
-
+-- Additive migration: create or update user_buddy_links schema for Phase A
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS user_buddy_links (
-    id SERIAL PRIMARY KEY,
-    viewer_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    subject_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    can_read BOOLEAN NOT NULL DEFAULT true,
-    can_write BOOLEAN NOT NULL DEFAULT false,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+CREATE TABLE IF NOT EXISTS public.user_buddy_links (
+    id BIGSERIAL PRIMARY KEY,
+    viewer_id BIGINT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    subject_id BIGINT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    link_type VARCHAR(100) NOT NULL DEFAULT 'custom',
+    can_read BOOLEAN NOT NULL DEFAULT TRUE,
+    can_write BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    revoked_at TIMESTAMPTZ,
-    CONSTRAINT user_buddy_links_viewer_subject_uniq UNIQUE (viewer_id, subject_id),
-    CONSTRAINT user_buddy_links_no_self CHECK (viewer_id != subject_id),
-    CONSTRAINT user_buddy_links_status_chk CHECK (status IN ('pending', 'active', 'revoked'))
+    CHECK (viewer_id != subject_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_buddy_links_viewer_active
-    ON user_buddy_links (viewer_id)
-    WHERE status = 'active';
+ALTER TABLE public.user_buddy_links
+    ADD COLUMN IF NOT EXISTS link_type VARCHAR(100) NOT NULL DEFAULT 'custom',
+    ADD COLUMN IF NOT EXISTS can_read BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS can_write BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
-CREATE INDEX IF NOT EXISTS idx_user_buddy_links_subject_active
-    ON user_buddy_links (subject_id)
-    WHERE status = 'active';
+ALTER TABLE public.user_buddy_links
+    ALTER COLUMN viewer_id TYPE BIGINT USING viewer_id::BIGINT,
+    ALTER COLUMN subject_id TYPE BIGINT USING subject_id::BIGINT;
 
--- Backfill from legacy 1:1 buddy_id (one row per user who has a buddy)
--- can_write mirrors editor-side buddy_trust (see _can_edit_buddy_dream in main.py)
-INSERT INTO user_buddy_links (viewer_id, subject_id, can_read, can_write, status)
-SELECT
-    u.id,
-    u.buddy_id,
-    true,
-    COALESCE(u.buddy_trust, false),
-    'active'
-FROM users u
-WHERE u.buddy_id IS NOT NULL
-ON CONFLICT (viewer_id, subject_id) DO UPDATE SET
-    can_read = EXCLUDED.can_read,
-    can_write = EXCLUDED.can_write,
-    status = 'active',
-    revoked_at = NULL;
+ALTER TABLE public.user_buddy_links
+    ADD CONSTRAINT IF NOT EXISTS user_buddy_links_no_self CHECK (viewer_id != subject_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_buddy_links_viewer ON public.user_buddy_links(viewer_id);
+CREATE INDEX IF NOT EXISTS idx_user_buddy_links_subject ON public.user_buddy_links(subject_id);
 
 COMMIT;
