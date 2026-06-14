@@ -205,6 +205,29 @@ UNIQUE(book_id, date). Индекс: `idx_dream_books_log_book_date`.
 
 ---
 
+### 7a. `user_buddy_links`
+
+**Назначение:** Хранит отношения «бадди»/помощник между пользователями с гибкими правами доступа. Таблица добавлена для поддержки Multi-Buddy System (epic: `user_buddy_links`). Это независимый слой авторизаций (не заменяет `users.buddy_id` и `buddy_requests`).
+
+| Колонка     | Тип            | Описание |
+|-------------|----------------|----------|
+| `id`        | BIGSERIAL PRIMARY KEY | Уникальный идентификатор связи. |
+| `viewer_id` | BIGINT NOT NULL | Кто смотрит/получает доступ. REFERENCES `users(id)` ON DELETE CASCADE. |
+| `subject_id`| BIGINT NOT NULL | На кого даётся доступ. REFERENCES `users(id)` ON DELETE CASCADE. |
+| `link_type` | VARCHAR(100) NOT NULL DEFAULT 'custom' | Тип связи (например, `mentor`, `coach`, `custom`). |
+| `can_read`  | BOOLEAN NOT NULL DEFAULT true | Разрешение на чтение. |
+| `can_write` | BOOLEAN NOT NULL DEFAULT false | Разрешение на запись/редактирование. |
+| `status`    | VARCHAR(50) NOT NULL DEFAULT 'pending' | Статус связи: `pending`, `active`, `revoked`. |
+| `created_at`| TIMESTAMPTZ NOT NULL DEFAULT NOW() | Дата создания записи. |
+
+**Ограничения:** `CHECK (viewer_id != subject_id)` — запрещает самосвязь (SRE правило).
+
+Индексы: `idx_user_buddy_links_viewer`, `idx_user_buddy_links_subject`.
+
+Миграция: `_sql/mig_user_buddy_links.sql` (additive).
+
+---
+
 ### 8. `user_dream_views`
 
 **Назначение:** Просмотры мечт в витрине. Одна запись = пользователь просмотрел мечту (карточка во вьюпорте). Используется для фильтра «Новые» (непросмотренные в приоритете) и «Просмотренные». Миграция mig_showcase_tables.

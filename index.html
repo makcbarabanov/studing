@@ -639,19 +639,114 @@
         .app-footer-logout { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
         .app-footer-logout:hover { color: #666; }
         .app-version { font-size: 11px; color: #999; margin-left: auto; }
-        /* Хедер: аватар (высота = 3 строки) + справа: имя, сбылось|помог, Мечты|Шаги */
-        .app-header { display: flex; align-items: stretch; gap: 12px; padding-bottom: 16px; min-height: 72px; }
-        .app-header-avatar { width: 72px; min-width: 72px; height: 72px; min-height: 72px; border-radius: 50%; background: linear-gradient(145deg, #e8e8e8, #d0d0d0); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #555; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.95); flex-shrink: 0; align-self: flex-start; }
-        .app-header-avatar { position: relative; }
+        /* Хедер: 3 строки — аватар на 1–2, имя на оси 1|2, навигация на 3 */
+        .app-header {
+            --header-avatar-size: 64px;
+            --header-pair-row-height: 32px;
+            display: grid;
+            grid-template-columns: var(--header-avatar-size) 1fr;
+            grid-template-rows: var(--header-pair-row-height) var(--header-pair-row-height) auto;
+            column-gap: 12px;
+            row-gap: 2px;
+            padding-bottom: 8px;
+            align-items: stretch;
+            box-sizing: border-box;
+        }
+        .app-header-avatar {
+            position: relative;
+            grid-column: 1;
+            grid-row: 1 / 3;
+            width: var(--header-avatar-size);
+            min-width: var(--header-avatar-size);
+            height: var(--header-avatar-size);
+            min-height: var(--header-avatar-size);
+            align-self: center;
+            justify-self: center;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #e8e8e8, #d0d0d0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #555;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255,255,255,0.95);
+            flex-shrink: 0;
+        }
         .app-header-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-        .app-header-avatar .avatar-placeholder-camera { font-size: 26px; color: #999; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
-        .app-header-center { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; gap: 4px; }
-        .app-header-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0; }
+        .app-header-avatar .avatar-placeholder-camera { font-size: 22px; color: #999; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .app-header-top {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            position: relative;
+            min-width: 0;
+            min-height: calc(var(--header-pair-row-height) * 2);
+        }
+        .app-header-name-row {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+            min-width: 0;
+            z-index: 1;
+        }
         .app-header-name { font-family: 'kudryashevheadline', 'Kudryashev Headline', serif; font-size: 1.35em; font-weight: 600; color: #222; letter-spacing: 0.02em; line-height: 1.3; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .app-header-name-actions { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
         .app-header-bell-next-to-name { margin-left: 0; margin-right: 0; width: 36px; height: 36px; font-size: 1.15em; flex-shrink: 0; }
         .header-task-code { font-size: 0.75rem; color: #777; font-weight: normal; margin-left: 4px; }
-        .app-header-stats { font-size: 12px; color: #666; line-height: 1.3; white-space: nowrap; }
+        .app-header-stats {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.3;
+            white-space: nowrap;
+            justify-self: start;
+            min-width: 0;
+        }
+        .profile-accordion { max-width: 480px; }
+        .profile-accordion-item { border: 1px solid #e4e4e4; border-radius: 8px; margin-bottom: 10px; overflow: hidden; background: #fff; }
+        .profile-accordion-item.open .profile-accordion-body { display: block; }
+        .profile-accordion-item.open .profile-accordion-chevron { transform: rotate(180deg); }
+        .profile-accordion-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; background: #fafafa; border: none; cursor: pointer; font-size: 14px; font-weight: 600; color: #333; text-align: left; }
+        .profile-accordion-head:hover { background: #f3f3f3; }
+        .profile-accordion-chevron { font-size: 12px; color: #888; transition: transform 0.2s; flex-shrink: 0; }
+        .profile-accordion-body { display: none; padding: 14px; border-top: 1px solid #eee; }
+        .profile-buddy-hint { margin: 0 0 12px; font-size: 12px; color: #888; line-height: 1.45; }
+        .profile-buddy-grant-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .profile-buddy-grant-row:last-child { border-bottom: none; }
+        .profile-buddy-grant-name { flex: 1 1 auto; font-size: 14px; font-weight: 600; color: #333; min-width: 0; }
+        .profile-buddy-grant-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+        .profile-buddy-action-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; font-size: 1.1em; opacity: 0.45; line-height: 1; color: #666; }
+        .profile-buddy-action-btn:hover { opacity: 0.85; }
+        .profile-buddy-action-btn.active { opacity: 1; color: #1976D2; }
+        .profile-buddy-action-btn.profile-buddy-action-delete { color: #c62828; opacity: 0.65; }
+        .profile-buddy-action-btn.profile-buddy-action-delete:hover { opacity: 1; }
+        .profile-edit-footer { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; max-width: 480px; }
+        .profile-buddy-add-btn { margin-top: 12px; padding: 8px 14px; font-size: 13px; font-weight: 600; border: 1px solid #4CAF50; background: rgba(76, 175, 80, 0.08); color: #2e7d32; border-radius: 6px; cursor: pointer; }
+        .profile-buddy-add-btn:hover { background: rgba(76, 175, 80, 0.16); }
+        .profile-buddy-incoming-box { margin-bottom: 12px; padding: 10px 12px; background: #f5faf5; border: 1px solid #c8e6c9; border-radius: 8px; }
+        .profile-buddy-incoming-box .buddy-slot-request-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #333; }
+        .profile-buddy-incoming-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .cabinet-picker { position: fixed; z-index: 200; min-width: 220px; max-width: min(92vw, 320px); background: #fff; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.14); padding: 6px 0; }
+        .cabinet-picker.hidden { display: none; }
+        .cabinet-picker-title { padding: 8px 14px 6px; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+        .cabinet-picker-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; background: none; cursor: pointer; text-align: left; font-size: 14px; color: #333; }
+        .cabinet-picker-item:hover { background: #f5f5f5; }
+        .cabinet-picker-item.active { background: rgba(76, 175, 80, 0.1); }
+        .cabinet-picker-item.active .cabinet-picker-name { color: #2e7d32; font-weight: 600; }
+        .cabinet-picker-avatar { width: 36px; height: 36px; border-radius: 50%; background: #e8e8e8; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #555; }
+        .cabinet-picker-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .cabinet-picker-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cabinet-picker-sep { height: 1px; background: #eee; margin: 4px 0; }
+        .cabinet-picker-settings { color: #666; font-size: 13px; }
+        .app-header-avatar.cabinet-picker-open { box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.35); }
         .app-header-stats .stat-num { font-weight: 600; }
         .app-header-stats .stat-clickable { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .app-header-stats .stat-clickable:hover { color: #4CAF50; }
@@ -1262,9 +1357,15 @@
             .container { padding: 12px; max-width: 100%; backdrop-filter: none !important; }
             .app-sticky-top { width: 100%; left: 0; transform: none; border-radius: 0; }
             .app-sticky-inner { padding: 12px 12px 0; }
-            .app-header { gap: 8px; padding-bottom: 8px; min-height: 56px; }
-            .app-header-avatar { width: 48px; min-width: 48px; height: 48px; min-height: 48px; font-size: 16px; }
-            .app-header-center { gap: 2px; }
+            .app-header {
+                --header-avatar-size: 44px;
+                --header-pair-row-height: 22px;
+                column-gap: 8px;
+                row-gap: 1px;
+                padding-bottom: 6px;
+            }
+            .app-header-avatar { font-size: 15px; }
+            .app-header-avatar .avatar-placeholder-camera { font-size: 16px; }
             .app-header-name { font-size: 0.95em; line-height: 1.25; }
             .app-header-bell-next-to-name { width: 32px; height: 32px; font-size: 1em; }
             .app-header-stats { font-size: 10px; }
@@ -1485,21 +1586,22 @@
             <!-- Хедер: аватар + справа: имя, сбылось|помог -->
             <header class="app-header">
                 <div class="app-header-avatar" id="profile-avatar" title="Аватар"><span class="avatar-placeholder-camera">📷</span></div>
-                <div class="app-header-center">
+                <div class="app-header-top">
                     <div class="app-header-name-row">
                         <div class="app-header-name" id="profile-full_name">—</div>
-                        <div class="app-header-name-actions" role="group" aria-label="Уведомления и библиотека">
+                        <div class="app-header-name-actions" role="group" aria-label="Уведомления, библиотека и личный кабинет">
                         <button type="button" id="header-bell" class="app-header-bell app-header-bell-next-to-name" aria-label="Уведомления" title="Уведомления"><span class="app-header-bell-icon">🔔</span><span id="header-bell-dot" class="app-header-bell-dot hidden"></span></button>
                         <button type="button" id="header-books" class="app-header-bell app-header-bell-next-to-name" aria-label="Библиотека" title="Библиотека"><span class="app-header-bell-icon">📚</span></button>
+                        <button type="button" id="header-cabinet" class="app-header-bell app-header-bell-next-to-name" aria-label="Личный кабинет" title="Личный кабинет"><span class="app-header-bell-icon">⚙️</span><span id="header-cabinet-dot" class="app-header-bell-dot hidden"></span></button>
                         </div>
                     </div>
-                    <div class="app-header-stats">
-                        <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span class="cabinet-nav-reports-wrap"><span id="header-link-reports" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Отчёты по дням">✈️</span><span id="header-reports-dot" class="app-header-reports-dot hidden" aria-hidden="true"></span></span><span class="stat-sep"> | </span><span id="header-link-diary" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Дневник шагов">дневник</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
-                        <span id="stat-dreams-ratio" class="stat-num hidden" aria-hidden="true"></span><span id="stat-helped-n" class="stat-num hidden" aria-hidden="true"></span>
-                    </div>
                 </div>
-                <div class="app-header-buddy-slot" id="header-buddy-slot" role="button" tabindex="0" aria-label="Переключить на бадди"><span class="buddy-slot-placeholder">—</span></div>
+                <div class="app-header-stats">
+                    <span id="header-link-dreams" class="stat-clickable cabinet-nav-link active" role="button" tabindex="0" title="Мои мечты / Мечты бадди">мечты</span><span class="stat-sep"> | </span><span id="header-link-steps" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Шаги">шаги</span><span class="stat-sep"> | </span><span class="cabinet-nav-reports-wrap"><span id="header-link-reports" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Отчёты по дням">✈️</span><span id="header-reports-dot" class="app-header-reports-dot hidden" aria-hidden="true"></span></span><span class="stat-sep"> | </span><span id="header-link-diary" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Дневник шагов">дневник</span><span class="stat-sep"> | </span><span id="header-link-showcase" class="stat-clickable cabinet-nav-link" role="button" tabindex="0" title="Витрина мечт">витрина</span>
+                    <span id="stat-dreams-ratio" class="stat-num hidden" aria-hidden="true"></span><span id="stat-helped-n" class="stat-num hidden" aria-hidden="true"></span>
+                </div>
             </header>
+            <div id="cabinet-picker" class="cabinet-picker hidden" role="menu" aria-label="Выбор кабинета"></div>
             <div class="app-header-divider"></div>
             <!-- Меню: на десктопе скрыто; breadcrumbs счётчиков витрины — всегда видны -->
             <div id="app-menu-area" class="app-menu-area">
@@ -1619,36 +1721,57 @@
                 </div>
                 <!-- Редактирование профиля (по клику на аватар) -->
                 <div id="profile-edit-block" class="hidden">
-                    <h3 style="margin-bottom:16px;font-weight:600;color:#333;">Настройки профиля</h3>
-                    <p style="margin-bottom:12px;font-size:13px;color:#666;">Пароль, аватар и способы связи для витрины («Хочу помочь»).</p>
-                    <div class="profile-edit-form" style="max-width:400px;">
-                        <label style="display:block;margin-bottom:4px;font-weight:600;">Текущий пароль (если меняете пароль)</label>
-                        <input type="password" id="profile-edit-current-password" placeholder="Оставьте пустым, если не меняете" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                        <label style="display:block;margin-bottom:4px;font-weight:600;">Новый пароль</label>
-                        <input type="password" id="profile-edit-new-password" placeholder="Не менее 6 символов" minlength="6" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                        <label style="display:block;margin-bottom:4px;font-weight:600;">Аватар</label>
-                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                            <div id="profile-edit-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:#eee;overflow:hidden;flex-shrink:0;"></div>
-                            <div>
-                                <input type="file" id="profile-edit-avatar-file" accept="image/*" style="font-size:13px;">
-                                <p style="font-size:12px;color:#888;margin-top:4px;">jpg, png, webp, gif, до 20 МБ (крупные фото сжимаются автоматически)</p>
+                    <div class="profile-accordion">
+                        <div class="profile-accordion-item" data-accordion="profile-settings">
+                            <button type="button" class="profile-accordion-head" aria-expanded="false">
+                                <span>1. Настройки профиля</span>
+                                <span class="profile-accordion-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div class="profile-accordion-body">
+                                <p style="margin:0 0 12px;font-size:13px;color:#666;">Пароль, аватар и способы связи для витрины («Хочу помочь»).</p>
+                                <label style="display:block;margin-bottom:4px;font-weight:600;">Текущий пароль (если меняете пароль)</label>
+                                <input type="password" id="profile-edit-current-password" placeholder="Оставьте пустым, если не меняете" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                                <label style="display:block;margin-bottom:4px;font-weight:600;">Новый пароль</label>
+                                <input type="password" id="profile-edit-new-password" placeholder="Не менее 6 символов" minlength="6" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                                <label style="display:block;margin-bottom:4px;font-weight:600;">Аватар</label>
+                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                                    <div id="profile-edit-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:#eee;overflow:hidden;flex-shrink:0;"></div>
+                                    <div>
+                                        <input type="file" id="profile-edit-avatar-file" accept="image/*" style="font-size:13px;">
+                                        <p style="font-size:12px;color:#888;margin-top:4px;">jpg, png, webp, gif, до 20 МБ</p>
+                                    </div>
+                                </div>
+                                <label style="display:block;margin-bottom:4px;font-weight:600;">Telegram</label>
+                                <input type="text" id="profile-edit-telegram" placeholder="@username или t.me/username" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                                <label style="display:block;margin-bottom:4px;font-weight:600;">VK</label>
+                                <input type="text" id="profile-edit-vk" placeholder="Ссылка на профиль" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                                <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
+                                <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
+                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:0;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
+                                    <input type="checkbox" id="profile-edit-prompt-late-comments" checked style="margin-top:3px;flex-shrink:0;">
+                                    <span>Предлагать необязательный комментарий в дневник при опоздании, «не выполнен» и переносе шага</span>
+                                </label>
                             </div>
                         </div>
-                        <label style="display:block;margin-bottom:4px;font-weight:600;">Telegram</label>
-                        <input type="text" id="profile-edit-telegram" placeholder="@username или t.me/username" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                        <label style="display:block;margin-bottom:4px;font-weight:600;">VK</label>
-                        <input type="text" id="profile-edit-vk" placeholder="Ссылка на профиль" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                        <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
-                        <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
-                            <input type="checkbox" id="profile-edit-prompt-late-comments" checked style="margin-top:3px;flex-shrink:0;">
-                            <span>Предлагать необязательный комментарий в дневник при опоздании, «не выполнен» и переносе шага</span>
-                        </label>
-                        <p id="profile-edit-error" class="error hidden" style="margin-bottom:8px;"></p>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button type="button" id="profile-edit-save" style="padding:10px 20px;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Сохранить</button>
-                            <a href="#" id="profile-edit-back" style="padding:10px 20px;color:#666;">← Назад</a>
+                        <div class="profile-accordion-item" data-accordion="buddy-access">
+                            <button type="button" class="profile-accordion-head" aria-expanded="false">
+                                <span>2. Бадди и доступ</span>
+                                <span class="profile-accordion-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div class="profile-accordion-body">
+                                <div id="profile-buddy-incoming" class="hidden"></div>
+                                <p class="profile-buddy-hint">Бадди по умолчанию видит ваш кабинет. ✏️ — разрешить редактирование мечт и шагов. ✕ — удалить связь.</p>
+                                <div id="profile-buddy-grants-list"></div>
+                                <p id="profile-buddy-grants-empty" class="hidden" style="font-size:13px;color:#888;margin:0;">Пока никто не подключён.</p>
+                                <button type="button" id="profile-buddy-add-btn" class="profile-buddy-add-btn">+ Добавить бадди</button>
+                                <p id="profile-buddy-grants-error" class="error hidden" style="margin-top:8px;"></p>
+                            </div>
                         </div>
+                    </div>
+                    <p id="profile-edit-error" class="error hidden" style="margin:12px 0 8px;max-width:480px;"></p>
+                    <div class="profile-edit-footer">
+                        <button type="button" id="profile-edit-save" style="padding:10px 20px;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Сохранить</button>
+                        <a href="#" id="profile-edit-back" style="padding:10px 20px;color:#666;">← Назад</a>
                     </div>
                 </div>
                 <div id="steps-block" class="hidden">
@@ -1812,6 +1935,16 @@
                 </div>
             </div>
             <!-- Модалка: подтверждение массового действия по серии -->
+            <div id="modal-buddy-remove" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-buddy-remove-title">
+                <div class="modal">
+                    <h3 id="modal-buddy-remove-title">Удалить бадди?</h3>
+                    <p id="modal-buddy-remove-text" style="margin:0 0 16px;color:#56637b;font-size:14px;line-height:1.45;"></p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="modal-buddy-remove-cancel">Отмена</button>
+                        <button type="button" class="btn-danger" id="modal-buddy-remove-confirm">Удалить</button>
+                    </div>
+                </div>
+            </div>
             <div id="modal-step-series-confirm" class="modal-overlay hidden">
                 <div class="modal">
                     <h3>Подтверждение действия</h3>
@@ -2193,7 +2326,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">266</span>
+                    <span class="app-version" aria-hidden="true">276</span>
                 </div>
             </footer>
         </div>
@@ -2333,7 +2466,7 @@
                 return;
             }
             try {
-                var url = API_BASE_URL + '/users/list?exclude_user_id=' + encodeURIComponent(currentUser.id);
+                var url = API_BASE_URL + '/users/list?exclude_user_id=' + encodeURIComponent(currentUser.id) + '&for_user_id=' + encodeURIComponent(currentUser.id);
                 var res = await fetch(url, { cache: 'no-store' });
                 var users = null;
                 var ct = res.headers.get('content-type') || '';
@@ -2406,15 +2539,73 @@
             var base = API_BASE_URL + '/media/' + p;
             return cacheKey ? (base + '?v=' + encodeURIComponent(String(cacheKey))) : base;
         }
+        function syncHeaderCabinetDot() {
+            var dot = document.getElementById('header-cabinet-dot');
+            if (!dot) return;
+            var hasIncoming = !!(buddyRequestsCache.incoming && buddyRequestsCache.incoming.length > 0);
+            dot.classList.toggle('hidden', !hasIncoming);
+        }
+        function renderProfileBuddyIncoming() {
+            var box = document.getElementById('profile-buddy-incoming');
+            if (!box) return;
+            box.innerHTML = '';
+            var incoming = (buddyRequestsCache.incoming && buddyRequestsCache.incoming.length) ? buddyRequestsCache.incoming[0] : null;
+            if (!incoming) {
+                box.classList.add('hidden');
+                return;
+            }
+            box.classList.remove('hidden');
+            var wrap = document.createElement('div');
+            wrap.className = 'profile-buddy-incoming-box';
+            var inner = document.createElement('div');
+            inner.className = 'buddy-slot-request-wrap';
+            var fromName = ((incoming.from_name || '') + ' ' + (incoming.from_surname || '')).trim() || 'Участник';
+            var label = document.createElement('span');
+            label.className = 'buddy-slot-request-label';
+            label.textContent = 'Запрос в бадди от ' + fromName;
+            var actions = document.createElement('div');
+            actions.className = 'profile-buddy-incoming-actions';
+            var btnAccept = document.createElement('button');
+            btnAccept.type = 'button';
+            btnAccept.className = 'buddy-slot-request-btn accept';
+            btnAccept.textContent = 'Принять';
+            btnAccept.dataset.requestId = incoming.id;
+            var btnDecline = document.createElement('button');
+            btnDecline.type = 'button';
+            btnDecline.className = 'buddy-slot-request-btn decline';
+            btnDecline.textContent = 'Отклонить';
+            btnDecline.dataset.requestId = incoming.id;
+            btnAccept.addEventListener('click', function() { acceptBuddyRequest(parseInt(btnAccept.dataset.requestId, 10)); });
+            btnDecline.addEventListener('click', function() { declineBuddyRequest(parseInt(btnDecline.dataset.requestId, 10)); });
+            actions.appendChild(btnAccept);
+            actions.appendChild(btnDecline);
+            inner.appendChild(label);
+            inner.appendChild(actions);
+            wrap.appendChild(inner);
+            box.appendChild(wrap);
+        }
+        function rememberCabinetSectionBeforeProfile() {
+            if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
+            else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
+            else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
+            else if (document.getElementById('reports-block') && !document.getElementById('reports-block').classList.contains('hidden')) lastCabinetSection = 'reports';
+            else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
+            else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
+            else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
+        }
+        function openProfileSettings() {
+            if (!currentUser) return;
+            rememberCabinetSectionBeforeProfile();
+            switchMenu('profile-edit');
+        }
         function applyHeaderView() {
             var avatarEl = document.getElementById('profile-avatar');
             var nameEl = document.getElementById('profile-full_name');
             var ratioEl = document.getElementById('stat-dreams-ratio');
             var helpedEl = document.getElementById('stat-helped-n');
-            var slotEl = document.getElementById('header-buddy-slot');
             var taskCodeEl = document.getElementById('header-task-code');
             if (taskCodeEl) taskCodeEl.textContent = 'код ' + TASK_CODE;
-            if (!avatarEl || !nameEl || !ratioEl || !slotEl) return;
+            if (!avatarEl || !nameEl || !ratioEl) return;
             if (currentUser && currentUser.buddy_avatar_path) currentUser.buddy_avatar_url = buildMediaUrl(currentUser.buddy_avatar_path, currentUser.buddy_avatar_rev || '');
             if (currentUser && currentUser.avatar_path) currentUser.avatar_url = buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '');
             if (headerView === 'me') {
@@ -2423,7 +2614,7 @@
                 ratioEl.textContent = myHeaderStats.ratio;
                 helpedEl.textContent = myHeaderStats.helped;
                 avatarEl.innerHTML = '';
-                avatarEl.title = currentUser ? 'Настройки профиля' : fullName;
+                avatarEl.title = currentUser ? 'Выбрать кабинет' : fullName;
                 avatarEl.style.cursor = currentUser ? 'pointer' : 'default';
                 if (currentUser && currentUser.avatar_url) {
                     var img = document.createElement('img');
@@ -2436,71 +2627,21 @@
                     span.textContent = fullName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
                     avatarEl.appendChild(span);
                 }
-                slotEl.innerHTML = '';
-                slotEl.classList.remove('buddy-slot-has-request');
-                slotEl.setAttribute('aria-label', 'Переключить на бадди');
-                if (currentUser && currentUser.buddy_id) {
-                    var buddyName = (currentUser.buddy_name || '').trim() || 'Бадди';
-                    if (currentUser.buddy_avatar_url) {
-                        var buddyInitials = buddyName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
-                        var simg = document.createElement('img');
-                        simg.alt = buddyName;
-                        simg.src = currentUser.buddy_avatar_url;
-                        simg.onerror = function() { simg.remove(); var s = document.createElement('span'); s.textContent = buddyInitials; slotEl.appendChild(s); };
-                        slotEl.appendChild(simg);
-                    } else {
-                        var sspan = document.createElement('span');
-                        sspan.textContent = buddyName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
-                        slotEl.appendChild(sspan);
-                    }
-                } else if (buddyRequestsCache.incoming && buddyRequestsCache.incoming.length > 0) {
-                    slotEl.classList.add('buddy-slot-has-request');
-                    var req = buddyRequestsCache.incoming[0];
-                    var fromName = ((req.from_name || '') + ' ' + (req.from_surname || '')).trim() || 'Участник';
-                    var wrap = document.createElement('div');
-                    wrap.className = 'buddy-slot-request-wrap';
-                    var label = document.createElement('span');
-                    label.className = 'buddy-slot-request-label';
-                    label.textContent = 'Запрос от ' + fromName;
-                    var btnAccept = document.createElement('button');
-                    btnAccept.type = 'button';
-                    btnAccept.className = 'buddy-slot-request-btn accept';
-                    btnAccept.textContent = 'Принять';
-                    btnAccept.dataset.requestId = req.id;
-                    var btnDecline = document.createElement('button');
-                    btnDecline.type = 'button';
-                    btnDecline.className = 'buddy-slot-request-btn decline';
-                    btnDecline.textContent = 'Отклонить';
-                    btnDecline.dataset.requestId = req.id;
-                    btnAccept.addEventListener('click', function(e) { e.stopPropagation(); acceptBuddyRequest(parseInt(this.dataset.requestId, 10)); });
-                    btnDecline.addEventListener('click', function(e) { e.stopPropagation(); declineBuddyRequest(parseInt(this.dataset.requestId, 10)); });
-                    wrap.appendChild(label);
-                    wrap.appendChild(btnAccept);
-                    wrap.appendChild(btnDecline);
-                    slotEl.appendChild(wrap);
-                } else {
-                    var addBuddyBtn = document.createElement('button');
-                    addBuddyBtn.type = 'button';
-                    addBuddyBtn.className = 'buddy-slot-add-btn';
-                    addBuddyBtn.textContent = 'Добавить бадди';
-                    addBuddyBtn.setAttribute('aria-label', 'Добавить бадди');
-                    addBuddyBtn.addEventListener('click', function(e) { e.stopPropagation(); openAddBuddyModal(); });
-                    slotEl.appendChild(addBuddyBtn);
-                }
             } else {
-                // Режим «мечты бадди»: слева — бадди (аватар + имя), справа — я (аватар + «Я», клик = вернуться ко мне)
-                var buddyName = (currentUser && (currentUser.buddy_name || '').trim()) || 'Бадди';
+                var viewBuddy = getBuddyDisplayInfo();
+                var buddyName = viewBuddy ? viewBuddy.name : ((currentUser && (currentUser.buddy_name || '').trim()) || 'Бадди');
                 nameEl.textContent = buddyName;
                 ratioEl.textContent = (buddyStatsCache && buddyStatsCache.ratio) ? buddyStatsCache.ratio : '0/0';
                 helpedEl.textContent = myHeaderStats.helped;
                 avatarEl.innerHTML = '';
-                avatarEl.title = buddyName;
-                avatarEl.style.cursor = 'default';
+                avatarEl.title = 'Сменить кабинет';
+                avatarEl.style.cursor = 'pointer';
                 var buddyInitials = buddyName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
-                if (currentUser && currentUser.buddy_avatar_url) {
+                var viewBuddyAvatar = viewBuddy ? viewBuddy.avatar_url : (currentUser && currentUser.buddy_avatar_url);
+                if (viewBuddyAvatar) {
                     var bimg = document.createElement('img');
                     bimg.alt = buddyName;
-                    bimg.src = currentUser.buddy_avatar_url;
+                    bimg.src = viewBuddyAvatar;
                     bimg.onerror = function() { bimg.remove(); var s = document.createElement('span'); s.textContent = buddyInitials; avatarEl.appendChild(s); };
                     avatarEl.appendChild(bimg);
                 } else {
@@ -2508,31 +2649,9 @@
                     bspan.textContent = buddyInitials;
                     avatarEl.appendChild(bspan);
                 }
-                slotEl.innerHTML = '';
-                slotEl.setAttribute('aria-label', 'Вернуться ко мне');
-                var linkMe = document.createElement('a');
-                linkMe.href = '#';
-                linkMe.className = 'buddy-slot-link-me';
-                linkMe.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); headerView = 'me'; applyHeaderView(); switchMenu('dreams'); });
-                var myName = (currentUser && (currentUser.full_name || '').trim()) || 'Гость';
-                var myInitials = myName.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
-                if (currentUser && currentUser.avatar_url) {
-                    var myimg = document.createElement('img');
-                    myimg.alt = myName;
-                    myimg.src = currentUser.avatar_url;
-                    myimg.onerror = function() { myimg.remove(); var s = document.createElement('span'); s.textContent = myInitials; linkMe.appendChild(s); };
-                    linkMe.appendChild(myimg);
-                } else {
-                    var myspan = document.createElement('span');
-                    myspan.textContent = myInitials;
-                    linkMe.appendChild(myspan);
-                }
-                var meLabel = document.createElement('span');
-                meLabel.className = 'buddy-slot-me-label';
-                meLabel.textContent = 'Я';
-                linkMe.appendChild(meLabel);
-                slotEl.appendChild(linkMe);
             }
+            syncHeaderCabinetDot();
+            renderProfileBuddyIncoming();
         }
 
         async function login() {
@@ -2589,6 +2708,391 @@
         var myHeaderStats = { ratio: '0/0', helped: 0 };
         var buddyStatsCache = null;
         var buddyRequestsCache = { incoming: [], outgoing: [] };
+        var SELECTED_SUBJECT_KEY = 'island_selected_subject_id';
+        var viewableUsersCache = [];
+
+        function hasViewableOthers() {
+            return (viewableUsersCache || []).some(function(u) { return !u.is_self; });
+        }
+        function getSelectedSubjectId() {
+            if (!currentUser) return null;
+            var raw = localStorage.getItem(SELECTED_SUBJECT_KEY);
+            var id = raw ? parseInt(raw, 10) : NaN;
+            if (Number.isFinite(id) && id !== currentUser.id) {
+                var ok = (viewableUsersCache || []).some(function(u) { return u.id === id && !u.is_self; });
+                if (ok) return id;
+            }
+            var others = (viewableUsersCache || []).filter(function(u) { return !u.is_self; });
+            if (others.length) return others[0].id;
+            if (currentUser.buddy_id) return currentUser.buddy_id;
+            return null;
+        }
+        function getSelectedSubjectEntry() {
+            var sid = getSelectedSubjectId();
+            if (!sid || !currentUser || sid === currentUser.id) return null;
+            return (viewableUsersCache || []).find(function(u) { return u.id === sid; }) || null;
+        }
+        function selectedSubjectCanWrite() {
+            var entry = getSelectedSubjectEntry();
+            if (entry) return !!entry.can_write;
+            return !!(currentUser && currentUser.buddy_trust);
+        }
+        function getBuddyDisplayInfo() {
+            var entry = getSelectedSubjectEntry();
+            if (entry && !entry.is_self) {
+                return {
+                    id: entry.id,
+                    name: entry.full_name || 'Участник',
+                    avatar_path: entry.avatar_path,
+                    avatar_url: entry.avatar_path ? buildMediaUrl(entry.avatar_path, '') : null,
+                    can_write: !!entry.can_write
+                };
+            }
+            if (currentUser && currentUser.buddy_id) {
+                return {
+                    id: currentUser.buddy_id,
+                    name: (currentUser.buddy_name || '').trim() || 'Бадди',
+                    avatar_path: currentUser.buddy_avatar_path,
+                    avatar_url: currentUser.buddy_avatar_url,
+                    can_write: !!currentUser.buddy_trust
+                };
+            }
+            return null;
+        }
+        async function loadViewableUsers() {
+            if (!currentUser || !currentUser.id) return;
+            try {
+                var res = await fetch(API_BASE_URL + '/users/me/viewable?user_id=' + currentUser.id, { cache: 'no-store' });
+                if (res.ok) {
+                    var data = await res.json();
+                    viewableUsersCache = data.subjects || [];
+                }
+            } catch (e) { console.warn('loadViewableUsers', e); }
+        }
+        function getActiveCabinetSubjectId() {
+            if (!currentUser) return null;
+            if (headerView === 'me') return currentUser.id;
+            return getSelectedSubjectId() || currentUser.id;
+        }
+        function closeCabinetPicker() {
+            var picker = document.getElementById('cabinet-picker');
+            if (picker) picker.classList.add('hidden');
+            var av = document.getElementById('profile-avatar');
+            if (av) av.classList.remove('cabinet-picker-open');
+        }
+        function openCabinetPicker(anchorEl) {
+            if (!currentUser) return;
+            var picker = document.getElementById('cabinet-picker');
+            if (!picker) return;
+            var activeId = getActiveCabinetSubjectId();
+            var list = (viewableUsersCache || []).filter(function(u) { return !u.is_self; });
+            if (!list.length && !(viewableUsersCache || []).length) {
+                loadViewableUsers().then(function() { openCabinetPicker(anchorEl); });
+                return;
+            }
+            picker.innerHTML = '';
+            var title = document.createElement('div');
+            title.className = 'cabinet-picker-title';
+            title.textContent = 'Смотрю кабинет';
+            picker.appendChild(title);
+            (viewableUsersCache || []).forEach(function(u) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cabinet-picker-item' + (u.id === activeId ? ' active' : '');
+                btn.setAttribute('role', 'menuitem');
+                btn.dataset.subjectId = String(u.id);
+                var av = document.createElement('div');
+                av.className = 'cabinet-picker-avatar';
+                var label = u.is_self ? 'Мой кабинет' : (u.full_name || ('#' + u.id));
+                if (u.avatar_path) {
+                    var img = document.createElement('img');
+                    img.src = buildMediaUrl(u.avatar_path, '');
+                    img.alt = '';
+                    av.appendChild(img);
+                } else {
+                    av.textContent = label.split(/\s+/).map(function(w) { return (w[0] || '').toUpperCase(); }).join('').slice(0, 2) || '?';
+                }
+                var nm = document.createElement('span');
+                nm.className = 'cabinet-picker-name';
+                nm.textContent = label;
+                btn.appendChild(av);
+                btn.appendChild(nm);
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectCabinetSubject(parseInt(btn.dataset.subjectId, 10));
+                });
+                picker.appendChild(btn);
+            });
+            var sep = document.createElement('div');
+            sep.className = 'cabinet-picker-sep';
+            picker.appendChild(sep);
+            var settingsBtn = document.createElement('button');
+            settingsBtn.type = 'button';
+            settingsBtn.className = 'cabinet-picker-item cabinet-picker-settings';
+            settingsBtn.setAttribute('role', 'menuitem');
+            settingsBtn.innerHTML = '<span class="cabinet-picker-avatar" style="font-size:16px;">⚙️</span><span class="cabinet-picker-name">Личный кабинет</span>';
+            settingsBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closeCabinetPicker();
+                openProfileSettings();
+            });
+            picker.appendChild(settingsBtn);
+            var rect = anchorEl.getBoundingClientRect();
+            picker.classList.remove('hidden');
+            var top = rect.bottom + 6;
+            var left = rect.left;
+            if (left + 280 > window.innerWidth - 8) left = window.innerWidth - 288;
+            if (top + picker.offsetHeight > window.innerHeight - 8) top = Math.max(8, rect.top - picker.offsetHeight - 6);
+            picker.style.top = top + 'px';
+            picker.style.left = Math.max(8, left) + 'px';
+            if (anchorEl.id === 'profile-avatar') anchorEl.classList.add('cabinet-picker-open');
+        }
+        function selectCabinetSubject(sid) {
+            if (!currentUser || !Number.isFinite(sid)) return;
+            try { localStorage.setItem(SELECTED_SUBJECT_KEY, String(sid)); } catch (e) {}
+            closeCabinetPicker();
+            if (sid === currentUser.id) {
+                headerView = 'me';
+                applyHeaderView();
+                if (lastCabinetSection === 'buddy' || lastCabinetSection === 'steps-buddy') switchMenu('dreams');
+                else if (lastCabinetSection === 'steps') switchMenu('steps');
+                else if (lastCabinetSection === 'reports') switchMenu('reports');
+                else if (lastCabinetSection === 'diary') switchMenu('diary');
+                else switchMenu('dreams');
+            } else {
+                headerView = 'buddy';
+                applyHeaderView();
+                if (lastCabinetSection === 'steps' || lastCabinetSection === 'steps-buddy') switchMenu('steps-buddy');
+                else switchMenu('buddy');
+            }
+        }
+        var NAME_GENITIVE_ALIASES = { 'Света': 'Светланы', 'Лена': 'Лены', 'Маша': 'Маши', 'Даша': 'Даши', 'Катя': 'Кати' };
+        function isFemaleRussianSurname(surname) {
+            var s = (surname || '').trim().toLowerCase();
+            if (!s) return false;
+            return /(ова|ева|ина|ая|ская|зая)$/.test(s);
+        }
+        function isFemaleRussianPerson(firstName, surname, gender) {
+            var g = (gender || '').toLowerCase();
+            if (g === 'f' || g === 'female' || g === 'ж') return true;
+            if (g === 'm' || g === 'male' || g === 'м') return false;
+            return isFemaleRussianSurname(surname) || /(а|я)$/.test((firstName || '').trim());
+        }
+        function toGenitiveRussianWord(word, isFemale, isSurname) {
+            var w = (word || '').trim();
+            if (!w) return '';
+            if (!isSurname && NAME_GENITIVE_ALIASES[w]) return NAME_GENITIVE_ALIASES[w];
+            if (isFemale) {
+                if (isSurname) {
+                    if (/ова$/i.test(w)) return w.slice(0, -1) + 'ой';
+                    if (/ева$/i.test(w)) return w.slice(0, -1) + 'ой';
+                    if (/ина$/i.test(w)) return w.slice(0, -1) + 'ой';
+                    if (/ская$/i.test(w)) return w.slice(0, -2) + 'ой';
+                    if (/ая$/i.test(w)) return w.slice(0, -2) + 'ой';
+                }
+                if (/ия$/i.test(w)) return w.slice(0, -1) + 'и';
+                if (/ья$/i.test(w)) return w.slice(0, -1) + 'и';
+                if (/я$/i.test(w)) return w.slice(0, -1) + 'и';
+                if (/а$/i.test(w)) return w.slice(0, -1) + 'ы';
+            }
+            if (isSurname) {
+                if (/ов$/i.test(w) || /ев$/i.test(w) || /ёв$/i.test(w)) return w + 'а';
+                if (/ин$/i.test(w) || /ын$/i.test(w)) return w + 'а';
+                if (/ий$/i.test(w)) return w.slice(0, -2) + 'ого';
+                if (/ский$/i.test(w)) return w.slice(0, -2) + 'ого';
+            }
+            if (/ей$/i.test(w)) return w.slice(0, -2) + 'ея';
+            if (/й$/i.test(w)) return w.slice(0, -1) + 'я';
+            if (/ь$/i.test(w)) return w.slice(0, -1) + 'я';
+            if (/а$/i.test(w)) return w.slice(0, -1) + 'ы';
+            return w + 'а';
+        }
+        function formatGenitiveFullName(firstName, surname, gender) {
+            var first = (firstName || '').trim();
+            var last = (surname || '').trim();
+            if (!first && !last) return '';
+            var female = isFemaleRussianPerson(first, last, gender);
+            var parts = [];
+            if (first) parts.push(toGenitiveRussianWord(first, female, false));
+            if (last) parts.push(toGenitiveRussianWord(last, female, true));
+            return parts.join(' ').trim();
+        }
+        function getProfileCabinetTitle() {
+            if (!currentUser) return 'Личный кабинет';
+            var first = (currentUser.name || '').trim();
+            var last = (currentUser.surname || '').trim();
+            if (!first && !last) {
+                var fn = (currentUser.full_name || '').trim();
+                if (!fn) return 'Личный кабинет';
+                var bits = fn.split(/\s+/);
+                if (bits.length >= 2) { last = bits.pop(); first = bits.join(' '); }
+                else first = fn;
+            }
+            var gen = formatGenitiveFullName(first, last, currentUser.gender);
+            return gen ? ('Личный кабинет ' + gen) : 'Личный кабинет';
+        }
+        function collapseProfileAccordion() {
+            document.querySelectorAll('#profile-edit-block .profile-accordion-item').forEach(function(item) {
+                item.classList.remove('open');
+                var btn = item.querySelector('.profile-accordion-head');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            });
+        }
+        function initProfileAccordion() {
+            document.querySelectorAll('#profile-edit-block .profile-accordion-head').forEach(function(btn) {
+                if (btn.dataset.accordionBound) return;
+                btn.dataset.accordionBound = '1';
+                btn.addEventListener('click', function() {
+                    var item = btn.closest('.profile-accordion-item');
+                    if (!item) return;
+                    var open = item.classList.contains('open');
+                    item.classList.toggle('open', !open);
+                    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+                });
+            });
+        }
+        async function loadProfileBuddyGrants() {
+            if (!currentUser || !currentUser.id) return;
+            var listEl = document.getElementById('profile-buddy-grants-list');
+            var emptyEl = document.getElementById('profile-buddy-grants-empty');
+            var errEl = document.getElementById('profile-buddy-grants-error');
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+            try {
+                var res = await fetch(API_BASE_URL + '/users/me/access-grants?user_id=' + currentUser.id, { cache: 'no-store' });
+                if (!res.ok) throw new Error('Не удалось загрузить список доступа');
+                var data = await res.json();
+                renderProfileBuddyGrants(data.grants || []);
+            } catch (e) {
+                if (listEl) listEl.innerHTML = '';
+                if (emptyEl) emptyEl.classList.add('hidden');
+                if (errEl) { errEl.textContent = e.message || 'Ошибка загрузки'; errEl.classList.remove('hidden'); }
+            }
+        }
+        function renderProfileBuddyGrants(grants) {
+            var listEl = document.getElementById('profile-buddy-grants-list');
+            var emptyEl = document.getElementById('profile-buddy-grants-empty');
+            if (!listEl) return;
+            listEl.innerHTML = '';
+            if (!grants.length) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                return;
+            }
+            if (emptyEl) emptyEl.classList.add('hidden');
+            grants.forEach(function(g) {
+                var row = document.createElement('div');
+                row.className = 'profile-buddy-grant-row';
+                row.dataset.viewerId = String(g.viewer_id);
+                var name = document.createElement('div');
+                name.className = 'profile-buddy-grant-name';
+                name.textContent = g.full_name || ('#' + g.viewer_id);
+                var actions = document.createElement('div');
+                actions.className = 'profile-buddy-grant-actions';
+                var editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'profile-buddy-action-btn' + (g.can_write ? ' active' : '');
+                editBtn.title = 'Разрешить редактирование';
+                editBtn.setAttribute('aria-label', 'Разрешить редактирование');
+                editBtn.textContent = '✏️';
+                editBtn.addEventListener('click', function() {
+                    var next = !editBtn.classList.contains('active');
+                    toggleBuddyWriteGrant(g.viewer_id, next, editBtn, row);
+                });
+                var delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'profile-buddy-action-btn profile-buddy-action-delete';
+                delBtn.title = 'Удалить бадди';
+                delBtn.setAttribute('aria-label', 'Удалить бадди');
+                delBtn.textContent = '✕';
+                delBtn.addEventListener('click', function() {
+                    openBuddyRemoveModal(g.viewer_id, g.full_name || ('#' + g.viewer_id));
+                });
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+                row.appendChild(name);
+                row.appendChild(actions);
+                listEl.appendChild(row);
+            });
+        }
+        async function toggleBuddyWriteGrant(viewerId, canWrite, btnEl, rowEl) {
+            if (!currentUser || !currentUser.id) return;
+            var errEl = document.getElementById('profile-buddy-grants-error');
+            if (btnEl) btnEl.disabled = true;
+            try {
+                var res = await fetch(API_BASE_URL + '/users/me/buddy-links?user_id=' + currentUser.id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        viewer_id: viewerId,
+                        subject_id: currentUser.id,
+                        can_write: canWrite
+                    })
+                });
+                if (!res.ok) {
+                    var errData = await res.json().catch(function() { return {}; });
+                    throw new Error(errData.detail || 'Не удалось сохранить');
+                }
+                if (btnEl) btnEl.classList.toggle('active', canWrite);
+                if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+                await loadViewableUsers();
+            } catch (e) {
+                if (errEl) { errEl.textContent = e.message || 'Ошибка сохранения'; errEl.classList.remove('hidden'); }
+                await loadProfileBuddyGrants();
+            } finally {
+                if (btnEl) btnEl.disabled = false;
+            }
+        }
+        var buddyRemovePending = null;
+        function openBuddyRemoveModal(viewerId, fullName) {
+            buddyRemovePending = { viewerId: viewerId, fullName: fullName };
+            var modal = document.getElementById('modal-buddy-remove');
+            var text = document.getElementById('modal-buddy-remove-text');
+            if (text) text.textContent = 'Удалить бадди «' + fullName + '»? Связь будет разорвана в обе стороны.';
+            if (modal) modal.classList.remove('hidden');
+        }
+        function closeBuddyRemoveModal() {
+            buddyRemovePending = null;
+            var modal = document.getElementById('modal-buddy-remove');
+            if (modal) modal.classList.add('hidden');
+        }
+        async function confirmBuddyRemove() {
+            if (!currentUser || !buddyRemovePending) return;
+            var otherId = buddyRemovePending.viewerId;
+            var errEl = document.getElementById('profile-buddy-grants-error');
+            var confirmBtn = document.getElementById('modal-buddy-remove-confirm');
+            if (confirmBtn) confirmBtn.disabled = true;
+            try {
+                var res = await fetch(API_BASE_URL + '/users/me/buddy-links?user_id=' + currentUser.id + '&other_user_id=' + encodeURIComponent(otherId), {
+                    method: 'DELETE'
+                });
+                if (!res.ok) {
+                    var errData = await res.json().catch(function() { return {}; });
+                    throw new Error(errData.detail || 'Не удалось удалить');
+                }
+                if (currentUser.buddy_id === otherId) {
+                    currentUser.buddy_id = null;
+                    currentUser.buddy_name = '';
+                    currentUser.buddy_avatar_path = null;
+                    currentUser.buddy_avatar_url = null;
+                    currentUser.buddy_trust = false;
+                    try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e) {}
+                }
+                var selId = getSelectedSubjectId();
+                if (selId === otherId) {
+                    try { localStorage.setItem(SELECTED_SUBJECT_KEY, String(currentUser.id)); } catch (e) {}
+                    headerView = 'me';
+                    applyHeaderView();
+                }
+                closeBuddyRemoveModal();
+                if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+                await loadViewableUsers();
+                await loadProfileBuddyGrants();
+                await loadBuddyRequests();
+            } catch (e) {
+                if (errEl) { errEl.textContent = e.message || 'Ошибка удаления'; errEl.classList.remove('hidden'); }
+            } finally {
+                if (confirmBtn) confirmBtn.disabled = false;
+            }
+        }
 
         async function loadBuddyRequests() {
             if (!currentUser || !currentUser.id) return;
@@ -2629,7 +3133,8 @@
                     try { localStorage.setItem('savedUser', JSON.stringify(currentUser)); } catch (e) {}
                 }
                 await loadBuddyRequests();
-                if (currentUser.buddy_id) await loadBuddyDreams();
+                await loadViewableUsers();
+                if (hasViewableOthers() || currentUser.buddy_id) await loadBuddyDreams();
                 applyHeaderView();
             } catch (e) { alert('Ошибка сети'); }
         }
@@ -2693,6 +3198,7 @@
             headerView = 'me';
             currentUser.avatar_url = currentUser.avatar_path ? buildMediaUrl(currentUser.avatar_path, currentUser.avatar_rev || '') : null;
             loadBuddyRequests();
+            loadViewableUsers();
 
             // 2. Мечты и справочники — один параллельный запрос (быстрее)
             dreamEditContext.ownerId = currentUser.id;
@@ -2990,9 +3496,9 @@
                 if (emptyEl) emptyEl.classList.remove('hidden');
             } else {
                 if (emptyEl) emptyEl.classList.add('hidden');
-                if (currentUser && currentUser.buddy_trust) renderBuddyDreamsTableEditable(filtered); else renderBuddyDreamsTable(filtered);
+                if (selectedSubjectCanWrite()) renderBuddyDreamsTableEditable(filtered); else renderBuddyDreamsTable(filtered);
             }
-            renderBuddyDreamsMobileCards(filtered, currentUser && currentUser.buddy_trust);
+            renderBuddyDreamsMobileCards(filtered, selectedSubjectCanWrite());
             renderDreamsMobileList(filtered, 'buddy');
             applyDreamsViewMode();
             restoreDreamScrollPosition('buddy');
@@ -3018,8 +3524,8 @@
             dreamsViewMode = 'list';
             var isBuddyVisible = !document.getElementById('buddy-block').classList.contains('hidden');
             var isStepsVisible = !document.getElementById('steps-block').classList.contains('hidden');
-            var preferBuddy = isBuddyVisible || (isStepsVisible && stepsViewIsBuddy) || (headerView === 'buddy' && !!(currentUser && currentUser.buddy_id));
-            if (preferBuddy && currentUser && currentUser.buddy_id) {
+            var preferBuddy = isBuddyVisible || (isStepsVisible && stepsViewIsBuddy) || (headerView === 'buddy' && hasViewableOthers());
+            if (preferBuddy && hasViewableOthers()) {
                 headerView = 'buddy';
                 applyHeaderView();
                 switchMenu('buddy');
@@ -3041,7 +3547,7 @@
             if (rep) rep.classList.remove('active');
             if (di) di.classList.remove('active');
             v.classList.remove('active');
-            if (section === 'dreams' || section === 'buddy') d.classList.add('active');
+                if (section === 'dreams' || section === 'buddy' || section === 'profile-edit') d.classList.add('active');
             else if (section === 'steps' || section === 'steps-buddy') s.classList.add('active');
             else if (section === 'reports' && rep) rep.classList.add('active');
             else if (section === 'diary' && di) di.classList.add('active');
@@ -3077,7 +3583,7 @@
                 if (titleRowEl) titleRowEl.classList.remove('hidden');
                 if (sectionTitleEl) {
                     sectionTitleEl.classList.remove('hidden');
-                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'reports' ? 'Отчёты' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'diary' ? 'Дневник шагов' : (section === 'library' ? 'Библиотека' : (section === 'profile-edit' ? 'Настройки профиля' : 'Мои мечты')))))));
+                    sectionTitleEl.textContent = section === 'dreams' ? 'Мои мечты' : (section === 'buddy' ? 'Мечты бадди' : (section === 'notifications' ? 'Уведомления' : (section === 'reports' ? 'Отчёты' : (section === 'steps' || section === 'steps-buddy' ? 'Шаги' : (section === 'diary' ? 'Дневник шагов' : (section === 'library' ? 'Библиотека' : (section === 'profile-edit' ? getProfileCabinetTitle() : 'Мои мечты')))))));
                 }
                 if (dreamsFilterEl) dreamsFilterEl.classList.toggle('hidden', section !== 'dreams' && section !== 'buddy');
                 if (stepsFilterEl) stepsFilterEl.classList.toggle('hidden', section !== 'steps' && section !== 'steps-buddy');
@@ -3123,8 +3629,9 @@
                 refreshDreamsDisplay();
             } else if (section === 'buddy') {
                 lastCabinetSection = 'buddy';
-                if (currentUser && currentUser.buddy_id) lastStepsForDiary = { userId: currentUser.buddy_id, isBuddy: true };
-                dreamEditContext.ownerId = currentUser ? currentUser.buddy_id : 0;
+                var buddySubj = getSelectedSubjectId();
+                if (buddySubj) lastStepsForDiary = { userId: buddySubj, isBuddy: true };
+                dreamEditContext.ownerId = buddySubj || 0;
                 dreamEditContext.viewerId = currentUser ? currentUser.id : null;
                 document.getElementById('buddy-block').classList.remove('hidden');
                 document.getElementById('menu-buddy').classList.add('active');
@@ -3144,7 +3651,7 @@
                 document.getElementById('steps-block').classList.remove('hidden');
                 document.getElementById('menu-steps-buddy').classList.add('active');
                 var footerAddSb = document.getElementById('app-footer-add'); if (footerAddSb) footerAddSb.classList.add('hidden');
-                loadSteps(currentUser ? currentUser.buddy_id : 0, true);
+                loadSteps(getSelectedSubjectId() || 0, true);
             } else if (section === 'reports') {
                 lastCabinetSection = 'reports';
                 if (currentUser) lastStepsForDiary = { userId: currentUser.id, isBuddy: false };
@@ -3687,6 +4194,9 @@
                     }
                 })
                 .catch(function() { if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = 'Не удалось загрузить данные профиля.'; } });
+            initProfileAccordion();
+            collapseProfileAccordion();
+            loadProfileBuddyGrants();
         }
 
         var showcaseDreamsCache = [];
@@ -4493,7 +5003,7 @@
             var err = document.getElementById('diary-events-error');
             if (!list || !currentUser) return;
             var l = (typeof lastStepsForDiary !== 'undefined' && lastStepsForDiary) ? lastStepsForDiary : { userId: 0, isBuddy: false };
-            var isBuddyD = l.isBuddy && l.userId > 0 && currentUser.buddy_id;
+            var isBuddyD = l.isBuddy && l.userId > 0 && l.userId !== currentUser.id;
             var eventsUserId = isBuddyD ? l.userId : currentUser.id;
             var qs = 'user_id=' + encodeURIComponent(eventsUserId) + '&limit=200';
             if (isBuddyD) qs += '&viewer_id=' + encodeURIComponent(currentUser.id);
@@ -4522,7 +5032,7 @@
             var deletedWrap = document.getElementById('steps-deleted-wrap');
             var deletedEmptyEl = document.getElementById('steps-deleted-empty');
             var filters = Array.isArray(activeFilters) ? activeFilters : [activeFilters];
-            var canManage = !isBuddy || !!(currentUser && currentUser.buddy_trust);
+            var canManage = !isBuddy || selectedSubjectCanWrite();
 
             var showDeleted = canManage && filters.indexOf('deleted') !== -1;
             if (showDeleted) {
@@ -5043,9 +5553,9 @@
             tbodyEl.innerHTML = '';
             emptyEl.classList.add('hidden');
             errEl.classList.add('hidden');
-            if (!currentUser || !currentUser.buddy_id) {
-                titleEl.textContent = 'У вас пока нет бадди';
-                emptyEl.textContent = 'Бадди не назначен.';
+            if (!currentUser || !getBuddyDisplayInfo()) {
+                titleEl.textContent = 'У вас пока нет связанных кабинетов';
+                emptyEl.textContent = 'Добавьте бадди или наставника.';
                 emptyEl.classList.remove('hidden');
                 buddyDreamsCache = [];
                 renderBuddyDreamsMobileCards([]);
@@ -5053,12 +5563,13 @@
                 applyDreamsViewMode();
                 return;
             }
-            var buddyName = (currentUser.buddy_name || '').trim() || 'Бадди';
-            titleEl.textContent = 'Мечты бадди: ' + buddyName;
-            dreamEditContext.ownerId = currentUser.buddy_id;
+            var buddy = getBuddyDisplayInfo();
+            var buddyName = buddy.name;
+            titleEl.textContent = 'Мечты: ' + buddyName;
+            dreamEditContext.ownerId = buddy.id;
             dreamEditContext.viewerId = currentUser.id;
             try {
-                var res = await fetch(API_BASE_URL + '/dreams?user_id=' + currentUser.buddy_id + '&viewer_id=' + currentUser.id, { cache: 'no-store' });
+                var res = await fetch(API_BASE_URL + '/dreams?user_id=' + buddy.id + '&viewer_id=' + currentUser.id, { cache: 'no-store' });
                 if (res.status === 401) { clearSessionAndShowLogin('Сессия истекла. Войдите снова.'); return; }
                 if (!res.ok) {
                     var errData = await res.json().catch(function() { return {}; });
@@ -5298,23 +5809,10 @@
                 else refreshDreamsDisplay();
             });
         });
-        document.getElementById('header-buddy-slot').addEventListener('click', function(e) {
-            if (e.target.closest('.buddy-slot-link-me')) return;
-            if (!currentUser || !currentUser.buddy_id) return;
-            if (headerView === 'buddy') return;
-            headerView = 'buddy';
-            applyHeaderView();
-            switchMenu('buddy');
-        });
-        document.getElementById('header-buddy-slot').addEventListener('keydown', function(e) {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            e.preventDefault();
-            if (!currentUser || !currentUser.buddy_id) return;
-            if (headerView === 'buddy') return;
-            headerView = 'buddy';
-            applyHeaderView();
-            switchMenu('buddy');
-        });
+        var modalBuddyRemoveCancel = document.getElementById('modal-buddy-remove-cancel');
+        var modalBuddyRemoveConfirm = document.getElementById('modal-buddy-remove-confirm');
+        if (modalBuddyRemoveCancel) modalBuddyRemoveCancel.addEventListener('click', closeBuddyRemoveModal);
+        if (modalBuddyRemoveConfirm) modalBuddyRemoveConfirm.addEventListener('click', confirmBuddyRemove);
         document.getElementById('menu-steps-buddy').addEventListener('click', function(e) { e.preventDefault(); switchMenu('steps-buddy'); });
         var headerLinkDreams = document.getElementById('header-link-dreams');
         var headerLinkSteps = document.getElementById('header-link-steps');
@@ -5504,16 +6002,11 @@
         if (showcaseBackLink) showcaseBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         var headerBell = document.getElementById('header-bell');
         var headerBooks = document.getElementById('header-books');
+        var headerCabinet = document.getElementById('header-cabinet');
         if (headerBell) headerBell.addEventListener('click', function(e) {
             e.preventDefault();
             if (!currentUser) return;
-            if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
-            else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
-            else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
-            else if (document.getElementById('reports-block') && !document.getElementById('reports-block').classList.contains('hidden')) lastCabinetSection = 'reports';
-            else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
-            else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
-            else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
+            rememberCabinetSectionBeforeProfile();
             switchMenu('notifications');
         });
         if (headerBooks) headerBooks.addEventListener('click', function(e) {
@@ -5521,17 +6014,23 @@
             if (!currentUser) return;
             switchMenu('library');
         });
+        if (headerCabinet) headerCabinet.addEventListener('click', function(e) {
+            e.preventDefault();
+            openProfileSettings();
+        });
+        var profileBuddyAddBtn = document.getElementById('profile-buddy-add-btn');
+        if (profileBuddyAddBtn) profileBuddyAddBtn.addEventListener('click', function() { openAddBuddyModal(); });
         var profileAvatarEl = document.getElementById('profile-avatar');
         if (profileAvatarEl) profileAvatarEl.addEventListener('click', function(e) {
-            if (!currentUser || headerView !== 'me') return;
-            if (!document.getElementById('dreams-block').classList.contains('hidden')) lastCabinetSection = 'dreams';
-            else if (!document.getElementById('buddy-block').classList.contains('hidden')) lastCabinetSection = 'buddy';
-            else if (!document.getElementById('steps-block').classList.contains('hidden')) lastCabinetSection = stepsViewIsBuddy ? 'steps-buddy' : 'steps';
-            else if (document.getElementById('reports-block') && !document.getElementById('reports-block').classList.contains('hidden')) lastCabinetSection = 'reports';
-            else if (document.getElementById('diary-block') && !document.getElementById('diary-block').classList.contains('hidden')) lastCabinetSection = 'diary';
-            else if (document.getElementById('library-block') && !document.getElementById('library-block').classList.contains('hidden')) lastCabinetSection = 'library';
-            else if (document.getElementById('showcase-block') && !document.getElementById('showcase-block').classList.contains('hidden')) lastCabinetSection = 'showcase';
-            switchMenu('profile-edit');
+            if (!currentUser) return;
+            e.stopPropagation();
+            openCabinetPicker(profileAvatarEl);
+        });
+        document.addEventListener('click', function(e) {
+            var picker = document.getElementById('cabinet-picker');
+            if (!picker || picker.classList.contains('hidden')) return;
+            if (picker.contains(e.target) || (profileAvatarEl && profileAvatarEl.contains(e.target))) return;
+            closeCabinetPicker();
         });
         var libraryAddBtn = document.getElementById('library-add-btn');
         if (libraryAddBtn) libraryAddBtn.addEventListener('click', function() { openLibraryBookModal(0, 0); });
@@ -6313,7 +6812,7 @@
         function syncStepsFilterOverdueAttention(isBuddy) {
             var btn = document.querySelector('#steps-filter .dreams-filter-btn[data-filter="overdue"]');
             if (!btn) return;
-            if (isBuddy && !(currentUser && currentUser.buddy_trust)) {
+            if (isBuddy && !selectedSubjectCanWrite()) {
                 btn.classList.remove('steps-filter-needs-attention');
                 return;
             }
@@ -6811,7 +7310,7 @@
             if (!m || m.classList.contains('hidden') || !stepReportUnmarkedModal.dayIso) return;
             var dayIso = stepReportUnmarkedModal.dayIso;
             var isBuddy = !!stepReportUnmarkedModal.isBuddy;
-            var canManage = !isBuddy || !!(currentUser && currentUser.buddy_trust);
+            var canManage = !isBuddy || selectedSubjectCanWrite();
             var titleCounterMap = buildStepTitleCounterMapForAllSteps();
             var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
             var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
@@ -7913,7 +8412,7 @@
                 listEl.appendChild(empty);
                 return;
             }
-            var canEdit = (blockId === 'dreams' && dreamEditContext.viewerId == null) || (blockId === 'buddy' && currentUser && currentUser.buddy_trust);
+            var canEdit = (blockId === 'dreams' && dreamEditContext.viewerId == null) || (blockId === 'buddy' && selectedSubjectCanWrite());
             dreams.forEach(function(d, i) {
                 var text = typeof d === 'string' ? d : (d.title || d.dream || '').trim() || '—';
                 var deadline = formatDeadlineDisplay((d.deadline || '').toString().slice(0, 10) || '');

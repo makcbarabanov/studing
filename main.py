@@ -292,6 +292,11 @@ class BuddyRequestCreate(BaseModel):
 class BuddyRequestUpdate(BaseModel):
     status: str  # accepted | declined
 
+class BuddyLinkUpdateBody(BaseModel):
+    viewer_id: int
+    subject_id: int
+    can_write: bool
+
 class DreamBookCreate(BaseModel):
     title: str
     author: Optional[str] = None
@@ -788,14 +793,14 @@ def login_user(user_login: UserLogin):
             phone_alt = ("+7" + user_login.phone[1:]) if user_login.phone.startswith("8") and len(user_login.phone) >= 11 else user_login.phone
             try:
                 cur.execute("""
-                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id, buddy_trust, telegram, vk
+                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id, buddy_trust, telegram, vk, gender
                     FROM users
                     WHERE phone = %s OR phone = %s
                 """, (user_login.phone, phone_alt))
             except psycopg2.ProgrammingError:
                 conn.rollback()
                 cur.execute("""
-                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id
+                    SELECT id, name, surname, city, phone, password_hash, avatar_path, buddy_id, buddy_trust, telegram, vk
                     FROM users
                     WHERE phone = %s OR phone = %s
                 """, (user_login.phone, phone_alt))
@@ -827,6 +832,8 @@ def login_user(user_login: UserLogin):
                     buddy_avatar_path = buddy_row.get("avatar_path")
             result = {
                 "id": user_data["id"],
+                "name": (user_data.get("name") or "").strip(),
+                "surname": (user_data.get("surname") or "").strip(),
                 "full_name": full_name,
                 "city": user_data["city"],
                 "phone": user_data["phone"],
@@ -837,6 +844,8 @@ def login_user(user_login: UserLogin):
                 "buddy_avatar_path": buddy_avatar_path,
                 "dream": "Мечта загружается..."
             }
+            if user_data.get("gender") is not None:
+                result["gender"] = user_data.get("gender")
             if "telegram" in user_data:
                 result["telegram"] = user_data.get("telegram")
             if "vk" in user_data:
@@ -942,14 +951,14 @@ def users_me(user_id: int):
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             try:
                 cur.execute(
-                    """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust, telegram, vk
+                    """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust, telegram, vk, gender
                        FROM users WHERE id = %s""",
                     (user_id,),
                 )
             except psycopg2.ProgrammingError:
                 conn.rollback()
                 cur.execute(
-                    """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust
+                    """SELECT id, name, surname, city, phone, avatar_path, buddy_id, buddy_trust, telegram, vk
                        FROM users WHERE id = %s""",
                     (user_id,),
                 )
@@ -968,6 +977,8 @@ def users_me(user_id: int):
                     buddy_avatar_path = buddy_row.get("avatar_path")
             out = {
                 "id": user_data["id"],
+                "name": (user_data.get("name") or "").strip(),
+                "surname": (user_data.get("surname") or "").strip(),
                 "full_name": full_name,
                 "city": user_data.get("city"),
                 "phone": user_data.get("phone"),
@@ -977,6 +988,8 @@ def users_me(user_id: int):
                 "buddy_name": buddy_name,
                 "buddy_avatar_path": buddy_avatar_path,
             }
+            if user_data.get("gender") is not None:
+                out["gender"] = user_data.get("gender")
             if "telegram" in user_data:
                 out["telegram"] = user_data.get("telegram") or ""
             if "vk" in user_data:
@@ -1091,27 +1104,134 @@ def users_phone_prefixes():
         _return_conn(conn)
 
 
+# --- user_buddy_links: directed viewer→subject permissions ---
+def _ensure_user_buddy_links_table(cur):
+    """Создать таблицу user_buddy_links, если её нет (sandbox без ручной миграции)."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_buddy_links (
+            id SERIAL PRIMARY KEY,
+            viewer_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            subject_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            can_read BOOLEAN NOT NULL DEFAULT true,
+            can_write BOOLEAN NOT NULL DEFAULT false,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            revoked_at TIMESTAMPTZ,
+            CONSTRAINT user_buddy_links_viewer_subject_uniq UNIQUE (viewer_id, subject_id),
+            CONSTRAINT user_buddy_links_no_self CHECK (viewer_id != subject_id),
+            CONSTRAINT user_buddy_links_status_chk CHECK (status IN ('pending', 'active', 'revoked'))
+        )
+    """)
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_user_buddy_links_viewer_active ON user_buddy_links (viewer_id) WHERE status = 'active'")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_user_buddy_links_subject_active ON user_buddy_links (subject_id) WHERE status = 'active'")
+    except psycopg2.ProgrammingError:
+        pass
+
+
+def _upsert_buddy_link(cur, viewer_id: int, subject_id: int, can_read: bool = True, can_write: bool = False, status: str = "active"):
+    _ensure_user_buddy_links_table(cur)
+    cur.execute("""
+        INSERT INTO user_buddy_links (viewer_id, subject_id, can_read, can_write, status)
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (viewer_id, subject_id) DO UPDATE SET
+            can_read = EXCLUDED.can_read,
+            can_write = EXCLUDED.can_write,
+            status = EXCLUDED.status,
+            revoked_at = NULL
+    """, (viewer_id, subject_id, can_read, can_write, status))
+
+
+def _can_view_lk(cur, viewer_id: int, subject_id: int) -> bool:
+    if viewer_id == subject_id:
+        return True
+    _ensure_user_buddy_links_table(cur)
+    cur.execute("""
+        SELECT 1 FROM user_buddy_links
+        WHERE viewer_id = %s AND subject_id = %s AND status = 'active' AND can_read = true
+    """, (viewer_id, subject_id))
+    if cur.fetchone():
+        return True
+    cur.execute("SELECT buddy_id FROM users WHERE id = %s", (viewer_id,))
+    row = cur.fetchone()
+    return bool(row and row.get("buddy_id") == subject_id)
+
+
+def _can_edit_lk(cur, editor_id: int, owner_id: int) -> bool:
+    if editor_id == owner_id:
+        return True
+    _ensure_user_buddy_links_table(cur)
+    cur.execute("""
+        SELECT 1 FROM user_buddy_links
+        WHERE viewer_id = %s AND subject_id = %s AND status = 'active' AND can_write = true
+    """, (editor_id, owner_id))
+    if cur.fetchone():
+        return True
+    cur.execute("SELECT buddy_id, buddy_trust FROM users WHERE id = %s", (editor_id,))
+    row = cur.fetchone()
+    return bool(row and row.get("buddy_id") == owner_id and row.get("buddy_trust"))
+
+
 # --- Список пользователей для модалки «Добавить бадди» ---
 @app.get("/users/list")
-def users_list(exclude_user_id: Optional[int] = None):
-    """Список пользователей без бадди: id, name, surname, avatar_path. exclude_user_id — не включать этого пользователя."""
+def users_list(exclude_user_id: Optional[int] = None, for_user_id: Optional[int] = None):
+    """Список пользователей для приглашения в бадди. exclude_user_id — не включать; for_user_id — скрыть уже связанных."""
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Только пользователи, у которых ещё нет бадди (buddy_id IS NULL)
-            sql_base = "SELECT id, name, surname FROM users WHERE buddy_id IS NULL"
+            _ensure_user_buddy_links_table(cur)
+            _ensure_buddy_requests_table(cur)
+            conn.commit()
+            sql_base = "SELECT id, name, surname FROM users WHERE 1=1"
+            params: list = []
             if exclude_user_id is not None:
-                cur.execute(sql_base + " AND id != %s ORDER BY surname, name", (exclude_user_id,))
-            else:
-                cur.execute(sql_base + " ORDER BY surname, name")
+                sql_base += " AND id != %s"
+                params.append(exclude_user_id)
+            if for_user_id is not None:
+                sql_base += """
+                    AND id NOT IN (
+                        SELECT subject_id FROM user_buddy_links
+                        WHERE viewer_id = %s AND status = 'active'
+                    )
+                    AND id NOT IN (
+                        SELECT to_user_id FROM buddy_requests
+                        WHERE from_user_id = %s AND status = 'pending'
+                    )
+                    AND id NOT IN (
+                        SELECT from_user_id FROM buddy_requests
+                        WHERE to_user_id = %s AND status = 'pending'
+                    )
+                """
+                params.extend([for_user_id, for_user_id, for_user_id])
+            sql_base += " ORDER BY surname, name"
+            cur.execute(sql_base, tuple(params) if params else None)
             rows = cur.fetchall()
             out = [{"id": r["id"], "name": (r.get("name") or "").strip(), "surname": (r.get("surname") or "").strip(), "avatar_path": None, "gender": r.get("gender")} for r in rows]
             try:
+                sql_g = "SELECT id, name, surname, gender FROM users WHERE 1=1"
+                params_g: list = []
                 if exclude_user_id is not None:
-                    cur.execute("SELECT id, name, surname, gender FROM users WHERE id != %s AND buddy_id IS NULL ORDER BY surname, name", (exclude_user_id,))
-                else:
-                    cur.execute("SELECT id, name, surname, gender FROM users WHERE buddy_id IS NULL ORDER BY surname, name")
+                    sql_g += " AND id != %s"
+                    params_g.append(exclude_user_id)
+                if for_user_id is not None:
+                    sql_g += """
+                        AND id NOT IN (
+                            SELECT subject_id FROM user_buddy_links
+                            WHERE viewer_id = %s AND status = 'active'
+                        )
+                        AND id NOT IN (
+                            SELECT to_user_id FROM buddy_requests
+                            WHERE from_user_id = %s AND status = 'pending'
+                        )
+                        AND id NOT IN (
+                            SELECT from_user_id FROM buddy_requests
+                            WHERE to_user_id = %s AND status = 'pending'
+                        )
+                    """
+                    params_g.extend([for_user_id, for_user_id, for_user_id])
+                sql_g += " ORDER BY surname, name"
+                cur.execute(sql_g, tuple(params_g) if params_g else None)
                 rows = cur.fetchall()
                 out = [{"id": r["id"], "name": (r.get("name") or "").strip(), "surname": (r.get("surname") or "").strip(), "avatar_path": None, "gender": r.get("gender")} for r in rows]
             except psycopg2.ProgrammingError:
@@ -1129,6 +1249,212 @@ def users_list(exclude_user_id: Optional[int] = None):
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/users/me/viewable")
+def get_viewable_subjects(user_id: int):
+    """Кабинеты, которые user_id может просматривать: себя + активные связи viewer→subject."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_user_buddy_links_table(cur)
+            _ensure_buddy_requests_table(cur)
+            conn.commit()
+            cur.execute("SELECT id, name, surname, avatar_path FROM users WHERE id = %s", (user_id,))
+            self_row = cur.fetchone()
+            if not self_row:
+                raise HTTPException(status_code=404, detail="Пользователь не найден")
+            self_name = ((self_row.get("name") or "") + " " + (self_row.get("surname") or "")).strip()
+            subjects = [{
+                "id": user_id,
+                "full_name": self_name or "Я",
+                "avatar_path": self_row.get("avatar_path"),
+                "is_self": True,
+                "can_read": True,
+                "can_write": True,
+            }]
+            cur.execute("""
+                SELECT ubl.subject_id, ubl.can_read, ubl.can_write,
+                       u.name, u.surname, u.avatar_path
+                FROM user_buddy_links ubl
+                JOIN users u ON u.id = ubl.subject_id
+                WHERE ubl.viewer_id = %s AND ubl.status = 'active' AND ubl.can_read = true
+                ORDER BY u.surname NULLS LAST, u.name
+            """, (user_id,))
+            seen = {user_id}
+            for r in cur.fetchall():
+                sid = r["subject_id"]
+                if sid in seen:
+                    continue
+                seen.add(sid)
+                fn = ((r.get("name") or "") + " " + (r.get("surname") or "")).strip()
+                subjects.append({
+                    "id": sid,
+                    "full_name": fn or f"Участник #{sid}",
+                    "avatar_path": r.get("avatar_path"),
+                    "is_self": False,
+                    "can_read": bool(r.get("can_read")),
+                    "can_write": bool(r.get("can_write")),
+                })
+            cur.execute("SELECT buddy_id, buddy_trust FROM users WHERE id = %s", (user_id,))
+            legacy = cur.fetchone()
+            bid = legacy.get("buddy_id") if legacy else None
+            if bid and bid not in seen:
+                cur.execute("SELECT name, surname, avatar_path FROM users WHERE id = %s", (bid,))
+                bu = cur.fetchone()
+                if bu:
+                    fn = ((bu.get("name") or "") + " " + (bu.get("surname") or "")).strip()
+                    subjects.append({
+                        "id": bid,
+                        "full_name": fn or f"Участник #{bid}",
+                        "avatar_path": bu.get("avatar_path"),
+                        "is_self": False,
+                        "can_read": True,
+                        "can_write": bool(legacy.get("buddy_trust")),
+                    })
+            return {"subjects": subjects}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/users/me/access-grants")
+def get_access_grants(user_id: int):
+    """Кто имеет доступ к кабинету user_id (subject): список viewer с флагами can_read/can_write."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_user_buddy_links_table(cur)
+            conn.commit()
+            cur.execute("""
+                SELECT ubl.id AS link_id, ubl.viewer_id, ubl.can_read, ubl.can_write, ubl.status,
+                       u.name, u.surname, u.avatar_path
+                FROM user_buddy_links ubl
+                JOIN users u ON u.id = ubl.viewer_id
+                WHERE ubl.subject_id = %s AND ubl.status = 'active'
+                ORDER BY u.surname NULLS LAST, u.name
+            """, (user_id,))
+            grants = []
+            for r in cur.fetchall():
+                fn = ((r.get("name") or "") + " " + (r.get("surname") or "")).strip()
+                grants.append({
+                    "link_id": r["link_id"],
+                    "viewer_id": r["viewer_id"],
+                    "full_name": fn or f"Участник #{r['viewer_id']}",
+                    "avatar_path": r.get("avatar_path"),
+                    "can_read": bool(r.get("can_read")),
+                    "can_write": bool(r.get("can_write")),
+                })
+            return {"grants": grants}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.patch("/users/me/buddy-links")
+def update_buddy_link(body: BuddyLinkUpdateBody, user_id: int):
+    """Обновить can_write для связи viewer→subject. can_read всегда true у активного бадди."""
+    if body.viewer_id == body.subject_id:
+        raise HTTPException(status_code=400, detail="Нельзя менять доступ для себя")
+    if body.subject_id != user_id:
+        raise HTTPException(status_code=403, detail="Только владелец кабинета может менять доступ")
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_user_buddy_links_table(cur)
+            cur.execute("""
+                SELECT id, status FROM user_buddy_links
+                WHERE viewer_id = %s AND subject_id = %s
+            """, (body.viewer_id, body.subject_id))
+            row = cur.fetchone()
+            if not row or row.get("status") != "active":
+                raise HTTPException(status_code=404, detail="Связь не найдена")
+            cur.execute("""
+                UPDATE user_buddy_links
+                SET can_read = true, can_write = %s
+                WHERE viewer_id = %s AND subject_id = %s
+            """, (body.can_write, body.viewer_id, body.subject_id))
+            cur.execute("SELECT buddy_id FROM users WHERE id = %s", (body.viewer_id,))
+            viewer = cur.fetchone()
+            if viewer and viewer.get("buddy_id") == body.subject_id:
+                cur.execute(
+                    "UPDATE users SET buddy_trust = %s WHERE id = %s",
+                    (body.can_write, body.viewer_id),
+                )
+            conn.commit()
+            return {
+                "viewer_id": body.viewer_id,
+                "subject_id": body.subject_id,
+                "can_read": True,
+                "can_write": body.can_write,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.delete("/users/me/buddy-links")
+def revoke_buddy_link(user_id: int, other_user_id: int):
+    """Разорвать связь с бадди в обе стороны (status=revoked). Только участник пары."""
+    if other_user_id == user_id:
+        raise HTTPException(status_code=400, detail="Нельзя удалить себя")
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_user_buddy_links_table(cur)
+            cur.execute("""
+                SELECT 1 FROM user_buddy_links
+                WHERE status = 'active'
+                  AND (
+                    (viewer_id = %s AND subject_id = %s)
+                    OR (viewer_id = %s AND subject_id = %s)
+                  )
+                LIMIT 1
+            """, (user_id, other_user_id, other_user_id, user_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Связь не найдена")
+            cur.execute("""
+                UPDATE user_buddy_links
+                SET status = 'revoked', revoked_at = NOW(), can_read = false, can_write = false
+                WHERE status = 'active'
+                  AND (
+                    (viewer_id = %s AND subject_id = %s)
+                    OR (viewer_id = %s AND subject_id = %s)
+                  )
+            """, (user_id, other_user_id, other_user_id, user_id))
+            cur.execute(
+                "UPDATE users SET buddy_id = NULL, buddy_trust = false WHERE id = %s AND buddy_id = %s",
+                (user_id, other_user_id),
+            )
+            cur.execute(
+                "UPDATE users SET buddy_id = NULL, buddy_trust = false WHERE id = %s AND buddy_id = %s",
+                (other_user_id, user_id),
+            )
+            conn.commit()
+            return {"ok": True, "other_user_id": other_user_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
@@ -1195,14 +1521,17 @@ def create_buddy_request(body: BuddyRequestCreate, user_id: int):
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _ensure_buddy_requests_table(cur)
-            cur.execute("SELECT id, buddy_id FROM users WHERE id IN (%s, %s)", (user_id, body.to_user_id))
-            rows = {r["id"]: r for r in cur.fetchall()}
-            if body.to_user_id not in rows:
+            _ensure_user_buddy_links_table(cur)
+            conn.commit()
+            cur.execute("SELECT id FROM users WHERE id = %s", (body.to_user_id,))
+            if not cur.fetchone():
                 raise HTTPException(status_code=404, detail="Пользователь не найден")
-            if rows.get(body.to_user_id, {}).get("buddy_id"):
-                raise HTTPException(status_code=400, detail="У этого пользователя уже есть бадди")
-            if rows.get(user_id, {}).get("buddy_id"):
-                raise HTTPException(status_code=400, detail="У вас уже есть бадди")
+            cur.execute("""
+                SELECT 1 FROM user_buddy_links
+                WHERE viewer_id = %s AND subject_id = %s AND status = 'active'
+            """, (user_id, body.to_user_id))
+            if cur.fetchone():
+                raise HTTPException(status_code=400, detail="С этим пользователем уже есть активная связь")
             cur.execute(
                 "SELECT id FROM buddy_requests WHERE from_user_id = %s AND to_user_id = %s AND status = 'pending'",
                 (user_id, body.to_user_id),
@@ -1246,6 +1575,9 @@ def update_buddy_request(request_id: int, body: BuddyRequestUpdate, user_id: int
             to_id = row["to_user_id"]
             cur.execute("UPDATE buddy_requests SET status = %s WHERE id = %s", (body.status, request_id))
             if body.status == "accepted":
+                _ensure_user_buddy_links_table(cur)
+                _upsert_buddy_link(cur, from_id, to_id, can_read=True, can_write=False)
+                _upsert_buddy_link(cur, to_id, from_id, can_read=True, can_write=False)
                 cur.execute("UPDATE users SET buddy_id = %s WHERE id = %s", (to_id, from_id))
                 cur.execute("UPDATE users SET buddy_id = %s WHERE id = %s", (from_id, to_id))
                 cur.execute("SELECT name, surname, avatar_path FROM users WHERE id = %s", (from_id,))
@@ -1355,12 +1687,8 @@ def list_dream_categories():
         _return_conn(conn)
 
 def _can_edit_buddy_dream(cur, editor_id: int, dream_owner_id: int) -> bool:
-    """Проверяет, может ли editor_id редактировать мечты владельца dream_owner_id (свои или бадди с доверием)."""
-    if editor_id == dream_owner_id:
-        return True
-    cur.execute("SELECT buddy_id, buddy_trust FROM users WHERE id = %s", (editor_id,))
-    row = cur.fetchone()
-    return bool(row and row.get("buddy_id") == dream_owner_id and row.get("buddy_trust"))
+    """Проверяет, может ли editor_id редактировать мечты владельца dream_owner_id."""
+    return _can_edit_lk(cur, editor_id, dream_owner_id)
 
 def _resolve_editor_and_check_dream(cur, dream_id: int, user_id: int, viewer_id: Optional[int]) -> int:
     """Возвращает user_id владельца мечты и проверяет, что текущий запросчик (editor) может её редактировать. Иначе 403/404."""
@@ -2243,15 +2571,13 @@ def record_dream_help_intent(dream_id: int, body: ShowcaseActionBody):
 # --- Эндпоинт 2: ПОЛУЧЕНИЕ МЕЧТ ПОЛЬЗОВАТЕЛЯ ---
 @app.get("/dreams")
 def get_dreams(user_id: int, viewer_id: Optional[int] = None):
-    """Список мечт пользователя user_id. Если передан viewer_id: отдаём только если viewer_id == user_id или viewer — бадди user_id (users.buddy_id у viewer = user_id)."""
+    """Список мечт пользователя user_id. viewer_id: посторонний зритель — только при can_read по user_buddy_links (или legacy buddy_id)."""
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             if viewer_id is not None and viewer_id != user_id:
-                cur.execute("SELECT buddy_id FROM users WHERE id = %s", (viewer_id,))
-                row = cur.fetchone()
-                if not row or row.get("buddy_id") != user_id:
+                if not _can_view_lk(cur, viewer_id, user_id):
                     raise HTTPException(status_code=403, detail="Нет доступа к мечтам этого пользователя")
             dreams_rows = None
             try:
@@ -3004,9 +3330,7 @@ def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = 
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             if viewer_id is not None and viewer_id != user_id:
-                cur.execute("SELECT buddy_id FROM users WHERE id = %s", (viewer_id,))
-                row = cur.fetchone()
-                if not row or row.get("buddy_id") != user_id:
+                if not _can_view_lk(cur, viewer_id, user_id):
                     raise HTTPException(status_code=403, detail="Нет доступа к дневнику этого пользователя")
             try:
                 cur.execute(
