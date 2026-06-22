@@ -273,7 +273,6 @@ class FinanceStepsCreate(BaseModel):
 class StepUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
-    completed_late: Optional[bool] = None  # при completed=True: с клиента; иначе сервер оценит (см. step_should_mark_completed_late)
     deadline: Optional[str] = None  # YYYY-MM-DD
     start_time: Optional[str] = None  # HH:MM
     end_time: Optional[str] = None    # HH:MM
@@ -379,38 +378,7 @@ def _step_row_to_dict(s):
         "plan_amount": float(plan) if plan is not None else None,
         "fact_amount": float(fact) if fact is not None else None,
         "waived": bool(s.get("waived", False)),
-        "completed_late": bool(s.get("completed_late", False)),
     }
-
-
-def step_due_boundary_utc(deadline, start_time, end_time) -> Optional[datetime]:
-    """Граница «календарный день дедлайна закончился» для серверной эвристики: 00:00 UTC следующего дня после даты deadline.
-
-    Время суток шага (start_time/end_time) не используется — согласовано с ЛК (локальная полночь на клиенте; при PATCH с телом
-    `completed_late` сервер берёт значение с клиента).
-    """
-    if not deadline:
-        return None
-    dstr = str(deadline)[:10]
-    try:
-        d = date.fromisoformat(dstr)
-    except ValueError:
-        return None
-    return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc) + timedelta(days=1)
-
-
-def step_is_overdue_at(deadline, start_time, end_time, completed: bool, deleted: bool, waived: bool, at_utc: datetime) -> bool:
-    if completed or deleted or waived:
-        return False
-    b = step_due_boundary_utc(deadline, start_time, end_time)
-    if b is None:
-        return False
-    return at_utc >= b
-
-
-def step_should_mark_completed_late(deadline, start_time, end_time, at_utc: datetime) -> bool:
-    """В момент at_utc шаг уже просрочен — для completed_late при отметке выполнено."""
-    return step_is_overdue_at(deadline, start_time, end_time, False, False, False, at_utc)
 
 
 def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, event_type: str, message: Optional[str] = None) -> None:
@@ -458,7 +426,7 @@ def _load_steps(cur, dream_ids):
     if not dream_ids:
         return out
     queries = [
-        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived, completed_late FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
+        "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
         "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted, plan_amount, fact_amount FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
         "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
         "SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time, deleted FROM dreams_steps WHERE dream_id = ANY(%s) ORDER BY dream_id, sort_order, id",
@@ -493,7 +461,7 @@ def _load_steps(cur, dream_ids):
             out[did].append({
                 "id": s["id"], "title": s["title"], "completed": bool(s["completed"]),
                 "deadline": None, "start_time": None, "end_time": None, "series_id": None, "series_index": None, "series_total": None, "deleted": False,
-                "plan_amount": None, "fact_amount": None, "waived": False, "completed_late": False,
+                "plan_amount": None, "fact_amount": None, "waived": False,
             })
     except psycopg2.ProgrammingError:
         try:
@@ -3128,12 +3096,8 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
             if body.waived is True:
                 updates.append("waived = true")
                 updates.append("completed = false")
-                updates.append("completed_late = false")
             elif body.waived is False:
                 updates.append("waived = false")
-            if body.completed is False:
-                if not any(u.startswith("completed_late") for u in updates):
-                    updates.append("completed_late = false")
 
             cur_step = None
             for _sql in (
@@ -3184,34 +3148,6 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                         where_sql = "id = %s AND dream_id = %s"
                         where_vals = [step_id, dream_id]
 
-            now_utc = datetime.now(timezone.utc)
-            pending_late: List[tuple] = []
-            late_for_diary: Optional[bool] = None  # одиночное completed + computed completed_late
-            if body.completed is True:
-                cur.execute(
-                    f"SELECT id, deadline, start_time, end_time FROM dreams_steps WHERE {where_sql}",
-                    where_vals,
-                )
-                rows_for_late = cur.fetchall()
-                if len(rows_for_late) == 1:
-                    r0 = rows_for_late[0]
-                    dl = body.deadline if body.deadline is not None else r0.get("deadline")
-                    st = body.start_time if body.start_time is not None else r0.get("start_time")
-                    et = body.end_time if body.end_time is not None else r0.get("end_time")
-                    if body.completed_late is not None:
-                        late = bool(body.completed_late)
-                    else:
-                        late = step_should_mark_completed_late(dl, st, et, now_utc)
-                    late_for_diary = late
-                    updates.append("completed_late = %s")
-                    vals.append(late)
-                elif len(rows_for_late) > 1:
-                    for r0 in rows_for_late:
-                        dl = r0.get("deadline")
-                        st = r0.get("start_time")
-                        et = r0.get("end_time")
-                        late = step_should_mark_completed_late(dl, st, et, now_utc)
-                        pending_late.append((r0["id"], late))
 
             if not updates:
                 if note_trim:
@@ -3220,7 +3156,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                     try:
                         cur.execute(
                             """SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time,
-                               series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived, completed_late
+                               series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived
                                FROM dreams_steps WHERE id = %s AND dream_id = %s""",
                             (step_id, dream_id),
                         )
@@ -3257,17 +3193,6 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                         "UPDATE dreams_steps SET " + ", ".join(updates_old) + " WHERE id = %s AND dream_id = %s",
                         vals_old,
                     )
-            else:
-                for sid, late in pending_late:
-                    try:
-                        cur.execute(
-                            "UPDATE dreams_steps SET completed_late = %s WHERE id = %s AND dream_id = %s",
-                            (late, sid, dream_id),
-                        )
-                    except psycopg2.ProgrammingError:
-                        cur.connection.rollback()
-                        break
-
             if body.waived is True:
                 if note_trim:
                     _insert_step_event_safe(cur, step_id, dream_id, editor_id, "waived", note_trim)
@@ -3302,7 +3227,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                 try:
                     cur.execute(
                         """SELECT dream_id, id, title, completed, sort_order, deadline, start_time, end_time,
-                           series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived, completed_late
+                           series_id, series_index, series_total, deleted, plan_amount, fact_amount, waived
                            FROM dreams_steps WHERE id = %s AND dream_id = %s""",
                         (step_id, dream_id),
                     )

@@ -1039,22 +1039,7 @@
         .dreams-filter-btn:hover { opacity: 0.95; color: #333; }
         .dreams-filter-btn.active { border: none; box-shadow: none; background: #4CAF50; opacity: 1; color: #fff; }
         #steps-filter .dreams-filter-btn[data-filter="overdue"].steps-filter-needs-attention:not(.active) .dreams-filter-text { color: #c62828; font-weight: 600; }
-        /* Модалка «день шага прошёл»: три кнопки всегда в одну строку на узком экране */
-        #modal-step-done-late .modal-actions.modal-actions--done-late {
-            flex-wrap: nowrap;
-            gap: 8px;
-            justify-content: stretch;
-            margin-top: 12px;
-            margin-bottom: 0;
-        }
-        #modal-step-done-late .modal-actions.modal-actions--done-late button {
-            flex: 1 1 0;
-            min-width: 0;
-            padding: 9px 8px;
-            font-size: 13px;
-        }
-        /* Переключатель «Больше не спрашивать» под кнопками: опоздание, «не выполнен», перенос (не модалка прямого комментария). */
-        #modal-step-done-late .step-diary-prompt-foot,
+        /* Переключатель «Больше не спрашивать» под кнопками: «не выполнен» и перенос шага. */
         #modal-step-waived .step-diary-prompt-foot,
         #modal-step-move .step-diary-prompt-foot {
             text-align: center;
@@ -1063,7 +1048,6 @@
             border-top: 1px solid rgba(165, 214, 167, 0.85);
             box-sizing: border-box;
         }
-        #modal-step-done-late a.step-diary-prompt-toggle,
         #modal-step-waived a.step-diary-prompt-toggle,
         #modal-step-move a.step-diary-prompt-toggle {
             display: inline;
@@ -1083,13 +1067,11 @@
             word-break: break-word;
             box-sizing: border-box;
         }
-        #modal-step-done-late a.step-diary-prompt-toggle:hover,
         #modal-step-waived a.step-diary-prompt-toggle:hover,
         #modal-step-move a.step-diary-prompt-toggle:hover {
             color: var(--island-accent-deep);
             text-decoration: underline;
         }
-        #modal-step-done-late a.step-diary-prompt-toggle:focus-visible,
         #modal-step-waived a.step-diary-prompt-toggle:focus-visible,
         #modal-step-move a.step-diary-prompt-toggle:focus-visible {
             outline: 2px solid var(--island-accent);
@@ -1190,7 +1172,6 @@
         .step-badge { font-size: 10px; margin-left: 6px; padding: 1px 6px; border-radius: 10px; display: inline-block; vertical-align: middle; font-weight: 600; }
         .step-badge-overdue { background: #fff3e0; color: #e65100; }
         .step-badge-waived { background: #efebe9; color: #5d4037; }
-        .step-badge-late { background: #fce4ec; color: #c2185b; }
         .step-badge-completed { background: #e8f5e9; color: #2e7d32; }
         /* Единая строка шага: слева ✓ − 💬, центр название + время, справа ⇢ ✏️ 🗑️ */
         .step-item-plain.step-unified-line { display: block; }
@@ -1386,18 +1367,10 @@
             .modal-add-step .modal-add-step-date { font-size: 13px; }
             .modal-actions { flex-wrap: wrap; }
             .modal-actions button { min-height: 44px; }
-            #modal-step-done-late .modal-actions.modal-actions--done-late { flex-wrap: nowrap !important; gap: 6px; }
-            #modal-step-done-late .modal-actions.modal-actions--done-late button {
-                min-height: auto;
-                padding: 8px 5px;
-                font-size: 11px;
-            }
-            #modal-step-done-late .step-diary-prompt-foot,
             #modal-step-waived .step-diary-prompt-foot,
             #modal-step-move .step-diary-prompt-foot {
                 padding: 12px 4px 0;
             }
-            #modal-step-done-late a.step-diary-prompt-toggle,
             #modal-step-waived a.step-diary-prompt-toggle,
             #modal-step-move a.step-diary-prompt-toggle {
                 font-size: 12px;
@@ -1748,8 +1721,8 @@
                                 <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
                                 <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
                                 <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:0;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
-                                    <input type="checkbox" id="profile-edit-prompt-late-comments" checked style="margin-top:3px;flex-shrink:0;">
-                                    <span>Предлагать необязательный комментарий в дневник при опоздании, «не выполнен» и переносе шага</span>
+                                    <input type="checkbox" id="profile-edit-prompt-step-comments" checked style="margin-top:3px;flex-shrink:0;">
+                                    <span>Предлагать необязательный комментарий в дневник при «не выполнен» и переносе шага</span>
                                 </label>
                             </div>
                         </div>
@@ -1915,22 +1888,6 @@
                     </div>
                     <div class="step-diary-prompt-foot">
                         <a href="#" class="step-diary-prompt-toggle" id="step-move-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Модалка: календарный день дедлайна прошёл — отмечаем выполненным (необязательный комментарий) -->
-            <div id="modal-step-done-late" class="modal-overlay hidden">
-                <div class="modal">
-                    <h3>День шага уже прошёл</h3>
-                    <p style="margin:0 0 10px;color:#666;font-size:14px;">Отметка «выполнено» будет с опозданием. Можно кратко пояснить в дневнике или пропустить.</p>
-                    <textarea id="step-done-late-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="Комментарий, по желанию" aria-label="Комментарий, по желанию"></textarea>
-                    <div class="modal-actions modal-actions--done-late">
-                        <button type="button" class="secondary" id="step-done-late-cancel">Отмена</button>
-                        <button type="button" class="secondary" id="step-done-late-skip">Пропустить</button>
-                        <button type="button" class="secondary" id="step-done-late-save">Сохранить</button>
-                    </div>
-                    <div class="step-diary-prompt-foot">
-                        <a href="#" class="step-diary-prompt-toggle" id="step-done-late-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
                     </div>
                 </div>
             </div>
@@ -2326,7 +2283,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">276</span>
+                    <span class="app-version" aria-hidden="true">277</span>
                 </div>
             </footer>
         </div>
@@ -4161,7 +4118,7 @@
             if (newPw) newPw.value = '';
             if (fileInput) fileInput.value = '';
             if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
-            syncProfileLatePromptCheckbox();
+            syncProfilePromptCheckbox();
             if (telegramEl) telegramEl.value = (currentUser.telegram || '').trim();
             if (vkEl) vkEl.value = (currentUser.vk || '').trim();
             if (phoneEl) phoneEl.value = (currentUser.phone || '').trim();
@@ -4835,19 +4792,6 @@
                             if (!s || s.deleted) continue;
                             var deadlineStr = lastDayOfMonth(monthIdx, currentYear);
                             var prevCompleted = monthIdx > 0 && (steps[monthIdx - 1].completed || (steps[monthIdx - 1].fact_amount != null && steps[monthIdx - 1].fact_amount !== ''));
-                            var showStep = (deadlineStr <= todayStr) || prevCompleted;
-                            if (!showStep) continue;
-                            var isEarly = deadlineStr > todayStr;
-                            var N;
-                            if (isEarly) {
-                                N = (s.plan_amount != null ? s.plan_amount : defaultPlan);
-                            } else {
-                                var cumPlan = 0, cumFactPrev = 0;
-                                for (var i = 0; i <= monthIdx; i++) cumPlan += (steps[i].plan_amount != null ? steps[i].plan_amount : defaultPlan);
-                                for (var j = 0; j < monthIdx; j++) cumFactPrev += (steps[j].fact_amount != null ? Number(steps[j].fact_amount) : 0);
-                                N = Math.round((cumPlan - cumFactPrev) / 1000) * 1000;
-                                if (N < 0) N = 0;
-                            }
                             stepsFlatCache.push({
                                 dream_id: d.id,
                                 dream_title: dreamTitle,
@@ -4858,8 +4802,7 @@
                                 deleted: s.deleted || false,
                                 isFinStep: true,
                                 amountN: N,
-                                waived: !!s.waived,
-                                completed_late: !!s.completed_late
+                                waived: !!s.waived
                             });
                         }
                     } else {
@@ -4877,8 +4820,7 @@
                             series_id: s.series_id || null,
                             series_index: s.series_index || null,
                             series_total: s.series_total || null,
-                            waived: !!s.waived,
-                            completed_late: !!s.completed_late
+                            waived: !!s.waived
                         });
                     });
                     }
@@ -4941,14 +4883,14 @@
         /** Подсказка ✓ в компактной серии (неотмеченные после дня дедлайна). */
         function overdueSeriesMarkDoneTitleRu(n) {
             var k = Math.floor(Math.abs(Number(n))) || 0;
-            if (k < 1) return 'Выполнил вовремя';
+            if (k < 1) return 'Отметить выполненным';
             var m100 = k % 100, m10 = k % 10;
             var frag;
             if (m100 >= 11 && m100 <= 14) frag = k + ' неотмеченных';
             else if (m10 === 1) frag = '1 неотмеченный';
             else if (m10 >= 2 && m10 <= 4) frag = k + ' неотмеченных';
             else frag = k + ' неотмеченных';
-            return 'Отметить ' + frag + ' как выполненные вовремя';
+            return 'Отметить ' + frag + ' как выполненные';
         }
         /** Подсказка − в компактной серии. */
         function overdueSeriesMarkWaiveTitleRu(n) {
@@ -5187,13 +5129,13 @@
             document.getElementById('modal-step-move').classList.add('hidden');
             stepMoveModal = { dreamId: 0, stepId: 0 };
         }
-        /** Историческое имя ключа: один флаг на «опоздание», «не выполнен», перенос (не прямой клик «комментарий к шагу»). */
-        var STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1 = 'island_prompt_step_done_late_comment_v1';
+        /** Историческое имя ключа: один флаг на запрос комментария при «не выполнен» и переносе шага. */
+        var STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1 = 'island_prompt_step_comment_v1';
         function isStepOptionalDiaryCommentModalEnabled() {
             try { return localStorage.getItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1) !== '0'; } catch (e) { return true; }
         }
-        function syncProfileLatePromptCheckbox() {
-            var el = document.getElementById('profile-edit-prompt-late-comments');
+        function syncProfilePromptCheckbox() {
+            var el = document.getElementById('profile-edit-prompt-step-comments');
             if (el) el.checked = isStepOptionalDiaryCommentModalEnabled();
         }
         var STEP_MOVE_LEAD_WITH_COMMENT = 'Новая дата обязательна. Комментарий в дневник необязателен: «Пропустить» — только новая дата. «Сохранить» — новая дата и комментарий в дневник, если вы его ввели.';
@@ -5201,7 +5143,7 @@
         function updateStepOptionalDiaryCommentModalToggleUi() {
             var on = isStepOptionalDiaryCommentModalEnabled();
             var label = on ? 'Больше не спрашивать' : 'Запрашивать комментирование';
-            ['step-done-late-prompt-toggle', 'step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(id) {
+            ['step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(id) {
                 var btn = document.getElementById(id);
                 if (btn) btn.textContent = label;
             });
@@ -5223,48 +5165,6 @@
             syncProfileLatePromptCheckbox();
             updateStepOptionalDiaryCommentModalToggleUi();
             syncStepMoveModalCommentSection();
-        }
-        function patchStepDoneLateComplete(dreamId, stepId, doneBtn, noteTrim) {
-            var row = stepsFlatCache.find(function(x) { return x.dream_id === dreamId && x.id === stepId; });
-            var body = { completed: true };
-            if (noteTrim) body.note = noteTrim;
-            if (row && row.deadline) {
-                var bm = stepOverdueBoundaryUtcMs(row.deadline, row);
-                if (bm != null) body.completed_late = Date.now() >= bm;
-            }
-            return patchStep(dreamId, stepId, body).then(function() {
-                var r = stepsFlatCache.find(function(x) { return x.dream_id === dreamId && x.id === stepId; });
-                if (r) { r.completed = true; if (r.completed_late !== undefined) r.completed_late = true; }
-                if (doneBtn) doneBtn.classList.add('step-done-on');
-                dreamIdToRestoreAfterRefresh = dreamId;
-                refreshAfterDreamChange();
-            });
-        }
-        var stepDoneLateModal = { dreamId: 0, stepId: 0, doneBtn: null };
-        function updateStepDoneLateSaveState() {
-            var ta = document.getElementById('step-done-late-note-text');
-            var saveBtn = document.getElementById('step-done-late-save');
-            if (!saveBtn) return;
-            var has = ta && (ta.value || '').trim().length > 0;
-            saveBtn.disabled = false;
-            if (has) saveBtn.classList.remove('secondary');
-            else saveBtn.classList.add('secondary');
-        }
-        function openStepDoneLateModal(dreamId, stepId, doneBtnEl) {
-            if (!isStepOptionalDiaryCommentModalEnabled()) {
-                patchStepDoneLateComplete(dreamId, stepId, doneBtnEl || null, '').catch(function() { alert('Не удалось сохранить'); });
-                return;
-            }
-            stepDoneLateModal = { dreamId: dreamId, stepId: stepId, doneBtn: doneBtnEl || null };
-            var ta = document.getElementById('step-done-late-note-text');
-            if (ta) ta.value = '';
-            updateStepOptionalDiaryCommentModalToggleUi();
-            updateStepDoneLateSaveState();
-            document.getElementById('modal-step-done-late').classList.remove('hidden');
-        }
-        function closeStepDoneLateModal() {
-            document.getElementById('modal-step-done-late').classList.add('hidden');
-            stepDoneLateModal = { dreamId: 0, stepId: 0, doneBtn: null };
         }
         var stepSeriesConfirmModal = { onConfirm: null };
         function openStepSeriesConfirmModal(text, onConfirm) {
@@ -5380,11 +5280,6 @@
             var dreamId = finStepModalContext.step.dream_id;
             var stepId = finStepModalContext.step.id;
             var finBody = { completed: true, fact_amount: amount };
-            var fst = finStepModalContext.step;
-            if (fst && fst.deadline) {
-                var finBm = stepOverdueBoundaryUtcMs(fst.deadline, fst);
-                if (finBm != null) finBody.completed_late = Date.now() >= finBm;
-            }
             fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(finBody) })
                 .then(function(r) {
                     if (!r.ok) return Promise.reject();
@@ -5948,9 +5843,7 @@
         });
         var modalStepMove = document.getElementById('modal-step-move');
         if (modalStepMove) modalStepMove.addEventListener('click', function(e) { if (e.target === modalStepMove) closeStepMoveModal(); });
-        var stepDoneLateTa = document.getElementById('step-done-late-note-text');
-        if (stepDoneLateTa) stepDoneLateTa.addEventListener('input', updateStepDoneLateSaveState);
-        ['step-done-late-prompt-toggle', 'step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(toggleId) {
+        ['step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(toggleId) {
             var stepOptPromptToggle = document.getElementById(toggleId);
             if (!stepOptPromptToggle) return;
             stepOptPromptToggle.addEventListener('click', function(e) {
@@ -5964,30 +5857,6 @@
                 }
             });
         });
-        document.getElementById('step-done-late-cancel') && document.getElementById('step-done-late-cancel').addEventListener('click', closeStepDoneLateModal);
-        document.getElementById('step-done-late-skip') && document.getElementById('step-done-late-skip').addEventListener('click', function() {
-            if (!stepDoneLateModal.dreamId) { closeStepDoneLateModal(); return; }
-            var dId = stepDoneLateModal.dreamId, sId = stepDoneLateModal.stepId, btn = stepDoneLateModal.doneBtn;
-            patchStepDoneLateComplete(dId, sId, btn, '').then(function() {
-                closeStepDoneLateModal();
-            }).catch(function() { alert('Не удалось сохранить'); });
-        });
-        document.getElementById('step-done-late-save') && document.getElementById('step-done-late-save').addEventListener('click', function() {
-            if (!stepDoneLateModal.dreamId) { closeStepDoneLateModal(); return; }
-            var note = (document.getElementById('step-done-late-note-text') && document.getElementById('step-done-late-note-text').value || '').trim();
-            var dId = stepDoneLateModal.dreamId, sId = stepDoneLateModal.stepId, btn = stepDoneLateModal.doneBtn;
-            if (!note) {
-                patchStepDoneLateComplete(dId, sId, btn, '').then(function() {
-                    closeStepDoneLateModal();
-                }).catch(function() { alert('Не удалось сохранить'); });
-                return;
-            }
-            patchStepDoneLateComplete(dId, sId, btn, note).then(function() {
-                closeStepDoneLateModal();
-            }).catch(function() { alert('Не удалось сохранить'); });
-        });
-        var modalStepDoneLate = document.getElementById('modal-step-done-late');
-        if (modalStepDoneLate) modalStepDoneLate.addEventListener('click', function(e) { if (e.target === modalStepDoneLate) closeStepDoneLateModal(); });
         document.getElementById('step-series-confirm-cancel') && document.getElementById('step-series-confirm-cancel').addEventListener('click', closeStepSeriesConfirmModal);
         document.getElementById('step-series-confirm-ok') && document.getElementById('step-series-confirm-ok').addEventListener('click', confirmStepSeriesConfirmModal);
         document.getElementById('step-series-delete-cancel') && document.getElementById('step-series-delete-cancel').addEventListener('click', closeStepSeriesDeleteModal);
@@ -6157,8 +6026,8 @@
         if (notificationsBackLink) notificationsBackLink.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
         var profileEditBack = document.getElementById('profile-edit-back');
         if (profileEditBack) profileEditBack.addEventListener('click', function(e) { e.preventDefault(); switchMenu(lastCabinetSection); });
-        var profilePromptLateComments = document.getElementById('profile-edit-prompt-late-comments');
-        if (profilePromptLateComments) profilePromptLateComments.addEventListener('change', function() {
+        var profilePromptComments = document.getElementById('profile-edit-prompt-step-comments');
+        if (profilePromptComments) profilePromptComments.addEventListener('change', function() {
             try { localStorage.setItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1, this.checked ? '1' : '0'); } catch (e) {}
             updateStepOptionalDiaryCommentModalToggleUi();
             syncStepMoveModalCommentSection();
@@ -6748,7 +6617,7 @@
                     if (islandDateCalPop && !islandDateCalPop.classList.contains('hidden')) islandCalPosition();
                 });
             }
-            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance', 'modal-step-waived', 'modal-step-move', 'modal-step-comment', 'modal-step-done-late', 'modal-step-report-unmarked'].forEach(function(mid) {
+            ['modal-new-dream', 'modal-edit-dream', 'modal-add-step', 'modal-add-step-finance', 'modal-step-waived', 'modal-step-move', 'modal-step-comment', 'modal-step-report-unmarked'].forEach(function(mid) {
                 var ov = document.getElementById(mid);
                 if (ov && !ov._islandCalScroll) {
                     ov._islandCalScroll = true;
@@ -6889,7 +6758,7 @@
             if (!daySteps.length) return 0;
             return Math.round(100 * countCompletedStepsForEfficiency(daySteps) / daySteps.length);
         }
-        /** Прогресс заполненности дня: любая финальная отметка (✓, −, в т.ч. опоздание) / Y × 100. */
+        /** Прогресс заполненности дня: любая финальная отметка (✓ или −) / Y × 100. */
         function computeDayProgressPercent(dayIso) {
             var stats = buildStepDayPlanStatsFromCache();
             var st = stats[dayIso];
@@ -7012,7 +6881,7 @@
                 bDone.type = 'button';
                 bDone.className = 'reports-express-done';
                 bDone.textContent = '✓';
-                bDone.title = 'Выполнить (с опозданием при необходимости)';
+                bDone.title = 'Отметить выполненным';
                 var dreamIdForStep = resolveDreamIdForReportStep(s);
                 bDone.setAttribute('data-dream-id', String(dreamIdForStep));
                 bDone.setAttribute('data-step-id', String(s.id));
@@ -7255,10 +7124,10 @@
                 var title = stepTitleWithCounter(s, titleCounterMap || {}) + buildLinkedBooksTextSuffix(s, dayIso);
                 if (s.waived) {
                     lines.push('❌ — ' + title + ' (не выполнено)');
-                } else if (s.completed && s.completed_late) {
-                    lines.push('🟡✅ — ' + title + ' (выполнено с опозданием)');
-                } else {
+                } else if (s.completed) {
                     lines.push('✅ — ' + title);
+                } else {
+                    lines.push('⭕ — ' + title);
                 }
             });
             return lines.join('\n');
@@ -7567,7 +7436,6 @@
                 title: seriesObj.title || 'Шаг',
                 completed: seriesObj.completedCount === seriesObj.total,
                 waived: seriesObj.waivedCount === seriesObj.total,
-                completed_late: false,
                 start_time: seriesObj.start_time || null,
                 end_time: seriesObj.end_time || null,
                 deadline: seriesObj.maxDate || null,
@@ -7655,7 +7523,6 @@
             }
             if (isDreamStepsContext && s.completed) badges += '<span class="step-badge step-badge-completed">выполнено</span>';
             if (s.waived) badges += '<span class="step-badge step-badge-waived">не выполнен</span>';
-            if (s.completed && s.completed_late) badges += '<span class="step-badge step-badge-late">Выполнил с опозданием</span>';
             var seriesPrefix = s.series_quality_icon ? '<span class="step-series-quality" title="Состояние серии">' + escapeHtml(s.series_quality_icon) + '</span>' : '';
             var seriesRange = s.series_range_label ? '<span class="step-series-range" title="Интервал серии">' + escapeHtml(s.series_range_label) + '</span>' : '';
             var seriesCount = s.series_count_label ? '<span class="step-series-count" title="Количество шагов в серии">(' + escapeHtml(String(s.series_count_label)) + ')</span>' : '';
@@ -7670,13 +7537,13 @@
                     if (s.completed) doneOnC += ' step-done-locked';
                     var doneDisC = s.waived ? ' disabled' : '';
                     if (s.completed) doneDisC = ' disabled';
-                    var doneTitleC = 'Выполнил вовремя';
+                    var doneTitleC = 'Отметить выполненным';
                     if (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived)
                         doneTitleC = overdueSeriesMarkDoneTitleRu(seriesOd);
                     if (s.completed) doneTitleC = 'Серия шагов уже выполнена';
                     if (!hideSeriesBulkDoneWaive || s.completed) {
                         right += '<button type="button" class="step-done-btn' + doneOnC + '" title="' + escapeAttr(doneTitleC) + '"' + doneDisC + '>✓</button>';
-                        var doneML = (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Отметить неотмеченные' : 'Выполнил вовремя';
+                        var doneML = (seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Отметить неотмеченные' : 'Отметить выполненным';
                         if (s.completed) doneML = 'Серия уже выполнена';
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"' + (s.completed ? ' disabled title="' + escapeAttr('Серия шагов уже выполнена') + '"' : '') + '><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneML) + '</span></button>');
                     } else {
@@ -7710,13 +7577,13 @@
                     if (isDreamStepsContext && s.completed) doneOn += ' step-done-locked';
                     var doneDis = (!fin && s.waived) ? ' disabled' : '';
                     if (isDreamStepsContext && s.completed && !fin) doneDis = ' disabled';
-                    var doneTitle = 'Выполнил вовремя';
+                    var doneTitle = 'Отметить выполненным';
                     if (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived)
                         doneTitle = overdueSeriesMarkDoneTitleRu(seriesOd);
                     if (isDreamStepsContext && s.completed) doneTitle = 'Шаг уже выполнен';
                     if (!hideSeriesBulkDoneWaive || s.completed) {
                         left += '<button type="button" class="step-done-btn' + doneOn + '" title="' + escapeAttr(doneTitle) + '"' + doneDis + '>✓</button>';
-                        var doneMobileLabel = (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Отметить неотмеченные' : 'Выполнил вовремя';
+                        var doneMobileLabel = (compactSeries && seriesOd !== null && seriesOd > 0 && !s.completed && !s.waived) ? 'Отметить неотмеченные' : 'Отметить выполненным';
                         if (isDreamStepsContext && s.completed) doneMobileLabel = 'Шаг уже выполнен';
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-done" data-action="done"' + (isDreamStepsContext && s.completed && !fin ? ' disabled title="' + escapeAttr('Шаг уже выполнен') + '"' : '') + '><span class="step-mobile-action-icon">✓</span><span>' + escapeHtml(doneMobileLabel) + '</span></button>');
                     } else {
@@ -7865,21 +7732,9 @@
                         }).catch(function() {});
                         return;
                     }
-                    if (stepIsOverdueUtc(s)) {
-                        if (inDayReportModal) {
-                            saveStepCompleted(dreamId, s.id, true).then(function() {
-                                s.completed = true;
-                                if (doneBtn) doneBtn.classList.add('step-done-on');
-                                onRefresh();
-                            }).catch(function() {});
-                            return;
-                        }
-                        openStepDoneLateModal(dreamId, s.id, doneBtn);
-                        return;
-                    }
                     saveStepCompleted(dreamId, s.id, true).then(function() {
                         s.completed = true;
-                        doneBtn.classList.add('step-done-on');
+                        if (doneBtn) doneBtn.classList.add('step-done-on');
                         onRefresh();
                     }).catch(function() {});
             });
@@ -7921,7 +7776,6 @@
         function normalizeStepForUi(s) {
             if (!s) return s;
             if (s.waived === undefined) s.waived = false;
-            if (s.completed_late === undefined) s.completed_late = false;
             return s;
         }
         /** HTML блока шагов с заголовками дней (для аккордеонов и карточек, не для ul.steps-list-plain). */
@@ -8000,7 +7854,7 @@
                     });
                     if (firstOd) {
                         var dOd = firstOd.dream_id != null && firstOd.dream_id !== '' ? firstOd.dream_id : dreamId;
-                        openStepDoneLateModal(dOd, firstOd.id, doneBtn);
+                        saveStepCompleted(dOd, firstOd.id, true).then(function() { onRefresh(); }).catch(function() { alert('Не удалось сохранить шаг'); });
                     }
                 });
                 var wbtn = inner.querySelector('.step-waived-btn');
@@ -10233,19 +10087,13 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         async function saveStepCompleted(dreamId, stepId, completed) {
             try {
                 var didSC = Number(dreamId), sidSC = Number(stepId);
-                var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === didSC && Number(x.id) === sidSC; });
                 var payload = { completed: completed };
-                if (completed === true && row && row.deadline) {
-                    var bm = stepOverdueBoundaryUtcMs(row.deadline, row);
-                    if (bm != null) payload.completed_late = Date.now() >= bm;
-                }
                 var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/' + stepId + '?' + dreamApiUserParams(), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 var data = await res.json().catch(function() { return {}; });
                 if (!res.ok) throw new Error((data && data.detail) || 'Ошибка');
-                row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === didSC && Number(x.id) === sidSC; });
+                var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === didSC && Number(x.id) === sidSC; });
                 if (row && data.step) {
                     row.completed = !!data.step.completed;
-                    row.completed_late = !!data.step.completed_late;
                     row.waived = !!data.step.waived;
                 }
             } catch (e) {
@@ -10256,7 +10104,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function mergeStepRowAfterPatchFromApi(row, dataStep) {
             if (!row || !dataStep) return;
             if (dataStep.completed !== undefined) row.completed = !!dataStep.completed;
-            if (dataStep.completed_late !== undefined) row.completed_late = !!dataStep.completed_late;
             if (dataStep.waived !== undefined) row.waived = !!dataStep.waived;
             if (dataStep.deadline !== undefined && dataStep.deadline !== null) row.deadline = dataStep.deadline;
             normalizeStepForUi(row);
@@ -10267,16 +10114,13 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (body.waived === true) {
                 row.waived = true;
                 row.completed = false;
-                row.completed_late = false;
             } else if (body.waived === false) {
                 row.waived = false;
             }
             if (body.completed === true) {
                 row.completed = true;
-                if (body.completed_late !== undefined) row.completed_late = !!body.completed_late;
             } else if (body.completed === false) {
                 row.completed = false;
-                if (body.completed_late !== undefined) row.completed_late = !!body.completed_late;
             }
             if (body.deleted !== undefined) row.deleted = !!body.deleted;
             if (body.deadline !== undefined) row.deadline = body.deadline || null;
@@ -10292,7 +10136,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (!st) return;
             st.completed = !!row.completed;
             st.waived = !!row.waived;
-            st.completed_late = !!row.completed_late;
             st.deadline = row.deadline;
             if (row.deleted !== undefined) st.deleted = !!row.deleted;
         }
@@ -10320,14 +10163,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         /** Экспресс-зачистка долгов из центра отчётов: PATCH без модалок и без полного refreshAfterDreamChange. */
         async function reportsExpressCompleteStep(dreamId, stepId) {
             try {
-                var row = stepsFlatCache.find(function(x) {
-                    return Number(x.dream_id) === Number(dreamId) && Number(x.id) === Number(stepId);
-                });
                 var body = { completed: true };
-                if (row && row.deadline) {
-                    var bm = stepOverdueBoundaryUtcMs(row.deadline, row);
-                    if (bm != null) body.completed_late = Date.now() >= bm;
-                }
                 await patchStep(dreamId, stepId, body);
                 var sb = document.getElementById('steps-block');
                 if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
@@ -10433,8 +10269,6 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (mStepComment && !mStepComment.classList.contains('hidden')) { closeStepCommentModal(); ev.preventDefault(); return; }
             var mStepMove = document.getElementById('modal-step-move');
             if (mStepMove && !mStepMove.classList.contains('hidden')) { closeStepMoveModal(); ev.preventDefault(); return; }
-            var mStepDoneLate = document.getElementById('modal-step-done-late');
-            if (mStepDoneLate && !mStepDoneLate.classList.contains('hidden')) { closeStepDoneLateModal(); ev.preventDefault(); return; }
             var mStepSeriesConfirm = document.getElementById('modal-step-series-confirm');
             if (mStepSeriesConfirm && !mStepSeriesConfirm.classList.contains('hidden')) { closeStepSeriesConfirmModal(); ev.preventDefault(); return; }
             var mStepSeriesDel = document.getElementById('modal-step-series-delete');
