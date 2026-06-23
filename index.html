@@ -715,39 +715,62 @@
         .app-footer-logout { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
         .app-footer-logout:hover { color: #666; }
         .app-version { font-size: 11px; color: #999; margin-left: auto; }
-        /* Дневник: модалка привязки и чипсы в ленте */
+        /* Дневник: модалка привязки и лента */
         .diary-link-section { margin: 0 0 12px; }
-        .diary-link-section.hidden { display: none !important; }
-        .diary-link-hint { margin: 0 0 8px; font-size: 13px; color: #666; line-height: 1.35; }
-        .diary-link-pickers { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; }
-        .diary-link-col { flex: 1 1 160px; min-width: 0; max-width: 100%; }
-        .diary-link-col-label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; }
-        .diary-link-checklist {
-            max-height: 140px; overflow-y: auto; border: 1px solid #dde8dd; border-radius: 6px;
-            padding: 6px 8px; background: #fafcfa; box-sizing: border-box;
+        .diary-link-hint { margin: 0 0 10px; font-size: 13px; color: #888; line-height: 1.4; }
+        .diary-link-dd { margin-bottom: 8px; }
+        .diary-link-dd-toggle {
+            width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+            border: 1px solid #ddd; border-radius: 6px; background: #fafafa; cursor: pointer;
+            font-size: 13px; color: #444; text-align: left; box-sizing: border-box;
         }
-        .diary-link-checklist-empty { font-size: 12px; color: #888; margin: 4px 0; }
-        .diary-link-check-item {
-            display: flex; align-items: flex-start; gap: 6px; font-size: 12px; line-height: 1.35;
-            color: #444; margin: 4px 0; cursor: pointer;
+        .diary-link-dd-toggle:hover { background: #f3f3f3; }
+        .diary-link-dd-toggle-label { font-weight: 600; flex-shrink: 0; }
+        .diary-link-dd-summary { flex: 1; min-width: 0; font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .diary-link-dd-chevron { font-size: 11px; color: #999; flex-shrink: 0; transition: transform 0.15s; }
+        .diary-link-dd.is-open .diary-link-dd-chevron { transform: rotate(180deg); }
+        .diary-link-dd-panel { display: none; margin-top: 4px; border: 1px solid #e8e8e8; border-radius: 6px; background: #fff; max-height: 160px; overflow-y: auto; }
+        .diary-link-dd.is-open .diary-link-dd-panel { display: block; }
+        .diary-link-pick-list { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+        .diary-link-pick-list-empty { font-size: 12px; color: #888; margin: 4px 6px; }
+        .diary-link-pick-item {
+            padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;
+            line-height: 1.35; color: #333; cursor: pointer; background: #fff; text-align: left;
         }
-        .diary-link-check-item input { margin-top: 2px; flex-shrink: 0; }
-        .diary-link-or {
-            align-self: center; font-size: 12px; color: #888; padding: 0 2px; flex: 0 0 auto;
-            margin-top: 18px;
+        .diary-link-pick-item:hover { border-color: #c8e6c9; }
+        .diary-link-pick-item.is-selected {
+            border-color: #81c784; background: #fafafa; box-shadow: inset 0 0 0 1px #a5d6a7;
         }
-        #modal-diary-free .step-diary-prompt-foot { margin-top: 4px; }
-        .diary-event-row { margin-bottom: 10px; list-style: none; margin-left: 0; padding-left: 0; }
-        .diary-event-meta { font-size: 12px; color: #7a8699; margin-bottom: 3px; }
-        .diary-event-text { font-size: 13px; color: #4d5c76; line-height: 1.45; }
-        .diary-event-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-        .diary-event-chip {
-            display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis;
-            white-space: nowrap; font-size: 10px; line-height: 1.3; padding: 2px 7px; border-radius: 10px;
-            background: #e8f5e9; color: #2e6b3e; border: 1px solid #c8e6c9; vertical-align: middle;
+        .diary-link-pick-item-sub { display: block; font-size: 11px; color: #888; margin-top: 2px; }
+        #modal-diary-free textarea#diary-free-text { font-size: 15px; line-height: 1.45; }
+        .diary-events-feed { margin: 0; padding: 0; list-style: none; }
+        .diary-event-row {
+            list-style: none; margin: 0 0 18px; padding: 12px 14px; border-radius: 8px;
         }
-        .diary-event-chip--step { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
-        .diary-event-chip--general { background: #f5f5f5; color: #666; border-color: #e0e0e0; }
+        .diary-event-row:nth-child(even) { background: #f5f5f5; }
+        .diary-event-head {
+            display: grid; grid-template-columns: 76px 1fr; gap: 4px 12px; align-items: start;
+        }
+        .diary-event-date { font-size: 13px; font-weight: 600; color: #555; }
+        .diary-event-time { font-size: 12px; color: #888; }
+        .diary-event-links-wrap { min-width: 0; font-size: 12px; color: #4d5c76; line-height: 1.4; }
+        .diary-event-links-text {
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden; word-break: break-word;
+        }
+        .diary-event-links-more {
+            display: inline; margin-top: 2px; padding: 0; border: none; background: none;
+            color: #2196F3; font-size: 12px; cursor: pointer; text-decoration: underline;
+        }
+        .diary-event-links-popover {
+            display: none; position: fixed; z-index: 1200; max-width: min(320px, calc(100vw - 24px));
+            padding: 10px 12px; background: #fff; border: 1px solid #ccc; border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15); font-size: 13px; line-height: 1.45; color: #333;
+        }
+        .diary-event-links-popover.open { display: block; }
+        .diary-event-links-popover ul { margin: 0; padding-left: 18px; }
+        .diary-event-divider { border: none; border-top: 1px solid #e0e0e0; margin: 10px 0; }
+        .diary-event-text { font-size: 14px; color: #333; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
         /* Хедер: 3 строки — аватар на 1–2, имя на оси 1|2, навигация на 3 */
         .app-header {
             --header-avatar-size: 64px;
@@ -1829,13 +1852,9 @@
                                 <input type="text" id="profile-edit-vk" placeholder="Ссылка на профиль" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
                                 <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
                                 <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
+                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:0;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
                                     <input type="checkbox" id="profile-edit-prompt-step-comments" checked style="margin-top:3px;flex-shrink:0;">
                                     <span>Предлагать необязательный комментарий в дневник при «не выполнен» и переносе шага</span>
-                                </label>
-                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:0;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
-                                    <input type="checkbox" id="profile-edit-prompt-diary-links" checked style="margin-top:3px;flex-shrink:0;">
-                                    <span>Уточнять, куда добавить запись в дневнике</span>
                                 </label>
                             </div>
                         </div>
@@ -1870,7 +1889,7 @@
                     </div>
                 </div>
                 <div id="diary-block" class="hidden">
-                    <p style="margin:0 0 12px;font-size:13px;color:#666;">Записи по шагам и свободные заметки. Привязки — компактные теги под текстом.</p>
+                    <p style="margin:0 0 12px;font-size:13px;color:#666;">Записи по шагам и свободные заметки.</p>
                     <ul id="diary-events-list" class="diary-events-feed" style="margin:0;padding:0;list-style:none;"></ul>
                     <p id="diary-events-empty" class="hidden" style="color:#666;">Пока нет записей.</p>
                     <p id="diary-events-error" class="error hidden"></p>
@@ -1942,23 +1961,29 @@
                 <div class="modal modal-diary-free">
                     <h3>Запись в дневник</h3>
                     <label for="diary-free-text">Текст</label>
-                    <textarea id="diary-free-text" rows="4" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="Что было важного сегодня…"></textarea>
+                    <textarea id="diary-free-text" rows="5" style="width:100%;box-sizing:border-box;margin-bottom:10px;" placeholder="Что было важного сегодня…"></textarea>
                     <div id="diary-link-section" class="diary-link-section">
-                        <p class="diary-link-hint">К чему относится запись? Если ничего не выбрать — попадёт в «общее».</p>
-                        <div class="diary-link-pickers">
-                            <div class="diary-link-col">
-                                <span class="diary-link-col-label">Мечты</span>
-                                <div id="diary-link-dreams-list" class="diary-link-checklist" role="group" aria-label="Мечты для привязки"></div>
-                            </div>
-                            <span class="diary-link-or" aria-hidden="true">или</span>
-                            <div class="diary-link-col">
-                                <span class="diary-link-col-label">Шаги (сегодня и просроченные)</span>
-                                <div id="diary-link-steps-list" class="diary-link-checklist" role="group" aria-label="Шаги для привязки"></div>
+                        <p class="diary-link-hint">Можешь связать запись с мечтой или шагом — это необязательно. Если ничего не выбрать, запись будет общей.</p>
+                        <div class="diary-link-dd" id="diary-link-dreams-dd">
+                            <button type="button" class="diary-link-dd-toggle" id="diary-link-dreams-toggle" aria-expanded="false">
+                                <span class="diary-link-dd-toggle-label">Мечта</span>
+                                <span class="diary-link-dd-summary" id="diary-link-dreams-summary"></span>
+                                <span class="diary-link-dd-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div id="diary-link-dreams-panel" class="diary-link-dd-panel" role="listbox" aria-label="Мечты для привязки">
+                                <div id="diary-link-dreams-list" class="diary-link-pick-list"></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="step-diary-prompt-foot">
-                        <a href="#" class="step-diary-prompt-toggle" id="diary-free-prompt-toggle" role="button" aria-label="Больше не уточнять привязку записи">Больше не спрашивать</a>
+                        <div class="diary-link-dd" id="diary-link-steps-dd">
+                            <button type="button" class="diary-link-dd-toggle" id="diary-link-steps-toggle" aria-expanded="false">
+                                <span class="diary-link-dd-toggle-label">Шаг</span>
+                                <span class="diary-link-dd-summary" id="diary-link-steps-summary"></span>
+                                <span class="diary-link-dd-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div id="diary-link-steps-panel" class="diary-link-dd-panel" role="listbox" aria-label="Шаги для привязки">
+                                <div id="diary-link-steps-list" class="diary-link-pick-list"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="secondary" id="diary-free-cancel">Отмена</button>
@@ -2434,7 +2459,7 @@
                         </div>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">283</span>
+                    <span class="app-version" aria-hidden="true">284</span>
                 </div>
             </footer>
         </div>
@@ -5166,28 +5191,57 @@
                 ev.forEach(function(e) {
                     var li = document.createElement('li');
                     li.className = 'diary-event-row';
-                    var t = e.created_at ? String(e.created_at).replace('T', ' ').slice(0, 16) : '';
-                    var meta = document.createElement('div');
-                    meta.className = 'diary-event-meta';
-                    meta.textContent = t || '';
-                    li.appendChild(meta);
+                    var parts = formatDiaryEventDateParts(e.created_at);
+                    var linkLabels = getDiaryEventLinkLabels(e);
+                    var linkPreview = linkLabels.join(', ');
+                    var needMore = linkLabels.length > 2 || linkPreview.length > 72;
+                    var head = document.createElement('div');
+                    head.className = 'diary-event-head';
+                    var dateEl = document.createElement('div');
+                    dateEl.className = 'diary-event-date';
+                    dateEl.textContent = parts.date || '—';
+                    var timeEl = document.createElement('div');
+                    timeEl.className = 'diary-event-time';
+                    timeEl.textContent = parts.time || '';
+                    var linksWrap = document.createElement('div');
+                    linksWrap.className = 'diary-event-links-wrap';
+                    var linksText = document.createElement('div');
+                    linksText.className = 'diary-event-links-text';
+                    linksText.textContent = linkPreview;
+                    linksWrap.appendChild(linksText);
+                    if (needMore) {
+                        var moreBtn = document.createElement('button');
+                        moreBtn.type = 'button';
+                        moreBtn.className = 'diary-event-links-more';
+                        moreBtn.textContent = 'посмотреть шаги';
+                        moreBtn.addEventListener('click', function(ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            if (_diaryLinksPopoverEl && _diaryLinksPopoverEl.classList.contains('open') && _diaryLinksPopoverEl._anchor === moreBtn) {
+                                closeDiaryLinksPopover();
+                                return;
+                            }
+                            openDiaryLinksPopover(moreBtn, linkLabels);
+                            if (_diaryLinksPopoverEl) _diaryLinksPopoverEl._anchor = moreBtn;
+                        });
+                        linksWrap.appendChild(moreBtn);
+                    }
+                    head.appendChild(dateEl);
+                    head.appendChild(linksWrap);
+                    head.appendChild(timeEl);
+                    li.appendChild(head);
+                    var hr = document.createElement('hr');
+                    hr.className = 'diary-event-divider';
+                    li.appendChild(hr);
                     var textEl = document.createElement('div');
                     textEl.className = 'diary-event-text';
                     var body = e.message || '';
                     if (e.event_type === 'journal') {
                         textEl.textContent = body;
                     } else {
-                        var stepPart = (e.step_title || '').trim();
-                        textEl.textContent = (stepPart ? stepPart + ' — ' : '') + body;
+                        textEl.textContent = body;
                     }
                     li.appendChild(textEl);
-                    var chips = buildDiaryEventChipsHtml(e);
-                    if (chips) {
-                        var chipsWrap = document.createElement('div');
-                        chipsWrap.className = 'diary-event-chips';
-                        chipsWrap.innerHTML = chips;
-                        li.appendChild(chipsWrap);
-                    }
                     list.appendChild(li);
                 });
             } catch (e) {
@@ -5357,49 +5411,68 @@
         }
         /** Историческое имя ключа: один флаг на запрос комментария при «не выполнен» и переносе шага. */
         var STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1 = 'island_prompt_step_comment_v1';
-        var STORAGE_DIARY_ENTRY_LINK_PROMPT_V1 = 'island_prompt_diary_entry_links_v1';
-        var _diaryLinkUiSyncing = false;
+        var _diaryPickSelectedDreamIds = Object.create(null);
+        var _diaryPickSelectedStepKeys = Object.create(null);
         function isStepOptionalDiaryCommentModalEnabled() {
             try { return localStorage.getItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1) !== '0'; } catch (e) { return true; }
-        }
-        function isDiaryEntryLinkPromptEnabled() {
-            try { return localStorage.getItem(STORAGE_DIARY_ENTRY_LINK_PROMPT_V1) !== '0'; } catch (e) { return true; }
         }
         function syncProfilePromptCheckbox() {
             var el = document.getElementById('profile-edit-prompt-step-comments');
             if (el) el.checked = isStepOptionalDiaryCommentModalEnabled();
-            syncProfileDiaryLinkCheckbox();
         }
-        function syncProfileDiaryLinkCheckbox() {
-            var el = document.getElementById('profile-edit-prompt-diary-links');
-            if (el) el.checked = isDiaryEntryLinkPromptEnabled();
-        }
-        function truncateDiaryChipLabel(s, maxLen) {
-            var m = maxLen == null ? 18 : maxLen;
-            s = (s || '').trim();
-            if (!s) return '';
-            if (s.length <= m) return s;
-            return s.slice(0, Math.max(1, m - 1)) + '…';
-        }
-        function buildDiaryEventChipsHtml(e) {
-            if (!e || e.event_type !== 'journal') return '';
-            var parts = [];
-            var dTitles = e.linked_dream_titles || [];
-            var sTitles = e.linked_step_titles || [];
-            var dIds = e.linked_dream_ids || [];
-            var sIds = e.linked_step_ids || [];
-            if (!dIds.length && !sIds.length) {
-                return '<span class="diary-event-chip diary-event-chip--general" title="Общее">общее</span>';
+        function formatDiaryEventDateParts(createdAt) {
+            var raw = (createdAt || '').toString().replace('T', ' ');
+            var datePart = raw.slice(0, 10);
+            var timePart = raw.length >= 16 ? raw.slice(11, 16) : '';
+            var dateUi = '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+                var p = datePart.split('-');
+                dateUi = p[2] + '.' + p[1] + '.' + p[0].slice(2);
             }
-            dTitles.forEach(function(t, i) {
-                var full = t || ('Мечта #' + (dIds[i] || ''));
-                parts.push('<span class="diary-event-chip" title="' + escapeHtml(full) + '">' + escapeHtml(truncateDiaryChipLabel(full)) + '</span>');
-            });
-            sTitles.forEach(function(t, i) {
-                var full = t || ('Шаг #' + (sIds[i] || ''));
-                parts.push('<span class="diary-event-chip diary-event-chip--step" title="' + escapeHtml(full) + '">' + escapeHtml(truncateDiaryChipLabel(full)) + '</span>');
-            });
-            return parts.join('');
+            return { date: dateUi, time: timePart };
+        }
+        function getDiaryEventLinkLabels(e) {
+            if (!e) return [];
+            if (e.event_type === 'journal') {
+                var labels = [];
+                (e.linked_dream_titles || []).forEach(function(t, i) {
+                    labels.push((t || '').trim() || ('Мечта #' + ((e.linked_dream_ids || [])[i] || '')));
+                });
+                (e.linked_step_titles || []).forEach(function(t, i) {
+                    var base = stripStepTitleCounterSuffix((t || '').trim()) || ('Шаг #' + ((e.linked_step_ids || [])[i] || ''));
+                    labels.push(base);
+                });
+                if (!labels.length) labels.push('общее');
+                return labels;
+            }
+            var st = stripStepTitleCounterSuffix((e.step_title || '').trim());
+            if (st) return [st];
+            return ['без шага'];
+        }
+        var _diaryLinksPopoverEl = null;
+        function getDiaryLinksPopoverEl() {
+            if (!_diaryLinksPopoverEl) {
+                _diaryLinksPopoverEl = document.createElement('div');
+                _diaryLinksPopoverEl.className = 'diary-event-links-popover';
+                _diaryLinksPopoverEl.setAttribute('role', 'tooltip');
+                document.body.appendChild(_diaryLinksPopoverEl);
+            }
+            return _diaryLinksPopoverEl;
+        }
+        function closeDiaryLinksPopover() {
+            var pop = _diaryLinksPopoverEl;
+            if (pop) pop.classList.remove('open');
+        }
+        function openDiaryLinksPopover(anchorBtn, labels) {
+            var pop = getDiaryLinksPopoverEl();
+            pop.innerHTML = '<ul>' + labels.map(function(l) { return '<li>' + escapeHtml(l) + '</li>'; }).join('') + '</ul>';
+            pop.classList.add('open');
+            var r = anchorBtn.getBoundingClientRect();
+            var top = r.bottom + 6;
+            var left = Math.min(r.left, window.innerWidth - 340);
+            if (top + 120 > window.innerHeight) top = Math.max(8, r.top - 120);
+            pop.style.top = top + 'px';
+            pop.style.left = Math.max(8, left) + 'px';
         }
         function stepIsDiaryPickerRelevant(step) {
             if (!step || step.deleted || step.completed || step.waived) return false;
@@ -5410,112 +5483,182 @@
             var todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
             return dl === todayIso;
         }
-        function getDiaryLinkCheckedDreamIds() {
-            var out = [];
-            document.querySelectorAll('#diary-link-dreams-list input[type=checkbox][data-dream-id]:checked').forEach(function(inp) {
-                var n = parseInt(inp.getAttribute('data-dream-id'), 10);
-                if (Number.isFinite(n) && n > 0) out.push(n);
-            });
-            return out;
+        function resetDiaryLinkPickerState() {
+            _diaryPickSelectedDreamIds = Object.create(null);
+            _diaryPickSelectedStepKeys = Object.create(null);
         }
-        function getDiaryLinkCheckedStepIds() {
-            var out = [];
-            document.querySelectorAll('#diary-link-steps-list input[type=checkbox][data-step-id]:checked').forEach(function(inp) {
-                var n = parseInt(inp.getAttribute('data-step-id'), 10);
-                if (Number.isFinite(n) && n > 0) out.push(n);
-            });
-            return out;
-        }
-        function getDiaryPickerStepsFiltered() {
-            var selectedDreams = getDiaryLinkCheckedDreamIds();
-            return stepsFlatCache.filter(function(s) {
-                if (!stepIsDiaryPickerRelevant(s)) return false;
+        function getDiaryPickerStepGroups() {
+            var groups = [];
+            var byKey = Object.create(null);
+            stepsFlatCache.forEach(function(s) {
+                if (!stepIsDiaryPickerRelevant(s)) return;
                 var dream = (currentUserDreamsCache || []).find(function(d) { return Number(d.id) === Number(s.dream_id); });
-                if (dream && isHiddenSystemDream(dream)) return false;
-                if (selectedDreams.length && selectedDreams.indexOf(Number(s.dream_id)) === -1) return false;
-                return true;
-            }).sort(function(a, b) {
-                var da = dreamPickListTitle((currentUserDreamsCache || []).find(function(d) { return Number(d.id) === Number(a.dream_id); }) || {});
-                var db = dreamPickListTitle((currentUserDreamsCache || []).find(function(d) { return Number(d.id) === Number(b.dream_id); }) || {});
-                if (da !== db) return da.localeCompare(db, 'ru');
-                return String(a.title || '').localeCompare(String(b.title || ''), 'ru');
+                if (dream && isHiddenSystemDream(dream)) return;
+                var key = stepSeriesCounterKey(s);
+                if (!byKey[key]) {
+                    var dreamTitle = dreamPickListTitle(dream || {});
+                    var baseTitle = stripStepTitleCounterSuffix((s.title || '').trim()) || ('Шаг #' + s.id);
+                    byKey[key] = { key: key, label: baseTitle, dreamId: Number(s.dream_id), dreamTitle: dreamTitle, steps: [] };
+                    groups.push(byKey[key]);
+                }
+                byKey[key].steps.push(s);
             });
+            groups.sort(function(a, b) {
+                var c = a.dreamTitle.localeCompare(b.dreamTitle, 'ru');
+                if (c) return c;
+                return a.label.localeCompare(b.label, 'ru');
+            });
+            return groups;
+        }
+        function isDiaryDreamPicked(dreamId) {
+            return !!_diaryPickSelectedDreamIds[Number(dreamId)];
+        }
+        function isDiaryStepGroupPicked(groupKey) {
+            return !!_diaryPickSelectedStepKeys[groupKey];
+        }
+        function setDiaryLinkDropdownOpen(which, open) {
+            var dreamsDd = document.getElementById('diary-link-dreams-dd');
+            var stepsDd = document.getElementById('diary-link-steps-dd');
+            var dreamsBtn = document.getElementById('diary-link-dreams-toggle');
+            var stepsBtn = document.getElementById('diary-link-steps-toggle');
+            if (which === 'dreams') {
+                if (dreamsDd) dreamsDd.classList.toggle('is-open', !!open);
+                if (dreamsBtn) dreamsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open && stepsDd) { stepsDd.classList.remove('is-open'); if (stepsBtn) stepsBtn.setAttribute('aria-expanded', 'false'); }
+            } else if (which === 'steps') {
+                if (stepsDd) stepsDd.classList.toggle('is-open', !!open);
+                if (stepsBtn) stepsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open && dreamsDd) { dreamsDd.classList.remove('is-open'); if (dreamsBtn) dreamsBtn.setAttribute('aria-expanded', 'false'); }
+            }
+        }
+        function closeDiaryLinkDropdowns() {
+            setDiaryLinkDropdownOpen('dreams', false);
+            setDiaryLinkDropdownOpen('steps', false);
+        }
+        function updateDiaryLinkDropdownSummaries() {
+            var dreamsSummary = document.getElementById('diary-link-dreams-summary');
+            var stepsSummary = document.getElementById('diary-link-steps-summary');
+            var dreamIds = Object.keys(_diaryPickSelectedDreamIds).map(Number).filter(function(n) { return n > 0; });
+            var stepKeys = Object.keys(_diaryPickSelectedStepKeys);
+            if (dreamsSummary) {
+                if (!dreamIds.length) dreamsSummary.textContent = '';
+                else {
+                    var titles = dreamIds.map(function(did) {
+                        var d = (currentUserDreamsCache || []).find(function(x) { return Number(x.id) === did; });
+                        return dreamPickListTitle(d || {});
+                    });
+                    dreamsSummary.textContent = titles.join(', ');
+                }
+            }
+            if (stepsSummary) {
+                if (!stepKeys.length) stepsSummary.textContent = '';
+                else {
+                    var groups = getDiaryPickerStepGroups();
+                    var labels = stepKeys.map(function(k) {
+                        var g = groups.find(function(x) { return x.key === k; });
+                        return g ? g.label : k;
+                    });
+                    stepsSummary.textContent = labels.join(', ');
+                }
+            }
+        }
+        function onDiaryDreamPickToggle(dreamId) {
+            dreamId = Number(dreamId);
+            if (!dreamId) return;
+            if (_diaryPickSelectedDreamIds[dreamId]) {
+                delete _diaryPickSelectedDreamIds[dreamId];
+                getDiaryPickerStepGroups().forEach(function(g) {
+                    if (g.dreamId === dreamId && _diaryPickSelectedStepKeys[g.key]) delete _diaryPickSelectedStepKeys[g.key];
+                });
+            } else {
+                _diaryPickSelectedDreamIds[dreamId] = true;
+            }
+            populateDiaryLinkDreamsList();
+            populateDiaryLinkStepsList();
+            updateDiaryLinkDropdownSummaries();
+        }
+        function onDiaryStepGroupPickToggle(groupKey) {
+            if (!groupKey) return;
+            var groups = getDiaryPickerStepGroups();
+            var group = groups.find(function(g) { return g.key === groupKey; });
+            if (!group) return;
+            if (_diaryPickSelectedStepKeys[groupKey]) {
+                delete _diaryPickSelectedStepKeys[groupKey];
+            } else {
+                _diaryPickSelectedStepKeys[groupKey] = true;
+                if (group.dreamId) _diaryPickSelectedDreamIds[group.dreamId] = true;
+            }
+            populateDiaryLinkDreamsList();
+            populateDiaryLinkStepsList();
+            updateDiaryLinkDropdownSummaries();
         }
         function populateDiaryLinkDreamsList() {
             var box = document.getElementById('diary-link-dreams-list');
             if (!box) return;
-            var checked = {};
-            getDiaryLinkCheckedDreamIds().forEach(function(id) { checked[id] = true; });
             var dreams = getDreamsForUserPickList().slice().sort(function(a, b) {
                 return dreamPickListTitle(a).localeCompare(dreamPickListTitle(b), 'ru');
             });
             if (!dreams.length) {
-                box.innerHTML = '<p class="diary-link-checklist-empty">Нет мечт</p>';
+                box.innerHTML = '<p class="diary-link-pick-list-empty">Нет мечт</p>';
                 return;
             }
             box.innerHTML = dreams.map(function(d) {
                 var id = Number(d.id);
                 var title = escapeHtml(dreamPickListTitle(d));
-                var sel = checked[id] ? ' checked' : '';
-                return '<label class="diary-link-check-item"><input type="checkbox" data-dream-id="' + id + '"' + sel + '><span>' + title + '</span></label>';
+                var sel = isDiaryDreamPicked(id) ? ' is-selected' : '';
+                return '<button type="button" class="diary-link-pick-item' + sel + '" data-dream-id="' + id + '">' + title + '</button>';
             }).join('');
-            box.querySelectorAll('input[data-dream-id]').forEach(function(inp) {
-                inp.addEventListener('change', function() {
-                    var did = parseInt(inp.getAttribute('data-dream-id'), 10);
-                    onDiaryDreamCheckChange(did, inp.checked);
+            box.querySelectorAll('.diary-link-pick-item[data-dream-id]').forEach(function(btn) {
+                btn.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    onDiaryDreamPickToggle(parseInt(btn.getAttribute('data-dream-id'), 10));
                 });
             });
         }
         function populateDiaryLinkStepsList() {
             var box = document.getElementById('diary-link-steps-list');
             if (!box) return;
-            var checked = {};
-            getDiaryLinkCheckedStepIds().forEach(function(id) { checked[id] = true; });
-            var steps = getDiaryPickerStepsFiltered();
-            if (!steps.length) {
-                box.innerHTML = '<p class="diary-link-checklist-empty">Нет шагов на сегодня</p>';
+            var groups = getDiaryPickerStepGroups();
+            if (!groups.length) {
+                box.innerHTML = '<p class="diary-link-pick-list-empty">Нет шагов на сегодня и просроченных</p>';
                 return;
             }
-            box.innerHTML = steps.map(function(s) {
-                var sid = Number(s.id);
-                var did = Number(s.dream_id);
-                var dream = (currentUserDreamsCache || []).find(function(d) { return Number(d.id) === did; });
-                var dl = (s.deadline || '').toString().slice(0, 10);
-                var dateUi = /^\d{4}-\d{2}-\d{2}$/.test(dl) ? isoToUiDate(dl) : '';
-                var stepLabel = stripStepTitleCounterSuffix((s.title || '').trim()) || ('Шаг #' + sid);
-                var label = escapeHtml(stepLabel) + (dateUi ? ' <span style="color:#888">(' + escapeHtml(dateUi) + ')</span>' : '');
-                var sel = checked[sid] ? ' checked' : '';
-                return '<label class="diary-link-check-item"><input type="checkbox" data-step-id="' + sid + '" data-dream-id="' + did + '"' + sel + '><span>' + label + '</span></label>';
+            box.innerHTML = groups.map(function(g) {
+                var sel = isDiaryStepGroupPicked(g.key) ? ' is-selected' : '';
+                var sub = escapeHtml(g.dreamTitle);
+                return '<button type="button" class="diary-link-pick-item' + sel + '" data-step-group-key="' + escapeAttr(g.key) + '">' +
+                    escapeHtml(g.label) + '<span class="diary-link-pick-item-sub">' + sub + '</span></button>';
             }).join('');
-            box.querySelectorAll('input[data-step-id]').forEach(function(inp) {
-                inp.addEventListener('change', function() {
-                    var sid = parseInt(inp.getAttribute('data-step-id'), 10);
-                    var did = parseInt(inp.getAttribute('data-dream-id'), 10);
-                    onDiaryStepCheckChange(sid, did, inp.checked);
+            box.querySelectorAll('.diary-link-pick-item[data-step-group-key]').forEach(function(btn) {
+                btn.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    onDiaryStepGroupPickToggle(btn.getAttribute('data-step-group-key'));
                 });
             });
         }
-        function onDiaryDreamCheckChange(dreamId, checked) {
-            if (_diaryLinkUiSyncing) return;
-            if (!checked) {
-                document.querySelectorAll('#diary-link-steps-list input[data-dream-id="' + dreamId + '"]').forEach(function(inp) {
-                    inp.checked = false;
-                });
-            }
-            populateDiaryLinkStepsList();
-        }
-        function onDiaryStepCheckChange(stepId, dreamId, checked) {
-            if (_diaryLinkUiSyncing) return;
-            _diaryLinkUiSyncing = true;
-            if (checked && dreamId) {
-                var dreamInp = document.querySelector('#diary-link-dreams-list input[data-dream-id="' + dreamId + '"]');
-                if (dreamInp) dreamInp.checked = true;
-            }
-            _diaryLinkUiSyncing = false;
+        function pickDiaryLinkStepFromGroup(group) {
+            if (!group || !group.steps || !group.steps.length) return 0;
+            var sorted = group.steps.slice().sort(function(a, b) {
+                return String(a.deadline || '').localeCompare(String(b.deadline || ''));
+            });
+            var today = new Date();
+            var todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            var todayStep = sorted.find(function(s) { return (s.deadline || '').toString().slice(0, 10) === todayIso; });
+            if (todayStep) return Number(todayStep.id) || 0;
+            var overdue = sorted.find(function(s) { return stepIsOverdueUtc(s); });
+            if (overdue) return Number(overdue.id) || 0;
+            return Number(sorted[0].id) || 0;
         }
         function buildDiaryEntryLinksPayload() {
-            var selectedDreamIds = getDiaryLinkCheckedDreamIds();
-            var selectedStepIds = getDiaryLinkCheckedStepIds();
+            var selectedDreamIds = Object.keys(_diaryPickSelectedDreamIds).map(Number).filter(function(n) { return n > 0; });
+            var selectedStepIds = [];
+            var groups = getDiaryPickerStepGroups();
+            Object.keys(_diaryPickSelectedStepKeys).forEach(function(key) {
+                var group = groups.find(function(g) { return g.key === key; });
+                if (!group) return;
+                var sid = pickDiaryLinkStepFromGroup(group);
+                if (sid > 0 && selectedStepIds.indexOf(sid) === -1) selectedStepIds.push(sid);
+            });
             var dreamsWithExplicitSteps = Object.create(null);
             selectedStepIds.forEach(function(sid) {
                 var s = stepsFlatCache.find(function(x) { return Number(x.id) === Number(sid); });
@@ -5525,27 +5668,6 @@
                 return !dreamsWithExplicitSteps[Number(did)];
             });
             return { linked_dream_ids: linkedDreamIds, linked_step_ids: selectedStepIds };
-        }
-        function syncDiaryFreeModalLinkSection() {
-            var section = document.getElementById('diary-link-section');
-            var foot = document.querySelector('#modal-diary-free .step-diary-prompt-foot');
-            var on = isDiaryEntryLinkPromptEnabled();
-            if (section) section.classList.toggle('hidden', !on);
-            if (foot) foot.classList.toggle('hidden', !on);
-            updateDiaryFreePromptToggleUi();
-        }
-        function updateDiaryFreePromptToggleUi() {
-            var btn = document.getElementById('diary-free-prompt-toggle');
-            if (!btn) return;
-            btn.textContent = isDiaryEntryLinkPromptEnabled() ? 'Больше не спрашивать' : 'Снова уточнять привязку';
-        }
-        function setDiaryEntryLinkPromptEnabled(enabled) {
-            try { localStorage.setItem(STORAGE_DIARY_ENTRY_LINK_PROMPT_V1, enabled ? '1' : '0'); } catch (e) {}
-            syncProfileDiaryLinkCheckbox();
-            syncDiaryFreeModalLinkSection();
-        }
-        function toggleDiaryEntryLinkPromptPreference() {
-            setDiaryEntryLinkPromptEnabled(!isDiaryEntryLinkPromptEnabled());
         }
         var STEP_MOVE_LEAD_WITH_COMMENT = 'Новая дата обязательна. Комментарий в дневник необязателен: «Пропустить» — только новая дата. «Сохранить» — новая дата и комментарий в дневник, если вы его ввели.';
         var STEP_MOVE_LEAD_NO_COMMENT = 'Новая дата обязательна. Укажите дату и нажмите «Сохранить».';
@@ -6326,11 +6448,15 @@
         if (diaryFreeCancel) diaryFreeCancel.addEventListener('click', closeDiaryFreeEntryModal);
         if (diaryFreeSave) diaryFreeSave.addEventListener('click', submitDiaryFreeEntry);
         if (modalDiaryFree) modalDiaryFree.addEventListener('click', function(e) { if (e.target === modalDiaryFree) closeDiaryFreeEntryModal(); });
-        var diaryFreePromptToggle = document.getElementById('diary-free-prompt-toggle');
-        if (diaryFreePromptToggle) diaryFreePromptToggle.addEventListener('click', function(ev) {
-            ev.preventDefault();
-            if (isDiaryEntryLinkPromptEnabled()) setDiaryEntryLinkPromptEnabled(false);
-            else setDiaryEntryLinkPromptEnabled(true);
+        var diaryDreamsToggle = document.getElementById('diary-link-dreams-toggle');
+        var diaryStepsToggle = document.getElementById('diary-link-steps-toggle');
+        if (diaryDreamsToggle) diaryDreamsToggle.addEventListener('click', function() {
+            var dd = document.getElementById('diary-link-dreams-dd');
+            setDiaryLinkDropdownOpen('dreams', !(dd && dd.classList.contains('is-open')));
+        });
+        if (diaryStepsToggle) diaryStepsToggle.addEventListener('click', function() {
+            var dd = document.getElementById('diary-link-steps-dd');
+            setDiaryLinkDropdownOpen('steps', !(dd && dd.classList.contains('is-open')));
         });
         var libraryModal = document.getElementById('modal-library-book');
         var librarySaveBtn = document.getElementById('library-book-save');
@@ -6460,10 +6586,6 @@
             try { localStorage.setItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1, this.checked ? '1' : '0'); } catch (e) {}
             updateStepOptionalDiaryCommentModalToggleUi();
             syncStepMoveModalCommentSection();
-        });
-        var profilePromptDiaryLinks = document.getElementById('profile-edit-prompt-diary-links');
-        if (profilePromptDiaryLinks) profilePromptDiaryLinks.addEventListener('change', function() {
-            setDiaryEntryLinkPromptEnabled(!!this.checked);
         });
         var profileEditSave = document.getElementById('profile-edit-save');
         function parseApiErrorResponse(resp, fallbackMessage) {
@@ -9400,9 +9522,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 var m = document.getElementById('modal-diary-free');
                 var ta = document.getElementById('diary-free-text');
                 if (ta) ta.value = '';
+                resetDiaryLinkPickerState();
+                closeDiaryLinkDropdowns();
                 populateDiaryLinkDreamsList();
                 populateDiaryLinkStepsList();
-                syncDiaryFreeModalLinkSection();
+                updateDiaryLinkDropdownSummaries();
                 if (m) m.classList.remove('hidden');
                 if (ta) setTimeout(function() { try { ta.focus(); } catch (e) {} }, 50);
             };
@@ -9415,6 +9539,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function closeDiaryFreeEntryModal() {
             var m = document.getElementById('modal-diary-free');
             if (m) m.classList.add('hidden');
+            closeDiaryLinkDropdowns();
+            closeDiaryLinksPopover();
         }
         async function submitDiaryFreeEntry() {
             if (!currentUser) return;
@@ -9423,11 +9549,9 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var text = ta ? (ta.value || '').trim() : '';
             if (!text) { alert('Введите текст записи'); return; }
             var payload = { message: text };
-            if (isDiaryEntryLinkPromptEnabled()) {
-                var links = buildDiaryEntryLinksPayload();
-                payload.linked_dream_ids = links.linked_dream_ids;
-                payload.linked_step_ids = links.linked_step_ids;
-            }
+            var links = buildDiaryEntryLinksPayload();
+            payload.linked_dream_ids = links.linked_dream_ids;
+            payload.linked_step_ids = links.linked_step_ids;
             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Сохранение…'; }
             try {
                 var res = await fetch(API_BASE_URL + '/diary/free-entry?user_id=' + encodeURIComponent(currentUser.id), {
@@ -10801,6 +10925,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
 
         document.addEventListener('click', function(ev) {
             if (!ev.target.closest('.status-picker')) document.querySelectorAll('.status-picker-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+            if (!ev.target.closest('.diary-link-dd')) closeDiaryLinkDropdowns();
+            if (!ev.target.closest('.diary-event-links-more') && !ev.target.closest('.diary-event-links-popover')) closeDiaryLinksPopover();
         });
         /**
          * Фолбэк для кнопки «−» в расписании (#steps-list):
