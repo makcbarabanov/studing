@@ -1860,7 +1860,7 @@
             <div id="modal-step-report-unmarked" class="modal-overlay hidden">
                 <div class="modal modal-step-report-unmarked">
                     <h3 id="step-report-unmarked-title">Шаги за день</h3>
-                    <p id="step-report-unmarked-lead" style="margin:0 0 10px;color:#666;font-size:14px;">Отметьте шаги без дополнительных окон — статус сохраняется сразу; текст отчёта после каждого действия попадает в буфер обмена.</p>
+                    <p id="step-report-unmarked-lead" style="margin:0 0 10px;color:#666;font-size:14px;">Отметьте шаги за день. При «не выполнен» — та же модалка, что в разделе «Шаги» (если включена в профиле). После каждого действия текст отчёта обновляется в буфере обмена.</p>
                     <ul id="step-report-unmarked-list" class="steps-list-plain"></ul>
                     <p id="step-report-unmarked-hint" class="hidden"></p>
                     <div class="modal-actions">
@@ -2283,7 +2283,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">278</span>
+                    <span class="app-version" aria-hidden="true">279</span>
                 </div>
             </footer>
         </div>
@@ -4917,7 +4917,16 @@
             else frag = k + ' неотмеченных';
             return 'Отметить ' + frag + ' как не выполненные';
         }
-        var stepWaivedModal = { dreamId: 0, stepId: 0 };
+        var stepWaivedModal = { dreamId: 0, stepId: 0, onSuccess: null };
+        function finishStepWaivedSuccess(did, midD, midS, onSuccess) {
+            var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === midD && Number(x.id) === midS; });
+            if (row) { row.waived = true; row.completed = false; normalizeStepForUi(row); }
+            if (typeof onSuccess === 'function') onSuccess();
+            else {
+                dreamIdToRestoreAfterRefresh = did;
+                refreshAfterDreamChange();
+            }
+        }
         function updateStepWaivedSaveButtonState() {
             var ta = document.getElementById('step-waived-note-text');
             var saveBtn = document.getElementById('step-waived-save');
@@ -4927,19 +4936,18 @@
             saveBtn.setAttribute('aria-disabled', has ? 'false' : 'true');
             saveBtn.classList.toggle('secondary', !has);
         }
-        function openStepWaivedModal(dreamId, stepId) {
+        function openStepWaivedModal(dreamId, stepId, opts) {
+            var onSuccess = opts && opts.onSuccess;
             if (!isStepOptionalDiaryCommentModalEnabled()) {
                 var midD = Number(dreamId), midS = Number(stepId);
                 patchStep(dreamId, stepId, { waived: true }).then(function() {
-                    var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === midD && Number(x.id) === midS; });
-                    if (row) { row.waived = true; normalizeStepForUi(row); }
-                    dreamIdToRestoreAfterRefresh = dreamId;
-                    refreshAfterDreamChange();
+                    finishStepWaivedSuccess(dreamId, midD, midS, onSuccess);
                 }).catch(function() { alert('Не удалось сохранить'); });
                 return;
             }
             stepWaivedModal.dreamId = dreamId;
             stepWaivedModal.stepId = stepId;
+            stepWaivedModal.onSuccess = onSuccess || null;
             var ta = document.getElementById('step-waived-note-text');
             if (ta) ta.value = '';
             updateStepWaivedSaveButtonState();
@@ -4950,7 +4958,7 @@
         function closeStepWaivedModal() {
             var m = document.getElementById('modal-step-waived');
             if (m) m.classList.add('hidden');
-            stepWaivedModal = { dreamId: 0, stepId: 0 };
+            stepWaivedModal = { dreamId: 0, stepId: 0, onSuccess: null };
         }
         async function loadStepDiary() {
             var list = document.getElementById('diary-events-list');
@@ -5779,15 +5787,13 @@
         function submitStepWaivedFromModal() {
             if (!stepWaivedModal.dreamId) { closeStepWaivedModal(); return; }
             var did = stepWaivedModal.dreamId, midD = Number(did), midS = Number(stepWaivedModal.stepId);
+            var onSuccess = stepWaivedModal.onSuccess;
             var note = (document.getElementById('step-waived-note-text') && document.getElementById('step-waived-note-text').value || '').trim();
             var body = { waived: true };
             if (note) body.note = note;
             patchStep(stepWaivedModal.dreamId, stepWaivedModal.stepId, body).then(function() {
-                var row = stepsFlatCache.find(function(x) { return Number(x.dream_id) === midD && Number(x.id) === midS; });
-                if (row) { row.waived = true; normalizeStepForUi(row); }
+                finishStepWaivedSuccess(did, midD, midS, onSuccess);
                 closeStepWaivedModal();
-                dreamIdToRestoreAfterRefresh = did;
-                refreshAfterDreamChange();
             }).catch(function() { alert('Не удалось сохранить'); });
         }
         var stepWaivedSkip = document.getElementById('step-waived-skip');
@@ -7710,7 +7716,7 @@
                 });
             }
             var fin = !!s.isFinStep;
-            /** Модалка «отметить шаги перед отчётом»: без вторых оверлеев комментария / просрочки */
+            /** Модалка «отметить шаги перед отчётом»: без комментария 💬 (скрыт в CSS) */
             var inDayReportModal = !!(opts.dayReportModal || (el.closest && el.closest('#step-report-unmarked-list')));
             var doneBtn = el.querySelector('.step-done-btn');
             var bindStepAction = function(selector, handler) {
@@ -7754,11 +7760,7 @@
             bindStepAction('.step-waived-btn, .step-mobile-action-waived', function(e) {
                 e.preventDefault();
                 if (inDayReportModal) {
-                    patchStep(dreamId, s.id, { waived: true }).then(function() {
-                        s.waived = true;
-                        s.completed = false;
-                        onRefresh();
-                    }).catch(function() { alert('Не удалось сохранить'); });
+                    openStepWaivedModal(dreamId, s.id, { onSuccess: onRefresh });
                     return;
                 }
                 openStepWaivedModal(dreamId, s.id);
@@ -10173,6 +10175,19 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 throw new Error('Ошибка сети');
             }
         }
+        /** После смены статуса шага из раздела «Отчёты». */
+        function reportsAfterStepMutation(refreshReportUnmarkedModal) {
+            var sb = document.getElementById('steps-block');
+            if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
+            syncStepsFilterOverdueAttention(!!stepsViewIsBuddy);
+            if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) reportsDebtAccordionDayIso = null;
+            refreshReportsListUI();
+            syncReportsMenuIndicator();
+            if (refreshReportUnmarkedModal) {
+                refreshStepReportUnmarkedModalBody();
+                if (stepReportUnmarkedModal.dayIso) copyDayReportClipboardSilent(stepReportUnmarkedModal.dayIso);
+            }
+        }
         /** Экспресс-зачистка долгов из центра отчётов: PATCH без модалок и без полного refreshAfterDreamChange. */
         async function reportsExpressCompleteStep(dreamId, stepId) {
             try {
@@ -10188,18 +10203,10 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 alert((err && err.message) || 'Не удалось сохранить шаг');
             }
         }
-        async function reportsExpressWaiveStep(dreamId, stepId) {
-            try {
-                await patchStep(dreamId, stepId, { waived: true });
-                var sb = document.getElementById('steps-block');
-                if (sb && !sb.classList.contains('hidden')) renderStepsList(getStepsFilterActive(), !!stepsViewIsBuddy);
-                syncStepsFilterOverdueAttention(!!stepsViewIsBuddy);
-                if (reportsDebtAccordionDayIso && isReportDayFullyMarked(reportsDebtAccordionDayIso)) reportsDebtAccordionDayIso = null;
-                refreshReportsListUI();
-                syncReportsMenuIndicator();
-            } catch (err) {
-                alert((err && err.message) || 'Не удалось сохранить шаг');
-            }
+        function reportsExpressWaiveStep(dreamId, stepId) {
+            openStepWaivedModal(dreamId, stepId, {
+                onSuccess: function() { reportsAfterStepMutation(true); }
+            });
         }
 
         function escapeHtml(s) { var div = document.createElement('div'); div.textContent = s; return div.innerHTML; }
