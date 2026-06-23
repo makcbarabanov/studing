@@ -51,6 +51,8 @@ curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000/dreams?user_id=1"
 
 - SQL в **`_sql/`** — в репозитории; применение:  
   `docker compose -f docker-compose.yml -f docker-compose.dev.yml exec app python3 run_migrate.py _sql/имя_файла.sql`
+- **Урезанная БД** (нет `avatar_path`, `dreams_steps` и т.д.) — один раз:  
+  `bash scripts/bootstrap_sandbox_db.sh` (схема `_sql/mig_sandbox_bootstrap.sql` + справочники + тестовый вход).
 - После `pg_restore` многострочные миграции иногда удобнее через `psql` в контейнере `db` (см. п. 105 в [CHANGELOG.md](CHANGELOG.md)).
 - Первичная схема: `init.sql`, дамп из `db_backups/*.dump`, затем миграции — по ситуации ([PROJECT.md](PROJECT.md)).
 

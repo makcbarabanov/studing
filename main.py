@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
@@ -285,6 +285,12 @@ class StepUpdate(BaseModel):
     waived: Optional[bool] = None  # «не выполнен» (минус); только одиночный шаг, не all_series
     note: Optional[str] = None  # текст в dreams_steps_events (дневник), не колонка шага
 
+class DiaryFreeEntryBody(BaseModel):
+    message: str
+    linked_dream_ids: Optional[List[int]] = None
+    linked_step_ids: Optional[List[int]] = None
+
+
 class BuddyRequestCreate(BaseModel):
     to_user_id: int
 
@@ -393,6 +399,109 @@ def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, ev
         cur.execute("RELEASE SAVEPOINT sp_step_evt")
     except Exception:
         cur.execute("ROLLBACK TO SAVEPOINT sp_step_evt")
+
+
+def _insert_journal_event_safe(
+    cur,
+    step_id: int,
+    dream_id: int,
+    editor_id: int,
+    message: str,
+    linked_dream_ids: Optional[List[int]] = None,
+    linked_step_ids: Optional[List[int]] = None,
+) -> None:
+    """Свободная запись дневника (event_type=journal) с JSON-привязками."""
+    ld = [int(x) for x in (linked_dream_ids or []) if x and int(x) > 0]
+    ls = [int(x) for x in (linked_step_ids or []) if x and int(x) > 0]
+    cur.execute("SAVEPOINT sp_journal_evt")
+    try:
+        cur.execute(
+            """INSERT INTO dreams_steps_events
+               (step_id, dream_id, user_id, event_type, message, linked_dream_ids, linked_step_ids)
+               VALUES (%s, %s, %s, 'journal', %s, %s, %s)""",
+            (step_id, dream_id, editor_id, message, Json(ld), Json(ls)),
+        )
+        cur.execute("RELEASE SAVEPOINT sp_journal_evt")
+    except psycopg2.ProgrammingError:
+        cur.execute("ROLLBACK TO SAVEPOINT sp_journal_evt")
+        cur.execute(
+            """INSERT INTO dreams_steps_events (step_id, dream_id, user_id, event_type, message)
+               VALUES (%s, %s, %s, 'journal', %s)""",
+            (step_id, dream_id, editor_id, message),
+        )
+    except Exception:
+        cur.execute("ROLLBACK TO SAVEPOINT sp_journal_evt")
+
+
+def _normalize_id_list(raw: Optional[List[int]]) -> List[int]:
+    out: List[int] = []
+    seen = set()
+    for x in raw or []:
+        try:
+            n = int(x)
+        except (TypeError, ValueError):
+            continue
+        if n > 0 and n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
+
+
+def _validate_diary_links_for_user(cur, user_id: int, dream_ids: List[int], step_ids: List[int]) -> None:
+    if dream_ids:
+        cur.execute(
+            """SELECT id FROM dreams WHERE user_id = %s AND id = ANY(%s)""",
+            (user_id, dream_ids),
+        )
+        found = {int(r["id"]) for r in cur.fetchall()}
+        missing = [d for d in dream_ids if d not in found]
+        if missing:
+            raise HTTPException(status_code=400, detail="Некорректная мечта в привязке")
+    if step_ids:
+        cur.execute(
+            """SELECT s.id FROM dreams_steps s
+               JOIN dreams d ON d.id = s.dream_id
+               WHERE d.user_id = %s AND s.id = ANY(%s) AND COALESCE(s.deleted, false) = false""",
+            (user_id, step_ids),
+        )
+        found = {int(r["id"]) for r in cur.fetchall()}
+        missing = [s for s in step_ids if s not in found]
+        if missing:
+            raise HTTPException(status_code=400, detail="Некорректный шаг в привязке")
+
+
+def _enrich_event_link_titles(cur, events: List[dict]) -> List[dict]:
+    dream_ids: set = set()
+    step_ids: set = set()
+    for ev in events:
+        for did in ev.get("linked_dream_ids") or []:
+            dream_ids.add(int(did))
+        for sid in ev.get("linked_step_ids") or []:
+            step_ids.add(int(sid))
+    dream_titles: dict = {}
+    step_titles: dict = {}
+    if dream_ids:
+        cur.execute(
+            "SELECT id, COALESCE(NULLIF(TRIM(dream), ''), NULLIF(TRIM(title), ''), '') AS t FROM dreams WHERE id = ANY(%s)",
+            (list(dream_ids),),
+        )
+        for r in cur.fetchall():
+            dream_titles[int(r["id"])] = (r.get("t") or "").strip() or ("Мечта #" + str(r["id"]))
+    if step_ids:
+        cur.execute(
+            "SELECT id, COALESCE(NULLIF(TRIM(title), ''), '') AS t FROM dreams_steps WHERE id = ANY(%s)",
+            (list(step_ids),),
+        )
+        for r in cur.fetchall():
+            step_titles[int(r["id"])] = (r.get("t") or "").strip() or ("Шаг #" + str(r["id"]))
+    for ev in events:
+        ev["linked_dream_titles"] = [
+            dream_titles.get(int(d), "Мечта #" + str(d)) for d in (ev.get("linked_dream_ids") or [])
+        ]
+        ev["linked_step_titles"] = [
+            step_titles.get(int(s), "Шаг #" + str(s)) for s in (ev.get("linked_step_ids") or [])
+        ]
+    return events
 
 
 def _purge_success_step_events() -> None:
@@ -3246,6 +3355,107 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
         _return_conn(conn)
 
 
+DIARY_JOURNAL_RULE_CODE = "diary_journal"
+DIARY_JOURNAL_STEP_TITLE = "Свободная запись"
+
+
+def _ensure_diary_journal_bucket(cur, user_id: int) -> Tuple[int, int]:
+    """Служебная мечта и шаг для свободных записей дневника (без выбора шага в UI)."""
+    cur.execute(
+        "SELECT id FROM dreams WHERE user_id = %s AND rule_code = %s LIMIT 1",
+        (user_id, DIARY_JOURNAL_RULE_CODE),
+    )
+    row = cur.fetchone()
+    if row:
+        dream_id = int(row["id"])
+    else:
+        try:
+            cur.execute(
+                """INSERT INTO dreams (user_id, dream, status_id, is_public, rule_code)
+                   VALUES (%s, %s, 2, false, %s) RETURNING id""",
+                (user_id, "Дневник", DIARY_JOURNAL_RULE_CODE),
+            )
+        except psycopg2.ProgrammingError:
+            cur.connection.rollback()
+            cur.execute(
+                "INSERT INTO dreams (user_id, dream, status, is_public) VALUES (%s, %s, %s, false) RETURNING id",
+                (user_id, "Дневник", "in_progress"),
+            )
+            dream_row = cur.fetchone()
+            dream_id = int(dream_row["id"])
+            try:
+                cur.execute(
+                    "UPDATE dreams SET rule_code = %s WHERE id = %s",
+                    (DIARY_JOURNAL_RULE_CODE, dream_id),
+                )
+            except psycopg2.ProgrammingError:
+                cur.connection.rollback()
+        else:
+            dream_id = int(cur.fetchone()["id"])
+    cur.execute(
+        """SELECT id FROM dreams_steps
+           WHERE dream_id = %s AND title = %s AND COALESCE(deleted, false) = false
+           LIMIT 1""",
+        (dream_id, DIARY_JOURNAL_STEP_TITLE),
+    )
+    step_row = cur.fetchone()
+    if step_row:
+        return dream_id, int(step_row["id"])
+    cur.execute(
+        "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM dreams_steps WHERE dream_id = %s",
+        (dream_id,),
+    )
+    next_order = cur.fetchone()["next_order"]
+    try:
+        cur.execute(
+            """INSERT INTO dreams_steps (dream_id, title, completed, sort_order, deleted)
+               VALUES (%s, %s, false, %s, false) RETURNING id""",
+            (dream_id, DIARY_JOURNAL_STEP_TITLE, next_order),
+        )
+    except psycopg2.ProgrammingError:
+        cur.connection.rollback()
+        cur.execute(
+            "INSERT INTO dreams_steps (dream_id, title, completed, sort_order) VALUES (%s, %s, false, %s) RETURNING id",
+            (dream_id, DIARY_JOURNAL_STEP_TITLE, next_order),
+        )
+    return dream_id, int(cur.fetchone()["id"])
+
+
+@app.post("/diary/free-entry")
+def create_diary_free_entry(body: DiaryFreeEntryBody, user_id: int):
+    """Свободная запись в дневник: одна строка, опционально linked_dream_ids / linked_step_ids (JSON)."""
+    msg = (body.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Введите текст записи")
+    linked_dream_ids = _normalize_id_list(body.linked_dream_ids)
+    linked_step_ids = _normalize_id_list(body.linked_step_ids)
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _validate_diary_links_for_user(cur, user_id, linked_dream_ids, linked_step_ids)
+            dream_id, step_id = _ensure_diary_journal_bucket(cur, user_id)
+            _insert_journal_event_safe(
+                cur, step_id, dream_id, user_id, msg, linked_dream_ids, linked_step_ids
+            )
+            conn.commit()
+            return {
+                "ok": True,
+                "dream_id": dream_id,
+                "step_id": step_id,
+                "linked_dream_ids": linked_dream_ids,
+                "linked_step_ids": linked_step_ids,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
 @app.get("/steps/events")
 def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = None):
     """Дневник событий по шагам (мечты владельца user_id). viewer_id: кто смотрит, если это бадди (как GET /dreams)."""
@@ -3259,7 +3469,8 @@ def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = 
                     raise HTTPException(status_code=403, detail="Нет доступа к дневнику этого пользователя")
             try:
                 cur.execute(
-                    """SELECT e.id, e.step_id, e.dream_id, e.event_type, e.message, e.created_at, s.title AS step_title
+                    """SELECT e.id, e.step_id, e.dream_id, e.event_type, e.message, e.created_at,
+                              s.title AS step_title, e.linked_dream_ids, e.linked_step_ids
                        FROM dreams_steps_events e
                        JOIN dreams d ON d.id = e.dream_id
                        JOIN dreams_steps s ON s.id = e.step_id
@@ -3271,9 +3482,40 @@ def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = 
                 )
                 rows = cur.fetchall()
             except psycopg2.ProgrammingError:
-                return {"events": []}
+                try:
+                    cur.connection.rollback()
+                    cur.execute(
+                        """SELECT e.id, e.step_id, e.dream_id, e.event_type, e.message, e.created_at, s.title AS step_title
+                           FROM dreams_steps_events e
+                           JOIN dreams d ON d.id = e.dream_id
+                           JOIN dreams_steps s ON s.id = e.step_id
+                           WHERE d.user_id = %s
+                            AND e.event_type NOT IN ('completed', 'series_completed')
+                           ORDER BY e.created_at DESC
+                           LIMIT %s""",
+                        (user_id, lim),
+                    )
+                    rows = cur.fetchall()
+                except psycopg2.ProgrammingError:
+                    return {"events": []}
             out = []
             for r in rows:
+                ld = r.get("linked_dream_ids")
+                ls = r.get("linked_step_ids")
+                if isinstance(ld, str):
+                    try:
+                        import json as _json
+
+                        ld = _json.loads(ld)
+                    except Exception:
+                        ld = []
+                if isinstance(ls, str):
+                    try:
+                        import json as _json
+
+                        ls = _json.loads(ls)
+                    except Exception:
+                        ls = []
                 out.append(
                     {
                         "id": r["id"],
@@ -3283,8 +3525,11 @@ def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = 
                         "message": r["message"],
                         "created_at": r["created_at"].isoformat() if r.get("created_at") else None,
                         "step_title": (r.get("step_title") or "").strip(),
+                        "linked_dream_ids": [int(x) for x in (ld or []) if x],
+                        "linked_step_ids": [int(x) for x in (ls or []) if x],
                     }
                 )
+            out = _enrich_event_link_titles(cur, out)
             return {"events": out}
     except HTTPException:
         raise

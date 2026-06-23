@@ -52,7 +52,7 @@
 | `deadline`        | DATE          | Дедлайн (дата, до которой нужно осуществить). В БД и API — `YYYY-MM-DD`; в ЛК (`index.html`) в списках и текстовых полях модалки шага показывается и вводится сокращённо `dd.mm.yy`. |
 | `status_id`       | INT NOT NULL DEFAULT 1 | Ссылка на `dreams_statuses.id`. Добавлен в mig_006. |
 | `category_id`     | INT NULL      | Ссылка на `dreams_categories.id`. Добавлен в mig_006. NULL — без категории. |
-| `rule_code`       | VARCHAR(100) NULL | Код правила из `steps_rules.rule_code` (например, `books_reading`). Если задан, к мечте применяется спецлогика (книги, финцель и т.д.). Миграция mig_books_module. |
+| `rule_code`       | VARCHAR(100) NULL | Код правила из `steps_rules.rule_code` (например, `books_reading`, `diary_journal` — служебная мечта для свободных записей дневника). Если задан, к мечте применяется спецлогика (книги, финцель и т.д.). Миграция mig_books_module. |
 | `settings`        | JSONB NULL    | Настройки мечты по правилу: для книг — `{"minutes_per_day": 15}`; для финцели — параметры анкеты (срок, «равные/разные», число внесения в месяц, при разных — суммы по месяцам или формула). Миграция mig_books_module. |
 
 **Примечание:** Колонки `status` и `category` (VARCHAR) после mig_006/mig_006b удалены; вместо них используются `status_id` и `category_id`. Колонка `is_public` гарантируется миграцией mig_011 (ADD COLUMN IF NOT EXISTS, по умолчанию true).
@@ -111,6 +111,8 @@
 | `user_id`   | INT NOT NULL REFERENCES `users(id)` ON DELETE CASCADE | Кто совершил действие. |
 | `event_type`| VARCHAR(40) NOT NULL | Например: `waived`, `waived_cleared`, `comment`, `deadline_changed` (типы `completed`/`series_completed` считаются legacy и удаляются серверной политикой дневника). |
 | `message`   | TEXT NULL      | Текст для дневника / комментарий. |
+| `linked_dream_ids` | JSONB NULL | Для `event_type=journal`: id мечт (привязка «ко всей мечте»). Миграция `_sql/mig_diary_entry_links.sql`. |
+| `linked_step_ids`  | JSONB NULL | Для `event_type=journal`: id конкретных шагов. |
 | `created_at`| TIMESTAMPTZ NOT NULL DEFAULT NOW() | |
 
 Индексы: `idx_dreams_steps_events_user_created`, `idx_dreams_steps_events_step`.

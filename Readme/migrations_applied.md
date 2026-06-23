@@ -12,7 +12,11 @@
 
 ---
 
-## mig_dream_books_linked_step (явная связь книги со шагом)
+## mig_diary_entry_links (дневник: JSON-привязки к мечтам/шагам)
+
+Файл: `_sql/mig_diary_entry_links.sql` — колонки `dreams_steps_events.linked_dream_ids`, `linked_step_ids` (JSONB).
+
+---
 
 Файл: `_sql/mig_dream_books_linked_step.sql` — добавляет `dream_books.linked_step_id` (FK на `dreams_steps.id`, `ON DELETE SET NULL`) и индекс `idx_dream_books_linked_step_id`.
 
