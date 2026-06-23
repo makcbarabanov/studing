@@ -2283,7 +2283,7 @@
                         <button type="button" class="app-footer-add" id="app-footer-add" title="Добавить мечту" aria-label="Добавить мечту" onclick="openNewDreamModal()">+</button>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">277</span>
+                    <span class="app-version" aria-hidden="true">278</span>
                 </div>
             </footer>
         </div>
@@ -4792,6 +4792,19 @@
                             if (!s || s.deleted) continue;
                             var deadlineStr = lastDayOfMonth(monthIdx, currentYear);
                             var prevCompleted = monthIdx > 0 && (steps[monthIdx - 1].completed || (steps[monthIdx - 1].fact_amount != null && steps[monthIdx - 1].fact_amount !== ''));
+                            var showStep = (deadlineStr <= todayStr) || prevCompleted;
+                            if (!showStep) continue;
+                            var isEarly = deadlineStr > todayStr;
+                            var N;
+                            if (isEarly) {
+                                N = (s.plan_amount != null ? s.plan_amount : defaultPlan);
+                            } else {
+                                var cumPlan = 0, cumFactPrev = 0;
+                                for (var i = 0; i <= monthIdx; i++) cumPlan += (steps[i].plan_amount != null ? steps[i].plan_amount : defaultPlan);
+                                for (var j = 0; j < monthIdx; j++) cumFactPrev += (steps[j].fact_amount != null ? Number(steps[j].fact_amount) : 0);
+                                N = Math.round((cumPlan - cumFactPrev) / 1000) * 1000;
+                                if (N < 0) N = 0;
+                            }
                             stepsFlatCache.push({
                                 dream_id: d.id,
                                 dream_title: dreamTitle,
