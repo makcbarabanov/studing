@@ -24,6 +24,8 @@
 | `telegram`      | VARCHAR(100) NULL | Логин в Telegram для модалки «Хочу помочь»: @username или t.me/username. Если заполнено — в модалке «Связаться с автором» появится кнопка Telegram. Миграция mig_showcase_tables. |
 | `vk`            | VARCHAR(255) NULL | VK (ссылка на профиль) для модалки «Хочу помочь». Миграция mig_showcase_tables. |
 | `gender`        | VARCHAR(1) NULL   | Пол: `'m'` — мальчик, `'f'` — девочка. Для фильтра в модалке «Добавить бадди». Миграция mig_users_gender. |
+| `buddy_alert_daily_at` | TIME NOT NULL DEFAULT '23:00:00' | Время ежедневного digest для бадди (пропущенные шаги / отчёт не отправлен). Миграция mig_buddy_alerts. |
+| `timezone`      | VARCHAR(64) NULL | IANA-часовой пояс для `buddy_alert_daily_at`. NULL — default приложения `Europe/Moscow` (v2). Миграция mig_buddy_alerts. |
 
 ---
 
@@ -221,12 +223,14 @@ UNIQUE(book_id, date). Индекс: `idx_dream_books_log_book_date`.
 | `can_write` | BOOLEAN NOT NULL DEFAULT false | Разрешение на запись/редактирование. |
 | `status`    | VARCHAR(50) NOT NULL DEFAULT 'pending' | Статус связи: `pending`, `active`, `revoked`. |
 | `created_at`| TIMESTAMPTZ NOT NULL DEFAULT NOW() | Дата создания записи. |
+| `alert_steps_enabled` | BOOLEAN NOT NULL DEFAULT false | Subject разрешает уведомления бадди о **шагах** (синхронизируется в UI обоих кабинетов). Миграция mig_buddy_alerts. |
+| `alert_reports_enabled` | BOOLEAN NOT NULL DEFAULT false | Subject разрешает уведомления бадди об **отчётах**. Миграция mig_buddy_alerts. |
 
 **Ограничения:** `CHECK (viewer_id != subject_id)` — запрещает самосвязь (SRE правило).
 
 Индексы: `idx_user_buddy_links_viewer`, `idx_user_buddy_links_subject`.
 
-Миграция: `_sql/mig_user_buddy_links.sql` (additive).
+Миграции: `_sql/mig_user_buddy_links.sql`, `_sql/mig_buddy_alerts.sql` (additive).
 
 ---
 
@@ -272,6 +276,57 @@ UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_favorites_user`, `idx
 | `created_at`| TIMESTAMP WITH TIME ZONE DEFAULT NOW() | Когда добавлено в избранное. |
 
 Индексы: по `owner_id` (для выборки уведомлений владельца), по `dream_id`. Миграция: `mig_favorite_notifications`.
+
+---
+
+### 9.2. `buddy_step_daily_reports`
+
+**Назначение:** Серверный факт «отчёт за день отправлен» (📋 copy или ✈️ share в центре отчётов). Заменяет client-only `localStorage` для cross-device и digest «отчёт не отправлен». Спецификация: [buddy-alerts.md](buddy-alerts.md).
+
+| Колонка       | Тип            | Описание |
+|---------------|----------------|----------|
+| `id`          | BIGSERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `user_id`     | BIGINT NOT NULL | Владелец отчёта. REFERENCES users(id) ON DELETE CASCADE. |
+| `report_date` | DATE NOT NULL  | Календарный день отчёта. |
+| `sent_at`     | TIMESTAMPTZ NOT NULL DEFAULT NOW() | Когда зафиксирована отправка. |
+| `send_method` | VARCHAR(16) NOT NULL | `copy` или `share`. CHECK constraint. |
+
+UNIQUE(user_id, report_date). Индекс: `idx_buddy_step_daily_reports_user_date`.
+
+---
+
+### 9.3. `buddy_alert_notifications`
+
+**Назначение:** In-app уведомления для бадди (🔔): 100% шагов, пропущенные шаги, отчёт не отправлен.
+
+| Колонка        | Тип            | Описание |
+|----------------|----------------|----------|
+| `id`           | BIGSERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `recipient_id` | BIGINT NOT NULL | Кому (бадди). REFERENCES users(id) ON DELETE CASCADE. |
+| `subject_id`   | BIGINT NOT NULL | О ком (владелец шагов). REFERENCES users(id) ON DELETE CASCADE. |
+| `alert_type`   | VARCHAR(32) NOT NULL | `steps_success_100`, `steps_missed`, `report_not_sent`. |
+| `report_date`  | DATE NOT NULL  | День, к которому относится alert. |
+| `payload`      | JSONB NOT NULL DEFAULT '{}' | Детали: %, список шагов, имя subject. |
+| `created_at`   | TIMESTAMPTZ NOT NULL DEFAULT NOW() | Создано. |
+| `read_at`      | TIMESTAMPTZ NULL | Прочитано (NULL = непрочитано). |
+
+UNIQUE(recipient_id, subject_id, alert_type, report_date). Индексы: `idx_buddy_alert_notif_recipient_created`, `idx_buddy_alert_notif_unread`.
+
+---
+
+### 9.4. `buddy_daily_digest_runs`
+
+**Назначение:** Идемпотентность cron `scripts/run_buddy_daily_digest.py` — одна запись на subject + день + kind, чтобы повторный запуск не дублировал alerts.
+
+| Колонка      | Тип            | Описание |
+|--------------|----------------|----------|
+| `id`         | BIGSERIAL PRIMARY KEY | Уникальный идентификатор. |
+| `subject_id` | BIGINT NOT NULL | Пользователь, чей день обработан. REFERENCES users(id) ON DELETE CASCADE. |
+| `report_date`| DATE NOT NULL  | Календарный день. |
+| `digest_kind`| VARCHAR(32) NOT NULL | `steps_missed` или `report_not_sent`. |
+| `ran_at`     | TIMESTAMPTZ NOT NULL DEFAULT NOW() | Когда digest отработал. |
+
+UNIQUE(subject_id, report_date, digest_kind).
 
 ---
 
@@ -331,7 +386,7 @@ UNIQUE(user_id, dream_id). Индексы: `idx_user_dream_help_intent_user`, `i
 
 ## Актуальные таблицы (без префикса _old_)
 
-Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_dream_views**, **user_dream_favorites**, **dream_favorite_notifications**, **user_dream_help_intent**, **steps_rules**, **roadmap**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
+Приложение ОСТРОВ использует: **users**, **dreams**, **dreams_log**, **dreams_categories**, **dreams_statuses**, **dreams_steps**, **dream_books**, **dream_books_log**, **buddy_requests**, **user_buddy_links**, **user_dream_views**, **user_dream_favorites**, **dream_favorite_notifications**, **buddy_step_daily_reports**, **buddy_alert_notifications**, **buddy_daily_digest_runs**, **user_dream_help_intent**, **steps_rules**, **roadmap**. Остальные таблицы в схеме `public` считаются неиспользуемыми.
 
 ## Таблицы с префиксом _old_
 

@@ -27,6 +27,16 @@ from breakfast_sveta import (
     breakfast_log_event,
     resolve_breakfast_dir,
 )
+from buddy_alerts_core import (
+    ensure_buddy_alerts_schema,
+    fan_out_steps_success_100,
+    fetch_buddy_notifications,
+    get_buddy_alert_settings,
+    patch_buddy_alert_settings,
+    mark_daily_report_sent,
+    count_unread_buddy_alerts,
+    mark_buddy_notification_read,
+)
 
 # bcrypt принимает пароль не длиннее 72 байт; длинные обрезаем, чтобы не было 500 при входе/регистрации
 def _step_title_series_key(title: Optional[str]) -> str:
@@ -301,6 +311,18 @@ class BuddyLinkUpdateBody(BaseModel):
     viewer_id: int
     subject_id: int
     can_write: bool
+
+class BuddyAlertSettingsPatch(BaseModel):
+    share_steps: Optional[bool] = None
+    share_reports: Optional[bool] = None
+    receive_steps: Optional[bool] = None
+    receive_reports: Optional[bool] = None
+    daily_alert_at: Optional[str] = None
+
+class DailyReportSentBody(BaseModel):
+    user_id: int
+    report_date: str
+    send_method: str  # copy | share
 
 class DreamBookCreate(BaseModel):
     title: str
@@ -1410,9 +1432,11 @@ def get_access_grants(user_id: int):
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _ensure_user_buddy_links_table(cur)
+            ensure_buddy_alerts_schema(cur)
             conn.commit()
             cur.execute("""
                 SELECT ubl.id AS link_id, ubl.viewer_id, ubl.can_read, ubl.can_write, ubl.status,
+                       ubl.alert_steps_enabled, ubl.alert_reports_enabled,
                        u.name, u.surname, u.avatar_path
                 FROM user_buddy_links ubl
                 JOIN users u ON u.id = ubl.viewer_id
@@ -1429,6 +1453,8 @@ def get_access_grants(user_id: int):
                     "avatar_path": r.get("avatar_path"),
                     "can_read": bool(r.get("can_read")),
                     "can_write": bool(r.get("can_write")),
+                    "alert_steps_enabled": bool(r.get("alert_steps_enabled")),
+                    "alert_reports_enabled": bool(r.get("alert_reports_enabled")),
                 })
             return {"grants": grants}
     except HTTPException:
@@ -1527,6 +1553,119 @@ def revoke_buddy_link(user_id: int, other_user_id: int):
             )
             conn.commit()
             return {"ok": True, "other_user_id": other_user_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+# --- Buddy alerts (шаги / отчёты для бадди) ---
+@app.get("/users/me/buddy-alert-settings")
+def get_buddy_alert_settings_route(user_id: int):
+    """Настройки уведомлений бадди для кабинета (шаги, отчёты, время digest)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_user_buddy_links_table(cur)
+            ensure_buddy_alerts_schema(cur)
+            conn.commit()
+            return get_buddy_alert_settings(cur, user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.patch("/users/me/buddy-alert-settings")
+def patch_buddy_alert_settings_route(body: BuddyAlertSettingsPatch, user_id: int):
+    """Обновить toggles уведомлений бадди и время ежедневного digest."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_user_buddy_links_table(cur)
+            ensure_buddy_alerts_schema(cur)
+            out = patch_buddy_alert_settings(
+                cur,
+                user_id,
+                share_steps=body.share_steps,
+                share_reports=body.share_reports,
+                receive_steps=body.receive_steps,
+                receive_reports=body.receive_reports,
+                daily_alert_at=body.daily_alert_at,
+            )
+            conn.commit()
+            return out
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.post("/users/me/daily-report-sent")
+def post_daily_report_sent(body: DailyReportSentBody):
+    """Зафиксировать отправку отчёта за день (copy или share)."""
+    method = (body.send_method or "").strip().lower()
+    if method not in ("copy", "share"):
+        raise HTTPException(status_code=400, detail="send_method должен быть copy или share")
+    try:
+        report_date = date.fromisoformat(body.report_date[:10])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="report_date: формат YYYY-MM-DD")
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            ensure_buddy_alerts_schema(cur)
+            created = mark_daily_report_sent(cur, body.user_id, report_date, method)
+            conn.commit()
+            return {"ok": True, "created": created, "report_date": report_date.isoformat()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.get("/users/me/buddy-alerts/unread-count")
+def get_buddy_alerts_unread_count(user_id: int):
+    """Непрочитанные уведомления бадди для колокольчика."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            ensure_buddy_alerts_schema(cur)
+            conn.commit()
+            return {"buddy_alerts_unread": count_unread_buddy_alerts(cur, user_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.patch("/users/me/buddy-alerts/{notification_id}/read")
+def patch_buddy_alert_read(notification_id: int, user_id: int):
+    """Отметить уведомление бадди прочитанным."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            ensure_buddy_alerts_schema(cur)
+            ok = mark_buddy_notification_read(cur, notification_id, user_id)
+            if not ok:
+                raise HTTPException(status_code=404, detail="Уведомление не найдено")
+            conn.commit()
+            return {"ok": True}
     except HTTPException:
         raise
     except Exception as e:
@@ -1887,10 +2026,18 @@ def get_dreams_showcase_counts(user_id: Optional[int] = None):
             else:
                 count_in_progress = 0
                 count_pending_completion = 0
+            buddy_alerts_unread = 0
+            if user_id:
+                try:
+                    ensure_buddy_alerts_schema(cur)
+                    buddy_alerts_unread = count_unread_buddy_alerts(cur, user_id)
+                except Exception:
+                    pass
             return {
                 "new": count_new, "helping": count_helping, "helped": count_helped,
                 "favorites": count_favorites, "all": count_all,
                 "in_progress": count_in_progress, "pending_completion": count_pending_completion,
+                "buddy_alerts_unread": buddy_alerts_unread,
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -2481,6 +2628,20 @@ def get_dreams_notifications(user_id: int):
                     "deadline": o["deadline"],
                     "_at": at_str,
                 })
+            try:
+                ensure_buddy_alerts_schema(cur)
+                for bn in fetch_buddy_notifications(cur, user_id):
+                    out.append({
+                        "type": bn["type"],
+                        "id": bn["id"],
+                        "subject_id": bn["subject_id"],
+                        "subject_name": bn["subject_name"],
+                        "report_date": bn["report_date"],
+                        "payload": bn["payload"],
+                        "_at": bn["_at"],
+                    })
+            except Exception:
+                pass
             out.sort(key=lambda x: x.get("_at") or "", reverse=True)
             for o in out:
                 o.pop("_at", None)
@@ -3159,7 +3320,7 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            owner_id = _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
             editor_id = viewer_id if viewer_id is not None else user_id
             scope = (body.scope or "single").strip().lower()
             if scope not in ("single", "all_series"):
@@ -3330,6 +3491,25 @@ def update_step(dream_id: int, step_id: int, body: StepUpdate, user_id: int, vie
                     _insert_step_event_safe(
                         cur, step_id, dream_id, editor_id, "deadline_changed", note_trim
                     )
+
+            trigger_success_100 = (
+                body.completed is True
+                and body.waived is not True
+                and not multi_row
+            )
+            if trigger_success_100:
+                try:
+                    cur.execute(
+                        "SELECT deadline FROM dreams_steps WHERE id = %s AND dream_id = %s",
+                        (step_id, dream_id),
+                    )
+                    dl_row = cur.fetchone()
+                    dl_iso = _deadline_iso_db(dl_row.get("deadline")) if dl_row else None
+                    if dl_iso:
+                        ensure_buddy_alerts_schema(cur)
+                        fan_out_steps_success_100(cur, owner_id, date.fromisoformat(dl_iso))
+                except Exception:
+                    pass
 
             conn.commit()
             if not multi_row:

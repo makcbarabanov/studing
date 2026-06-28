@@ -168,3 +168,65 @@ CREATE TABLE IF NOT EXISTS roadmap (
 );
 CREATE INDEX IF NOT EXISTS idx_roadmap_status ON roadmap(status);
 CREATE INDEX IF NOT EXISTS idx_roadmap_section ON roadmap(section);
+
+-- === buddy alerts (mig_buddy_alerts) ===
+ALTER TABLE users ADD COLUMN IF NOT EXISTS buddy_alert_daily_at TIME NOT NULL DEFAULT '23:00:00';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NULL;
+
+CREATE TABLE IF NOT EXISTS user_buddy_links (
+    id BIGSERIAL PRIMARY KEY,
+    viewer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    link_type VARCHAR(100) NOT NULL DEFAULT 'custom',
+    can_read BOOLEAN NOT NULL DEFAULT TRUE,
+    can_write BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    alert_steps_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    alert_reports_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    CHECK (viewer_id != subject_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_buddy_links_viewer ON user_buddy_links(viewer_id);
+CREATE INDEX IF NOT EXISTS idx_user_buddy_links_subject ON user_buddy_links(subject_id);
+
+ALTER TABLE user_buddy_links ADD COLUMN IF NOT EXISTS alert_steps_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE user_buddy_links ADD COLUMN IF NOT EXISTS alert_reports_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS buddy_step_daily_reports (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    report_date DATE NOT NULL,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    send_method VARCHAR(16) NOT NULL CHECK (send_method IN ('copy', 'share')),
+    UNIQUE (user_id, report_date)
+);
+CREATE INDEX IF NOT EXISTS idx_buddy_step_daily_reports_user_date
+    ON buddy_step_daily_reports (user_id, report_date DESC);
+
+CREATE TABLE IF NOT EXISTS buddy_alert_notifications (
+    id BIGSERIAL PRIMARY KEY,
+    recipient_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    alert_type VARCHAR(32) NOT NULL
+        CHECK (alert_type IN ('steps_success_100', 'steps_missed', 'report_not_sent')),
+    report_date DATE NOT NULL,
+    payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    read_at TIMESTAMPTZ NULL,
+    UNIQUE (recipient_id, subject_id, alert_type, report_date)
+);
+CREATE INDEX IF NOT EXISTS idx_buddy_alert_notif_recipient_created
+    ON buddy_alert_notifications (recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_buddy_alert_notif_unread
+    ON buddy_alert_notifications (recipient_id)
+    WHERE read_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS buddy_daily_digest_runs (
+    id BIGSERIAL PRIMARY KEY,
+    subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    report_date DATE NOT NULL,
+    digest_kind VARCHAR(32) NOT NULL
+        CHECK (digest_kind IN ('steps_missed', 'report_not_sent')),
+    ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (subject_id, report_date, digest_kind)
+);

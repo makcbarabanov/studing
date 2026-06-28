@@ -124,6 +124,23 @@ CREATE INDEX IF NOT EXISTS idx_dreams_steps_series_id ON dreams_steps(series_id)
 Файл: `_sql/mig_ensure_idx_dreams_steps_series_id.sql` — одна команда `CREATE INDEX IF NOT EXISTS idx_dreams_steps_series_id ON dreams_steps(series_id);`  
 Назначение: если индекс из `mig_dreams_steps_time_and_series_columns` не был создан (частичное применение, восстановление дампа). Additive, без DROP.
 
+## mig_buddy_alerts (уведомления бадди: шаги, отчёты, digest)
+
+Файл: `_sql/mig_buddy_alerts.sql` — additive.
+
+```sql
+-- user_buddy_links: alert_steps_enabled, alert_reports_enabled
+-- users: buddy_alert_daily_at (default 23:00), timezone (v2)
+-- buddy_step_daily_reports — факт отправки отчёта за день
+-- buddy_alert_notifications — in-app 🔔 для бадди
+-- buddy_daily_digest_runs — идемпотентность cron
+```
+
+Спецификация: [buddy-alerts.md](buddy-alerts.md).  
+**SRE:** digest только через `scripts/run_buddy_daily_digest.py` + прямое подключение к PostgreSQL; **без** HTTP `/internal/*` в `main.py`.
+
+---
+
 ## seed_system_reference_data_idempotent (справочники: статусы, категории, правила)
 
 Файл: `_sql/seed_system_reference_data_idempotent.sql` — идемпотентные `INSERT … ON CONFLICT DO NOTHING` для `dreams_statuses` (по `code`), `dreams_categories` (по `code`), `steps_rules` (по паре `category_code`, `rule_code`).  
