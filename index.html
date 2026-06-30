@@ -330,6 +330,37 @@
             opacity: 0.5; cursor: not-allowed; background: #fafafa; border-color: #e0e0e0; color: #9e9e9e;
         }
         .modal-actions button:disabled { opacity: 0.55; cursor: not-allowed; }
+        .modal-foot-links {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+            gap: 6px 10px;
+            font-size: 15px;
+            line-height: 1.35;
+        }
+        .modal-foot-link {
+            background: none;
+            border: none;
+            padding: 2px 0;
+            margin: 0;
+            color: #1565c0;
+            cursor: pointer;
+            font: inherit;
+            font-size: inherit;
+            white-space: nowrap;
+            min-height: 0;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .modal-foot-link:hover { color: #0d47a1; }
+        .modal-foot-link.modal-foot-link-muted { color: #546e7a; text-decoration: none; }
+        .modal-foot-link.modal-foot-link-muted:hover { color: #37474f; text-decoration: underline; }
+        .modal-foot-link.step-modal-note-save { font-weight: 600; text-decoration: none; }
+        .modal-foot-link.step-modal-note-save:hover { text-decoration: underline; }
+        .modal-foot-link:disabled { opacity: 0.45; cursor: not-allowed; text-decoration: none; }
+        .modal-foot-link-sep { color: #c5cdd3; user-select: none; flex-shrink: 0; }
         #library-block {
             background: rgba(255, 255, 255, 0.78);
             border: 1px solid rgba(165, 214, 167, 0.65);
@@ -1361,7 +1392,8 @@
         .step-done-btn:hover, .step-comment-btn:hover, .step-move-btn:hover { background: #eee; }
         .step-done-btn:disabled, .step-comment-btn:disabled, .step-move-btn:disabled { opacity: 0.45; cursor: not-allowed; }
         /* «Сохранить» без disabled: выглядит неактивным, но клик = «Пропустить» (см. aria-disabled). */
-        button.step-modal-note-save[aria-disabled="true"] { opacity: 0.45; cursor: pointer; }
+        button.step-modal-note-save[aria-disabled="true"],
+        .modal-foot-link.step-modal-note-save[aria-disabled="true"] { opacity: 0.45; cursor: pointer; }
         .step-done-btn.step-done-on { background: #e8f5e9; font-weight: 700; }
         .step-done-btn.step-done-locked { background: #eceff1; color: #90a4ae; cursor: default; border: 1px solid #d7dee3; }
         .step-done-btn.step-done-locked:hover { background: #eceff1; }
@@ -1506,6 +1538,7 @@
             .modal-add-step .modal-add-step-date { font-size: 13px; }
             .modal-actions { flex-wrap: wrap; }
             .modal-actions button { min-height: 44px; }
+            .modal-foot-links { font-size: 14px; gap: 4px 8px; }
             #modal-step-waived .step-diary-prompt-foot,
             #modal-step-move .step-diary-prompt-foot {
                 padding: 12px 4px 0;
@@ -1939,10 +1972,12 @@
                     <p style="margin:0 0 10px;color:#666;font-size:14px;">Комментарий в дневник не обязателен. «Пропустить» — отметить шаг без текста. «Сохранить» — только если ввели комментарий. «Отмена» — закрыть без изменений.</p>
                     <label for="step-waived-note-text">Комментарий в дневник (необязательно)</label>
                     <textarea id="step-waived-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию, до нескольких фраз"></textarea>
-                    <div class="modal-actions">
-                        <button type="button" class="secondary" id="step-waived-cancel">Отмена</button>
-                        <button type="button" class="secondary" id="step-waived-skip">Пропустить</button>
-                        <button type="button" class="secondary step-modal-note-save" id="step-waived-save" aria-disabled="true">Сохранить</button>
+                    <div class="modal-foot-links" role="group" aria-label="Действия">
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-waived-cancel">Отмена</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link" id="step-waived-skip">Пропустить</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link step-modal-note-save" id="step-waived-save" aria-disabled="true">Сохранить</button>
                     </div>
                     <div class="step-diary-prompt-foot">
                         <a href="#" class="step-diary-prompt-toggle" id="step-waived-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
@@ -1956,10 +1991,12 @@
                     <p style="margin:0 0 10px;color:#666;font-size:14px;">Текст попадёт в дневник. Комментарий необязателен: «Пропустить» — закрыть без записи. «Сохранить» — только при вводе текста.</p>
                     <label for="step-comment-note-text">Комментарий (необязательно)</label>
                     <textarea id="step-comment-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию"></textarea>
-                    <div class="modal-actions">
-                        <button type="button" class="secondary" id="step-comment-cancel">Отмена</button>
-                        <button type="button" class="secondary" id="step-comment-skip">Пропустить</button>
-                        <button type="button" class="secondary step-modal-note-save" id="step-comment-save" aria-disabled="true">Сохранить</button>
+                    <div class="modal-foot-links" role="group" aria-label="Действия">
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-comment-cancel">Отмена</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link" id="step-comment-skip">Пропустить</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link step-modal-note-save" id="step-comment-save" aria-disabled="true">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -2055,10 +2092,12 @@
                         <label for="step-move-note-text">Комментарий в дневник (необязательно)</label>
                         <textarea id="step-move-note-text" rows="2" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию"></textarea>
                     </div>
-                    <div class="modal-actions">
-                        <button type="button" class="secondary" id="step-move-cancel">Отмена</button>
-                        <button type="button" class="secondary" id="step-move-skip">Пропустить</button>
-                        <button type="button" id="step-move-save" disabled>Сохранить</button>
+                    <div class="modal-foot-links" role="group" aria-label="Действия">
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-move-cancel">Отмена</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link" id="step-move-skip">Пропустить</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link step-modal-note-save" id="step-move-save" disabled>Сохранить</button>
                     </div>
                     <div class="step-diary-prompt-foot">
                         <a href="#" class="step-diary-prompt-toggle" id="step-move-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
