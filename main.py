@@ -1,6 +1,8 @@
 import os
 import time
 import calendar
+import logging
+from logging.handlers import RotatingFileHandler
 from collections import defaultdict, deque
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
@@ -94,7 +96,48 @@ load_dotenv()
 app = FastAPI()
 ENABLE_SPECIAL_BOOKS_IN_SCHEDULE = False
 
+
+@app.middleware("http")
+async def island_request_log_middleware(request: Request, call_next):
+    started = time.time()
+    try:
+        response = await call_next(request)
+        ms = (time.time() - started) * 1000
+        if response.status_code >= 500:
+            app_logger.error(
+                "HTTP %s %s -> %s (%.0fms)",
+                request.method, request.url.path, response.status_code, ms,
+            )
+        elif ms >= 3000:
+            app_logger.warning("SLOW %s %s (%.0fms)", request.method, request.url.path, ms)
+        return response
+    except Exception:
+        app_logger.exception("UNHANDLED %s %s", request.method, request.url.path)
+        raise
+
 BASE_DIR = Path(__file__).resolve().parent
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _setup_app_logging() -> logging.Logger:
+    """File + console logging for prod debugging (logs/app.log in repo volume)."""
+    logger = logging.getLogger("island")
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.INFO)
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    fh = RotatingFileHandler(LOG_DIR / "app.log", maxBytes=2_000_000, backupCount=5, encoding="utf-8")
+    fh.setFormatter(fmt)
+    sh = logging.StreamHandler()
+    sh.setFormatter(fmt)
+    logger.addHandler(fh)
+    logger.addHandler(sh)
+    return logger
+
+
+app_logger = _setup_app_logging()
+_HTML_NO_CACHE = {"Cache-Control": "no-cache, must-revalidate"}
 
 @app.get("/landing", include_in_schema=False)
 def landing_root_redirect():
@@ -179,7 +222,7 @@ def startup_event():
             conn_kw = _db_conn_kwargs()
             db_pool = psycopg2.pool.ThreadedConnectionPool(
                 minconn=1,
-                maxconn=20,
+                maxconn=30,
                 **conn_kw,
             )
             # Политика дневника: успешные отметки шагов не храним в events (только рефлексия/комментарии).
@@ -855,23 +898,23 @@ def _to_bool_flag(value: Optional[bool], default: bool) -> bool:
 @app.get("/", response_class=FileResponse)
 def root_page():
     """Корень — личный кабинет"""
-    return FileResponse(Path(__file__).parent / "index.html")
+    return FileResponse(Path(__file__).parent / "index.html", headers=_HTML_NO_CACHE)
 
 
 @app.get("/dreams.html", response_class=FileResponse)
 def dreams_page():
     """Публичная витрина мечт — без авторизации. Захотел помочь — регистрация в ЛК."""
-    return FileResponse(Path(__file__).parent / "dreams.html")
+    return FileResponse(Path(__file__).parent / "dreams.html", headers=_HTML_NO_CACHE)
 
 @app.get("/admin", response_class=FileResponse)
 def admin_page():
     """Админка — веб-интерфейс для управления пользователями"""
-    return FileResponse(Path(__file__).parent / "admin.html")
+    return FileResponse(Path(__file__).parent / "admin.html", headers=_HTML_NO_CACHE)
 
 @app.get("/index.html", response_class=FileResponse)
 def index_page():
     """Личный кабинет (вход и регистрация)"""
-    return FileResponse(Path(__file__).parent / "index.html")
+    return FileResponse(Path(__file__).parent / "index.html", headers=_HTML_NO_CACHE)
 
 @app.get("/roadmap.html", response_class=FileResponse)
 def roadmap_page():
@@ -3211,7 +3254,9 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
     except HTTPException:
         raise
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
+        app_logger.exception("create_step failed dream_id=%s user_id=%s", dream_id, user_id)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)

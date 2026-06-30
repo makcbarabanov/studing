@@ -18,4 +18,6 @@ sites/breakfast/.promo-screenshot.png
 
 # Логи диалогов «Завтрак» (JSONL на диске, не в git)
 logs/*.jsonl
+logs/app.log
+logs/app.log.*
 !logs/.gitkeep

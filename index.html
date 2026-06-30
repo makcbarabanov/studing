@@ -10623,10 +10623,16 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 createBtn.textContent = 'Создаём… 0 / ' + total;
                 var done = 0;
                 function onOneDone() { done++; createBtn.textContent = 'Создаём… ' + done + ' / ' + total; }
-                var promises = dates.map(function(dateStr, idx) {
-                    return addStepPromise(dreamId, title, dateStr, repTimeFrom, repTimeTo, seriesIdCreate, idx + 1, total).then(function(data) { onOneDone(); return data; });
+                var chain = Promise.resolve();
+                dates.forEach(function(dateStr, idx) {
+                    chain = chain.then(function() {
+                        return addStepPromise(dreamId, title, dateStr, repTimeFrom, repTimeTo, seriesIdCreate, idx + 1, total).then(function(data) {
+                            onOneDone();
+                            return data;
+                        });
+                    });
                 });
-                Promise.all(promises).then(function() {
+                chain.then(function() {
                     closeAddStepModal();
                     createBtn.disabled = false;
                     createBtn.textContent = 'Создать';
