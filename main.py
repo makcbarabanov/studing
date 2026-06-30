@@ -362,6 +362,12 @@ class DiaryFreeEntryBody(BaseModel):
     linked_step_ids: Optional[List[int]] = None
 
 
+class DiaryEventUpdate(BaseModel):
+    message: str
+    linked_dream_ids: Optional[List[int]] = None
+    linked_step_ids: Optional[List[int]] = None
+
+
 class BuddyRequestCreate(BaseModel):
     to_user_id: int
 
@@ -470,8 +476,11 @@ def _step_row_to_dict(s):
     }
 
 
-def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, event_type: str, message: Optional[str] = None) -> None:
-    """Запись в дневник; при отсутствии таблицы не ломает транзакцию."""
+def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, event_type: str, message: Optional[str] = None) -> bool:
+    """Запись в дневник; при отсутствии таблицы не ломает транзакцию. False = дубликат за сегодня."""
+    if message and message.strip():
+        if _diary_event_duplicate_exists(cur, editor_id, message.strip(), step_id, [], []):
+            return False
     cur.execute("SAVEPOINT sp_step_evt")
     try:
         cur.execute(
@@ -480,8 +489,10 @@ def _insert_step_event_safe(cur, step_id: int, dream_id: int, editor_id: int, ev
             (step_id, dream_id, editor_id, event_type, message),
         )
         cur.execute("RELEASE SAVEPOINT sp_step_evt")
+        return True
     except Exception:
         cur.execute("ROLLBACK TO SAVEPOINT sp_step_evt")
+        return False
 
 
 def _insert_journal_event_safe(
@@ -492,10 +503,12 @@ def _insert_journal_event_safe(
     message: str,
     linked_dream_ids: Optional[List[int]] = None,
     linked_step_ids: Optional[List[int]] = None,
-) -> None:
-    """Свободная запись дневника (event_type=journal) с JSON-привязками."""
+) -> bool:
+    """Свободная запись дневника (event_type=journal) с JSON-привязками. False = дубликат за сегодня."""
     ld = [int(x) for x in (linked_dream_ids or []) if x and int(x) > 0]
     ls = [int(x) for x in (linked_step_ids or []) if x and int(x) > 0]
+    if _diary_event_duplicate_exists(cur, editor_id, message, step_id, ld, ls):
+        return False
     cur.execute("SAVEPOINT sp_journal_evt")
     try:
         cur.execute(
@@ -505,15 +518,57 @@ def _insert_journal_event_safe(
             (step_id, dream_id, editor_id, message, Json(ld), Json(ls)),
         )
         cur.execute("RELEASE SAVEPOINT sp_journal_evt")
+        return True
     except psycopg2.ProgrammingError:
         cur.execute("ROLLBACK TO SAVEPOINT sp_journal_evt")
+        if _diary_event_duplicate_exists(cur, editor_id, message, step_id, [], []):
+            return False
         cur.execute(
             """INSERT INTO dreams_steps_events (step_id, dream_id, user_id, event_type, message)
                VALUES (%s, %s, %s, 'journal', %s)""",
             (step_id, dream_id, editor_id, message),
         )
+        return True
     except Exception:
         cur.execute("ROLLBACK TO SAVEPOINT sp_journal_evt")
+        raise
+
+
+def _diary_event_duplicate_exists(
+    cur,
+    user_id: int,
+    message: str,
+    step_id: int,
+    linked_dream_ids: Optional[List[int]] = None,
+    linked_step_ids: Optional[List[int]] = None,
+) -> bool:
+    """Одинаковый текст + те же привязки + тот же step_id в один календарный день (UTC)."""
+    ld = [int(x) for x in (linked_dream_ids or []) if x and int(x) > 0]
+    ls = [int(x) for x in (linked_step_ids or []) if x and int(x) > 0]
+    try:
+        cur.execute(
+            """SELECT 1 FROM dreams_steps_events
+               WHERE user_id = %s AND message = %s AND step_id = %s
+                 AND (created_at AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date
+                 AND COALESCE(linked_dream_ids, '[]'::jsonb) = %s::jsonb
+                 AND COALESCE(linked_step_ids, '[]'::jsonb) = %s::jsonb
+               LIMIT 1""",
+            (user_id, message, step_id, Json(ld), Json(ls)),
+        )
+        return cur.fetchone() is not None
+    except psycopg2.ProgrammingError:
+        try:
+            cur.connection.rollback()
+        except Exception:
+            pass
+        cur.execute(
+            """SELECT 1 FROM dreams_steps_events
+               WHERE user_id = %s AND message = %s AND step_id = %s
+                 AND (created_at AT TIME ZONE 'UTC')::date = (NOW() AT TIME ZONE 'UTC')::date
+               LIMIT 1""",
+            (user_id, message, step_id),
+        )
+        return cur.fetchone() is not None
 
 
 def _normalize_id_list(raw: Optional[List[int]]) -> List[int]:
@@ -3798,12 +3853,13 @@ def create_diary_free_entry(body: DiaryFreeEntryBody, user_id: int):
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             _validate_diary_links_for_user(cur, user_id, linked_dream_ids, linked_step_ids)
             dream_id, step_id = _ensure_diary_journal_bucket(cur, user_id)
-            _insert_journal_event_safe(
+            inserted = _insert_journal_event_safe(
                 cur, step_id, dream_id, user_id, msg, linked_dream_ids, linked_step_ids
             )
             conn.commit()
             return {
                 "ok": True,
+                "already_exists": not inserted,
                 "dream_id": dream_id,
                 "step_id": step_id,
                 "linked_dream_ids": linked_dream_ids,
@@ -3898,6 +3954,83 @@ def list_step_events(user_id: int, limit: int = 100, viewer_id: Optional[int] = 
         raise
     except Exception:
         return {"events": []}
+    finally:
+        _return_conn(conn)
+
+
+def _fetch_step_event_row(cur, event_id: int, user_id: int):
+    cur.execute(
+        """SELECT e.id, e.user_id, e.message, e.step_id, e.dream_id, e.event_type,
+                  e.linked_dream_ids, e.linked_step_ids
+           FROM dreams_steps_events e
+           WHERE e.id = %s AND e.user_id = %s""",
+        (event_id, user_id),
+    )
+    return cur.fetchone()
+
+
+@app.patch("/steps/events/{event_id}")
+def update_step_event(event_id: int, body: DiaryEventUpdate, user_id: int):
+    """Редактировать запись дневника (только владелец)."""
+    msg = (body.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Введите текст записи")
+    linked_dream_ids = _normalize_id_list(body.linked_dream_ids)
+    linked_step_ids = _normalize_id_list(body.linked_step_ids)
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            row = _fetch_step_event_row(cur, event_id, user_id)
+            if not row:
+                raise HTTPException(status_code=404, detail="Запись не найдена")
+            if row.get("event_type") in ("completed", "series_completed"):
+                raise HTTPException(status_code=400, detail="Эту запись нельзя редактировать")
+            _validate_diary_links_for_user(cur, user_id, linked_dream_ids, linked_step_ids)
+            try:
+                cur.execute(
+                    """UPDATE dreams_steps_events
+                       SET message = %s, linked_dream_ids = %s, linked_step_ids = %s
+                       WHERE id = %s AND user_id = %s""",
+                    (msg, Json(linked_dream_ids), Json(linked_step_ids), event_id, user_id),
+                )
+            except psycopg2.ProgrammingError:
+                cur.connection.rollback()
+                cur.execute(
+                    "UPDATE dreams_steps_events SET message = %s WHERE id = %s AND user_id = %s",
+                    (msg, event_id, user_id),
+                )
+            conn.commit()
+            return {"ok": True, "id": event_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+@app.delete("/steps/events/{event_id}")
+def delete_step_event(event_id: int, user_id: int):
+    """Удалить запись дневника (только владелец)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            row = _fetch_step_event_row(cur, event_id, user_id)
+            if not row:
+                raise HTTPException(status_code=404, detail="Запись не найдена")
+            cur.execute("DELETE FROM dreams_steps_events WHERE id = %s AND user_id = %s", (event_id, user_id))
+            conn.commit()
+            return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
 

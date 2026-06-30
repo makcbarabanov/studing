@@ -361,6 +361,35 @@
         .modal-foot-link.step-modal-note-save:hover { text-decoration: underline; }
         .modal-foot-link:disabled { opacity: 0.45; cursor: not-allowed; text-decoration: none; }
         .modal-foot-link-sep { color: #c5cdd3; user-select: none; flex-shrink: 0; }
+        .modal-foot-links--actions { flex-wrap: nowrap; justify-content: center; gap: 4px 8px; font-size: 13px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .modal-foot-links--actions::-webkit-scrollbar { display: none; }
+        .modal-step-diary-note h3 { margin-bottom: 10px; line-height: 1.35; }
+        .modal-step-diary-note .modal-subtitle-muted { font-weight: 400; font-size: 0.92em; color: #888; }
+        .modal-step-diary-textarea {
+            width: 100%; box-sizing: border-box; margin: 0 0 10px;
+            min-height: 6.5em; font-size: 16px; line-height: 1.45; padding: 10px 12px;
+            border: 1px solid #cfd8dc; border-radius: 6px; resize: vertical;
+        }
+        .modal-step-diary-textarea:focus { outline: none; border-color: #81c784; box-shadow: 0 0 0 2px rgba(46,125,50,0.15); }
+        .modal-hints-accordion { margin: 0 0 12px; }
+        .modal-hints-accordion-toggle {
+            width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            padding: 8px 0; border: none; background: none; cursor: pointer; font: inherit;
+            font-size: 13px; color: #546e7a; text-align: left;
+        }
+        .modal-hints-accordion-toggle:hover { color: #37474f; }
+        .modal-hints-accordion-chevron { font-size: 11px; transition: transform 0.2s ease; }
+        .modal-hints-accordion.is-open .modal-hints-accordion-chevron { transform: rotate(180deg); }
+        .modal-hints-accordion-panel {
+            max-height: 0; overflow: hidden; opacity: 0;
+            transition: max-height 0.25s ease, opacity 0.2s ease;
+        }
+        .modal-hints-accordion.is-open .modal-hints-accordion-panel { max-height: 200px; opacity: 1; }
+        .modal-hints-accordion-list { margin: 0; padding: 0 0 4px 0; list-style: none; font-size: 13px; color: #666; line-height: 1.45; }
+        .modal-hints-accordion-list li { margin: 0 0 6px; }
+        .modal-hints-accordion-list strong { color: #455a64; font-weight: 600; }
+        .diary-event-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .diary-event-actions .step-edit, .diary-event-actions .step-delete { border: none; border-radius: 4px; background: #f5f5f5; padding: 4px 6px; cursor: pointer; font-size: 1em; line-height: 1; }
         #library-block {
             background: rgba(255, 255, 255, 0.78);
             border: 1px solid rgba(165, 214, 167, 0.65);
@@ -787,10 +816,11 @@
         }
         .diary-event-row:nth-child(even) { background: #f5f5f5; }
         .diary-event-head {
-            display: grid; grid-template-columns: 76px 1fr; gap: 4px 12px; align-items: start;
+            display: grid; grid-template-columns: 76px 1fr auto; gap: 4px 12px; align-items: start;
         }
+        .diary-event-actions { grid-column: 3; grid-row: 1; justify-self: end; }
+        .diary-event-time { grid-column: 3; grid-row: 2; justify-self: end; font-size: 12px; color: #888; }
         .diary-event-date { font-size: 13px; font-weight: 600; color: #555; }
-        .diary-event-time { font-size: 12px; color: #888; }
         .diary-event-links-wrap { min-width: 0; font-size: 12px; color: #4d5c76; line-height: 1.4; }
         .diary-event-links-text {
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -1967,36 +1997,61 @@
             </div>
             <!-- Модалка: отметить шаг как не выполненный (минус) -->
             <div id="modal-step-waived" class="modal-overlay hidden">
-                <div class="modal">
-                    <h3>Не выполнен</h3>
-                    <p style="margin:0 0 10px;color:#666;font-size:14px;">Комментарий в дневник не обязателен. «Пропустить» — отметить шаг без текста. «Сохранить» — только если ввели комментарий. «Отмена» — закрыть без изменений.</p>
-                    <label for="step-waived-note-text">Комментарий в дневник (необязательно)</label>
-                    <textarea id="step-waived-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию, до нескольких фраз"></textarea>
-                    <div class="modal-foot-links" role="group" aria-label="Действия">
-                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-waived-cancel">Отмена</button>
-                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                <div class="modal modal-step-diary-note">
+                    <h3>Комментарий в дневник <span class="modal-subtitle-muted">(не обязательно)</span></h3>
+                    <textarea id="step-waived-note-text" class="modal-step-diary-textarea" rows="4" placeholder=""></textarea>
+                    <div class="modal-hints-accordion" id="step-waived-hints">
+                        <button type="button" class="modal-hints-accordion-toggle" aria-expanded="false">
+                            <span>Подсказки</span>
+                            <span class="modal-hints-accordion-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="modal-hints-accordion-panel">
+                            <ul class="modal-hints-accordion-list">
+                                <li><strong>Пропустить</strong> — отметить шаг без комментария</li>
+                                <li><strong>Сохранить</strong> — сохранить комментарий в дневник</li>
+                                <li><strong>Назад</strong> — вернуться к редактированию шагов</li>
+                                <li><strong>Больше не спрашивать</strong> — не предлагать комментарий</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-foot-links modal-foot-links--actions" role="group" aria-label="Действия">
                         <button type="button" class="modal-foot-link" id="step-waived-skip">Пропустить</button>
                         <span class="modal-foot-link-sep" aria-hidden="true">·</span>
                         <button type="button" class="modal-foot-link step-modal-note-save" id="step-waived-save" aria-disabled="true">Сохранить</button>
-                    </div>
-                    <div class="step-diary-prompt-foot">
-                        <a href="#" class="step-diary-prompt-toggle" id="step-waived-prompt-toggle" role="button" aria-label="Переключить запрос комментария в дневник">Больше не спрашивать</a>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-waived-cancel">Назад</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-waived-prompt-toggle" title="Не показывать эту модалку">Больше не спрашивать</button>
                     </div>
                 </div>
             </div>
             <!-- Модалка: комментарий в дневник (только текст, PATCH с одним note) -->
             <div id="modal-step-comment" class="modal-overlay hidden">
-                <div class="modal">
-                    <h3>Комментарий к шагу</h3>
-                    <p style="margin:0 0 10px;color:#666;font-size:14px;">Текст попадёт в дневник. Комментарий необязателен: «Пропустить» — закрыть без записи. «Сохранить» — только при вводе текста.</p>
-                    <label for="step-comment-note-text">Комментарий (необязательно)</label>
-                    <textarea id="step-comment-note-text" rows="3" style="width:100%;box-sizing:border-box;margin-bottom:12px;" placeholder="По желанию"></textarea>
-                    <div class="modal-foot-links" role="group" aria-label="Действия">
-                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-comment-cancel">Отмена</button>
-                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                <div class="modal modal-step-diary-note">
+                    <h3>Комментарий в дневник <span class="modal-subtitle-muted">(не обязательно)</span></h3>
+                    <textarea id="step-comment-note-text" class="modal-step-diary-textarea" rows="4" placeholder=""></textarea>
+                    <div class="modal-hints-accordion" id="step-comment-hints">
+                        <button type="button" class="modal-hints-accordion-toggle" aria-expanded="false">
+                            <span>Подсказки</span>
+                            <span class="modal-hints-accordion-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="modal-hints-accordion-panel">
+                            <ul class="modal-hints-accordion-list">
+                                <li><strong>Пропустить</strong> — отказаться от комментария</li>
+                                <li><strong>Сохранить</strong> — сохранить комментарий</li>
+                                <li><strong>Назад</strong> — вернуться к редактированию шагов</li>
+                                <li><strong>Больше не спрашивать</strong> — не предлагать больше сделать запись</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-foot-links modal-foot-links--actions" role="group" aria-label="Действия">
                         <button type="button" class="modal-foot-link" id="step-comment-skip">Пропустить</button>
                         <span class="modal-foot-link-sep" aria-hidden="true">·</span>
                         <button type="button" class="modal-foot-link step-modal-note-save" id="step-comment-save" aria-disabled="true">Сохранить</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-comment-cancel">Назад</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="step-comment-prompt-toggle" title="Не показывать эту модалку">Больше не спрашивать</button>
                     </div>
                 </div>
             </div>
@@ -2007,17 +2062,7 @@
                     <label for="diary-free-text">Текст</label>
                     <textarea id="diary-free-text" rows="5" style="width:100%;box-sizing:border-box;margin-bottom:10px;" placeholder="Что было важного сегодня…"></textarea>
                     <div id="diary-link-section" class="diary-link-section">
-                        <p class="diary-link-hint">Можешь связать запись с мечтой или шагом — это необязательно. Если ничего не выбрать, запись будет общей.</p>
-                        <div class="diary-link-dd" id="diary-link-dreams-dd">
-                            <button type="button" class="diary-link-dd-toggle" id="diary-link-dreams-toggle" aria-expanded="false">
-                                <span class="diary-link-dd-toggle-label">Мечта</span>
-                                <span class="diary-link-dd-summary" id="diary-link-dreams-summary"></span>
-                                <span class="diary-link-dd-chevron" aria-hidden="true">▼</span>
-                            </button>
-                            <div id="diary-link-dreams-panel" class="diary-link-dd-panel" role="listbox" aria-label="Мечты для привязки">
-                                <div id="diary-link-dreams-list" class="diary-link-pick-list"></div>
-                            </div>
-                        </div>
+                        <p class="diary-link-hint">Можешь связать запись с шагом или мечтой — это необязательно. Если ничего не выбрать, запись будет общей.</p>
                         <div class="diary-link-dd" id="diary-link-steps-dd">
                             <button type="button" class="diary-link-dd-toggle" id="diary-link-steps-toggle" aria-expanded="false">
                                 <span class="diary-link-dd-toggle-label">Шаг</span>
@@ -2028,10 +2073,21 @@
                                 <div id="diary-link-steps-list" class="diary-link-pick-list"></div>
                             </div>
                         </div>
+                        <div class="diary-link-dd" id="diary-link-dreams-dd">
+                            <button type="button" class="diary-link-dd-toggle" id="diary-link-dreams-toggle" aria-expanded="false">
+                                <span class="diary-link-dd-toggle-label">Мечта</span>
+                                <span class="diary-link-dd-summary" id="diary-link-dreams-summary"></span>
+                                <span class="diary-link-dd-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div id="diary-link-dreams-panel" class="diary-link-dd-panel" role="listbox" aria-label="Мечты для привязки">
+                                <div id="diary-link-dreams-list" class="diary-link-pick-list"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-actions">
-                        <button type="button" class="secondary" id="diary-free-cancel">Отмена</button>
-                        <button type="button" id="diary-free-save">Сохранить</button>
+                    <div class="modal-foot-links modal-foot-links--actions" role="group" aria-label="Действия">
+                        <button type="button" class="modal-foot-link modal-foot-link-muted" id="diary-free-cancel">Назад</button>
+                        <span class="modal-foot-link-sep" aria-hidden="true">·</span>
+                        <button type="button" class="modal-foot-link" id="diary-free-save">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -2523,7 +2579,7 @@
                         </div>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">284</span>
+                    <span class="app-version" aria-hidden="true">286</span>
                 </div>
             </footer>
         </div>
@@ -5202,6 +5258,30 @@
                 refreshAfterDreamChange();
             }
         }
+        function getStepObjForModal(dreamId, stepId) {
+            var did = Number(dreamId), sid = Number(stepId);
+            return stepsFlatCache.find(function(x) { return x && Number(x.dream_id) === did && Number(x.id) === sid; }) || null;
+        }
+        function setStepDiaryNotePlaceholder(ta, stepObj) {
+            if (!ta) return;
+            var title = (stepObj && stepObj.title) ? String(stepObj.title).trim() : 'шаг';
+            ta.placeholder = 'Напиши, пожалуйста, причину, почему у тебя не удалось выполнить: «' + title + '»';
+        }
+        function initModalHintsAccordions() {
+            document.querySelectorAll('.modal-hints-accordion-toggle').forEach(function(btn) {
+                if (btn._hintsBound) return;
+                btn._hintsBound = true;
+                btn.addEventListener('click', function() {
+                    var wrap = btn.closest('.modal-hints-accordion');
+                    if (!wrap) return;
+                    var open = !wrap.classList.contains('is-open');
+                    wrap.classList.toggle('is-open', open);
+                    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+            });
+        }
+        var diarySaveInProgress = false;
+        var diaryFreeEditEventId = null;
         function updateStepWaivedSaveButtonState() {
             var ta = document.getElementById('step-waived-note-text');
             var saveBtn = document.getElementById('step-waived-save');
@@ -5225,8 +5305,10 @@
             stepWaivedModal.onSuccess = onSuccess || null;
             var ta = document.getElementById('step-waived-note-text');
             if (ta) ta.value = '';
+            setStepDiaryNotePlaceholder(ta, getStepObjForModal(dreamId, stepId));
             updateStepWaivedSaveButtonState();
             updateStepOptionalDiaryCommentModalToggleUi();
+            initModalHintsAccordions();
             var m = document.getElementById('modal-step-waived');
             if (m) m.classList.remove('hidden');
         }
@@ -5295,6 +5377,33 @@
                     head.appendChild(dateEl);
                     head.appendChild(linksWrap);
                     head.appendChild(timeEl);
+                    if (!isBuddyD) {
+                        var actions = document.createElement('div');
+                        actions.className = 'diary-event-actions';
+                        var editBtn = document.createElement('button');
+                        editBtn.type = 'button';
+                        editBtn.className = 'step-edit';
+                        editBtn.title = 'Редактировать';
+                        editBtn.textContent = '✏️';
+                        editBtn.addEventListener('click', function(ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            openDiaryEditModal(e);
+                        });
+                        var delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 'step-delete';
+                        delBtn.title = 'Удалить';
+                        delBtn.textContent = '🗑️';
+                        delBtn.addEventListener('click', function(ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            deleteDiaryEvent(e.id);
+                        });
+                        actions.appendChild(editBtn);
+                        actions.appendChild(delBtn);
+                        head.appendChild(actions);
+                    }
                     li.appendChild(head);
                     var hr = document.createElement('hr');
                     hr.className = 'diary-event-divider';
@@ -5422,6 +5531,7 @@
             } catch (e) { alert('Ошибка сети'); }
         }
         var stepCommentModal = { dreamId: 0, stepId: 0 };
+        var stepCommentSaveInProgress = false;
         function updateStepCommentSaveState() {
             var ta = document.getElementById('step-comment-note-text');
             var saveBtn = document.getElementById('step-comment-save');
@@ -5435,7 +5545,9 @@
             stepCommentModal = { dreamId: dreamId, stepId: stepId };
             var ta = document.getElementById('step-comment-note-text');
             if (ta) ta.value = '';
+            setStepDiaryNotePlaceholder(ta, getStepObjForModal(dreamId, stepId));
             updateStepCommentSaveState();
+            initModalHintsAccordions();
             var m = document.getElementById('modal-step-comment');
             if (m) m.classList.remove('hidden');
         }
@@ -5575,6 +5687,13 @@
                 return a.label.localeCompare(b.label, 'ru');
             });
             return groups;
+        }
+        function findDiaryStepGroupByStepId(stepId) {
+            var sid = Number(stepId);
+            if (!sid) return null;
+            var s = stepsFlatCache.find(function(x) { return x && Number(x.id) === sid; });
+            if (!s) return null;
+            return { key: stepSeriesCounterKey(s), steps: [s], dreamId: Number(s.dream_id) };
         }
         function isDiaryDreamPicked(dreamId) {
             return !!_diaryPickSelectedDreamIds[Number(dreamId)];
@@ -5740,7 +5859,7 @@
         function updateStepOptionalDiaryCommentModalToggleUi() {
             var on = isStepOptionalDiaryCommentModalEnabled();
             var label = on ? 'Больше не спрашивать' : 'Запрашивать комментирование';
-            ['step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(id) {
+            ['step-waived-prompt-toggle', 'step-move-prompt-toggle', 'step-comment-prompt-toggle'].forEach(function(id) {
                 var btn = document.getElementById(id);
                 if (btn) btn.textContent = label;
             });
@@ -6452,15 +6571,22 @@
         document.getElementById('step-comment-skip') && document.getElementById('step-comment-skip').addEventListener('click', closeStepCommentModal);
         document.getElementById('step-comment-save') && document.getElementById('step-comment-save').addEventListener('click', function(e) {
             e.preventDefault();
+            if (stepCommentSaveInProgress) return;
             if (!stepCommentModal.dreamId) { closeStepCommentModal(); return; }
             var note = (document.getElementById('step-comment-note-text') && document.getElementById('step-comment-note-text').value || '').trim();
             if (!note) { closeStepCommentModal(); return; }
             var did = stepCommentModal.dreamId;
+            var saveBtn = document.getElementById('step-comment-save');
+            stepCommentSaveInProgress = true;
+            if (saveBtn) saveBtn.disabled = true;
             patchStep(stepCommentModal.dreamId, stepCommentModal.stepId, { note: note }).then(function() {
                 closeStepCommentModal();
                 dreamIdToRestoreAfterRefresh = did;
                 refreshAfterDreamChange();
-            }).catch(function() { alert('Не удалось сохранить'); });
+            }).catch(function() { alert('Не удалось сохранить'); }).finally(function() {
+                stepCommentSaveInProgress = false;
+                if (saveBtn) saveBtn.disabled = false;
+            });
         });
         var modalStepComment = document.getElementById('modal-step-comment');
         if (modalStepComment) modalStepComment.addEventListener('click', function(e) { if (e.target === modalStepComment) closeStepCommentModal(); });
@@ -6502,7 +6628,7 @@
         });
         var modalStepMove = document.getElementById('modal-step-move');
         if (modalStepMove) modalStepMove.addEventListener('click', function(e) { if (e.target === modalStepMove) closeStepMoveModal(); });
-        ['step-waived-prompt-toggle', 'step-move-prompt-toggle'].forEach(function(toggleId) {
+        ['step-waived-prompt-toggle', 'step-move-prompt-toggle', 'step-comment-prompt-toggle'].forEach(function(toggleId) {
             var stepOptPromptToggle = document.getElementById(toggleId);
             if (!stepOptPromptToggle) return;
             stepOptPromptToggle.addEventListener('click', function(e) {
@@ -9688,9 +9814,12 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         }
         function openDiaryFreeEntryModal() {
             if (!currentUser) return;
+            diaryFreeEditEventId = null;
             var open = function() {
                 var m = document.getElementById('modal-diary-free');
                 var ta = document.getElementById('diary-free-text');
+                var titleEl = m && m.querySelector('h3');
+                if (titleEl) titleEl.textContent = 'Запись в дневник';
                 if (ta) ta.value = '';
                 resetDiaryLinkPickerState();
                 closeDiaryLinkDropdowns();
@@ -9709,11 +9838,53 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         function closeDiaryFreeEntryModal() {
             var m = document.getElementById('modal-diary-free');
             if (m) m.classList.add('hidden');
+            diaryFreeEditEventId = null;
             closeDiaryLinkDropdowns();
             closeDiaryLinksPopover();
         }
+        function openDiaryEditModal(eventRow) {
+            if (!currentUser || !eventRow) return;
+            diaryFreeEditEventId = eventRow.id;
+            var m = document.getElementById('modal-diary-free');
+            var ta = document.getElementById('diary-free-text');
+            var titleEl = m && m.querySelector('h3');
+            if (titleEl) titleEl.textContent = 'Редактировать запись';
+            if (ta) ta.value = eventRow.message || '';
+            resetDiaryLinkPickerState();
+            (eventRow.linked_dream_ids || []).forEach(function(id) {
+                _diaryPickSelectedDreamIds[id] = true;
+            });
+            (eventRow.linked_step_ids || []).forEach(function(id) {
+                var g = findDiaryStepGroupByStepId(id);
+                if (g) _diaryPickSelectedStepKeys[g.key] = true;
+            });
+            closeDiaryLinkDropdowns();
+            populateDiaryLinkDreamsList();
+            populateDiaryLinkStepsList();
+            updateDiaryLinkDropdownSummaries();
+            if (m) m.classList.remove('hidden');
+            if (ta) setTimeout(function() { try { ta.focus(); } catch (e) {} }, 50);
+        }
+        async function deleteDiaryEvent(eventId) {
+            if (!currentUser || !eventId) return;
+            if (!confirm('Удалить эту запись из дневника?')) return;
+            try {
+                var res = await fetch(API_BASE_URL + '/steps/events/' + eventId + '?user_id=' + encodeURIComponent(currentUser.id), { method: 'DELETE' });
+                if (!res.ok) {
+                    var t = await res.text();
+                    var msg = 'Не удалось удалить';
+                    try { var j = JSON.parse(t); if (j.detail) msg = j.detail; } catch (e) {}
+                    alert(msg);
+                    return;
+                }
+                loadStepDiary();
+            } catch (e) {
+                alert('Ошибка сети');
+            }
+        }
         async function submitDiaryFreeEntry() {
             if (!currentUser) return;
+            if (diarySaveInProgress) return;
             var ta = document.getElementById('diary-free-text');
             var saveBtn = document.getElementById('diary-free-save');
             var text = ta ? (ta.value || '').trim() : '';
@@ -9722,16 +9893,39 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var links = buildDiaryEntryLinksPayload();
             payload.linked_dream_ids = links.linked_dream_ids;
             payload.linked_step_ids = links.linked_step_ids;
+            diarySaveInProgress = true;
             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Сохранение…'; }
             try {
-                var res = await fetch(API_BASE_URL + '/diary/free-entry?user_id=' + encodeURIComponent(currentUser.id), {
-                    method: 'POST',
+                var url, method;
+                if (diaryFreeEditEventId) {
+                    url = API_BASE_URL + '/steps/events/' + diaryFreeEditEventId + '?user_id=' + encodeURIComponent(currentUser.id);
+                    method = 'PATCH';
+                } else {
+                    url = API_BASE_URL + '/diary/free-entry?user_id=' + encodeURIComponent(currentUser.id);
+                    method = 'POST';
+                }
+                var res = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) {
-                    var e = await res.json().catch(function() { return {}; });
-                    alert(e.detail || 'Не удалось сохранить запись');
+                    var t = await res.text();
+                    var msg = 'Не удалось сохранить запись';
+                    try {
+                        var err = JSON.parse(t);
+                        if (err && err.detail) msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+                    } catch (parseErr) {
+                        if (t && t.trim()) msg = t.trim().slice(0, 200);
+                    }
+                    alert(msg);
+                    return;
+                }
+                var data = null;
+                try { data = await res.json(); } catch (jsonErr) { data = null; }
+                if (data && data.already_exists && !diaryFreeEditEventId) {
+                    closeDiaryFreeEntryModal();
+                    loadStepDiary();
                     return;
                 }
                 closeDiaryFreeEntryModal();
@@ -9739,6 +9933,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             } catch (err) {
                 alert('Ошибка сети');
             } finally {
+                diarySaveInProgress = false;
                 if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить'; }
             }
         }
@@ -11228,6 +11423,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
         initAddStepModal();
         initAddStepFinanceModal();
         initIslandDateCalendar();
+        initModalHintsAccordions();
 
         function logout() {
             currentUser = null;
