@@ -3789,14 +3789,14 @@ def _ensure_diary_journal_bucket(cur, user_id: int) -> Tuple[int, int]:
     else:
         try:
             cur.execute(
-                """INSERT INTO dreams (user_id, dream, status_id, is_public, rule_code)
-                   VALUES (%s, %s, 2, false, %s) RETURNING id""",
+                """INSERT INTO dreams (user_id, dream, status_id, date, is_public, rule_code)
+                   VALUES (%s, %s, 2, CURRENT_DATE, false, %s) RETURNING id""",
                 (user_id, "Дневник", DIARY_JOURNAL_RULE_CODE),
             )
         except psycopg2.ProgrammingError:
             cur.connection.rollback()
             cur.execute(
-                "INSERT INTO dreams (user_id, dream, status, is_public) VALUES (%s, %s, %s, false) RETURNING id",
+                "INSERT INTO dreams (user_id, dream, status, date, is_public) VALUES (%s, %s, %s, CURRENT_DATE, false) RETURNING id",
                 (user_id, "Дневник", "in_progress"),
             )
             dream_row = cur.fetchone()
