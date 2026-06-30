@@ -249,6 +249,13 @@
         .step-row.add-step-form button { padding: 6px 12px; width: auto; flex: 0 0 auto; }
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.hidden { display: none; }
+        .step-batch-overlay { position: fixed; inset: 0; z-index: 250; background: rgba(0,0,0,0.62); display: flex; align-items: center; justify-content: center; }
+        .step-batch-overlay.hidden { display: none; }
+        .step-batch-panel { background: #fff; border-radius: 12px; padding: 28px 32px; max-width: 420px; width: calc(100% - 32px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); text-align: center; }
+        .step-batch-panel h3 { margin: 0 0 12px; font-size: 1.15rem; }
+        .step-batch-progress-track { height: 10px; background: #e8e8e8; border-radius: 5px; overflow: hidden; margin: 16px 0 10px; }
+        .step-batch-progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, #2e7d32, #43a047); border-radius: 5px; transition: width 0.35s ease; }
+        .step-batch-hint { margin: 0; font-size: 0.85rem; color: #666; }
         .modal { background: var(--island-surface); padding: 24px; border-radius: 12px; min-width: 320px; max-width: 90%; box-shadow: 0 8px 32px rgba(46, 83, 60, 0.18); border: 1px solid rgba(165, 214, 167, 0.45); }
         /* Библиотека — книга: один каркас по «самому широкому» состоянию, без скачка при Связать / смене статуса (см. UI-standards §2). */
         #modal-library-book > .modal {
@@ -2396,6 +2403,14 @@
                     </div>
                 </div>
             </div>
+            <div id="step-batch-overlay" class="step-batch-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="step-batch-overlay-title" aria-live="polite">
+                <div class="step-batch-panel">
+                    <h3 id="step-batch-overlay-title">Создаём шаги…</h3>
+                    <p id="step-batch-overlay-text" style="margin:0;color:#333;line-height:1.45;">Подготовка…</p>
+                    <div class="step-batch-progress-track" aria-hidden="true"><div id="step-batch-progress-bar" class="step-batch-progress-bar"></div></div>
+                    <p class="step-batch-hint">Не закрывайте страницу и не нажимайте «Создать» повторно</p>
+                </div>
+            </div>
             <!-- Модалка: добавить шаги по финцели (анкета) -->
             <div id="toast-container" class="hidden" aria-live="polite"></div>
             <!-- Модалка: куда переместить мечту после «Принять» (завершённые или личные для повторного исполнения) -->
@@ -3447,6 +3462,8 @@
         var restoreSectionAfterStepSave = null;
         /** { dreamId: number, targets: Array<{id:number}> } — подтверждение «Завершить все» для серии. */
         var bulkEndConfirmState = null;
+        var stepBatchInProgress = false;
+        var stepBatchSeriesId = null;
         /** Снимок текущего видимого раздела кабинета (мечты / шаги / бадди / витрина) — вызывать перед рефрешем данных; см. `refreshAfterDreamChange`. */
         function captureCabinetReturnSection() {
             var diaryBlk = document.getElementById('diary-block');
@@ -9792,6 +9809,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             hintEl.textContent = 'При равных долях: ≈ ' + (perMonth >= 1000 ? (perMonth / 1000) + ' т.р.' : perMonth + ' ₽') + ' в месяц';
         }
         function closeAddStepModal() {
+            if (stepBatchInProgress) return;
             islandCalClose();
             var overlay = document.getElementById('modal-add-step');
             if (overlay) {
@@ -9801,6 +9819,29 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             var bulkOv = document.getElementById('modal-add-step-bulk-end-confirm');
             if (bulkOv) bulkOv.classList.add('hidden');
             bulkEndConfirmState = null;
+            stepBatchSeriesId = null;
+        }
+        function showStepBatchOverlay(total) {
+            stepBatchInProgress = true;
+            var ov = document.getElementById('step-batch-overlay');
+            var textEl = document.getElementById('step-batch-overlay-text');
+            var bar = document.getElementById('step-batch-progress-bar');
+            if (textEl) textEl.textContent = 'Отправляем ' + total + ' ' + stepsCountWordRu(total) + ' на сервер…';
+            if (bar) bar.style.width = '12%';
+            if (ov) ov.classList.remove('hidden');
+        }
+        function updateStepBatchProgress(done, total) {
+            var textEl = document.getElementById('step-batch-overlay-text');
+            var bar = document.getElementById('step-batch-progress-bar');
+            if (textEl) textEl.textContent = 'Готово ' + done + ' из ' + total;
+            if (bar && total > 0) bar.style.width = Math.min(100, Math.round((done / total) * 100)) + '%';
+        }
+        function hideStepBatchOverlay() {
+            stepBatchInProgress = false;
+            var ov = document.getElementById('step-batch-overlay');
+            var bar = document.getElementById('step-batch-progress-bar');
+            if (bar) bar.style.width = '0';
+            if (ov) ov.classList.add('hidden');
         }
         function openAddStepUiAlert(message) {
             var overlay = document.getElementById('modal-add-step-ui-alert');
@@ -10392,6 +10433,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             }
             overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeAddStepModal(); });
             if (createBtn) createBtn.addEventListener('click', function() {
+                if (stepBatchInProgress) return;
                 var dreamId = overlay.dataset.dreamId;
                 var mode = overlay.dataset.mode || 'create';
                 if (mode === 'create') {
@@ -10617,33 +10659,58 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (repTimeToRaw && !repTimeTo) { alert('Неверный формат времени окончания. Используй HH:MM (00:00–23:59)'); return; }
                 if (repTimeFrom && repTimeTo && repTimeFrom > repTimeTo) { alert('Время начала должно быть не позже времени окончания'); return; }
                 var total = dates.length;
-                var seriesIdCreate = (window.crypto && typeof window.crypto.randomUUID === 'function') ? window.crypto.randomUUID() : ('series-' + Date.now() + '-' + Math.floor(Math.random() * 100000));
+                if (stepBatchInProgress) return;
+                if (!stepBatchSeriesId) {
+                    stepBatchSeriesId = (window.crypto && typeof window.crypto.randomUUID === 'function') ? window.crypto.randomUUID() : ('series-' + Date.now() + '-' + Math.floor(Math.random() * 100000));
+                }
                 createBtn.disabled = true;
-                createBtn.dataset.restoreText = 'Создать';
-                createBtn.textContent = 'Создаём… 0 / ' + total;
-                var done = 0;
-                function onOneDone() { done++; createBtn.textContent = 'Создаём… ' + done + ' / ' + total; }
-                var chain = Promise.resolve();
-                dates.forEach(function(dateStr, idx) {
-                    chain = chain.then(function() {
-                        return addStepPromise(dreamId, title, dateStr, repTimeFrom, repTimeTo, seriesIdCreate, idx + 1, total).then(function(data) {
-                            onOneDone();
-                            return data;
-                        });
-                    });
-                });
-                chain.then(function() {
+                createBtn.textContent = 'Создаём…';
+                showStepBatchOverlay(total);
+                var batchPayload = {
+                    title: title,
+                    series_id: stepBatchSeriesId,
+                    series_total: total,
+                    steps: dates.map(function(dateStr, idx) { return { deadline: dateStr, series_index: idx + 1 }; })
+                };
+                if (repTimeFrom) batchPayload.start_time = repTimeFrom;
+                if (repTimeTo) batchPayload.end_time = repTimeTo;
+                addStepBatchPromise(dreamId, batchPayload).then(function(data) {
+                    updateStepBatchProgress(total, total);
+                    stepBatchSeriesId = null;
+                    hideStepBatchOverlay();
                     closeAddStepModal();
                     createBtn.disabled = false;
                     createBtn.textContent = 'Создать';
                     dreamIdToRestoreAfterRefresh = parseInt(dreamId, 10) || dreamId;
                     refreshAfterDreamChange();
                 }).catch(function(err) {
+                    hideStepBatchOverlay();
                     createBtn.disabled = false;
-                    createBtn.textContent = createBtn.dataset.restoreText || 'Создать';
-                    alert(err && err.message ? err.message : 'Ошибка при создании шагов');
+                    createBtn.textContent = 'Создать';
+                    alert(err && err.message ? err.message : 'Ошибка при создании серии шагов');
                 });
             });
+        }
+        function addStepBatchPromise(dreamId, payload) {
+            return fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps/batch?' + dreamApiUserParams(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(function(res) {
+                if (!res.ok) {
+                    return res.text().then(function(t) {
+                        var msg = 'Ошибка сервера (' + res.status + ')';
+                        try {
+                            var e = JSON.parse(t);
+                            if (e && e.detail) msg = typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail);
+                        } catch (parseErr) {
+                            if (t && t.trim()) msg = t.trim().slice(0, 200);
+                        }
+                        throw new Error(msg);
+                    });
+                }
+                return res.json();
+            }).catch(function(e) { if (e instanceof Error) throw e; throw new Error('Ошибка сети'); });
         }
         function addStepPromise(dreamId, title, deadline, startTime, endTime, seriesId, seriesIndex, seriesTotal) {
             var body = { title: title };
@@ -10997,7 +11064,11 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (mStepSeriesConfirm && !mStepSeriesConfirm.classList.contains('hidden')) { closeStepSeriesConfirmModal(); ev.preventDefault(); return; }
             var mStepSeriesDel = document.getElementById('modal-step-series-delete');
             if (mStepSeriesDel && !mStepSeriesDel.classList.contains('hidden')) { closeStepSeriesDeleteModal(); ev.preventDefault(); return; }
-            if (mAddStep && !mAddStep.classList.contains('hidden')) { closeAddStepModal(); ev.preventDefault(); }
+            if (mAddStep && !mAddStep.classList.contains('hidden')) {
+                if (stepBatchInProgress) { ev.preventDefault(); return; }
+                closeAddStepModal();
+                ev.preventDefault();
+            }
         });
         initAddStepModal();
         initAddStepFinanceModal();

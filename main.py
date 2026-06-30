@@ -11,7 +11,7 @@ from threading import Lock
 import psycopg2
 from psycopg2 import OperationalError
 from psycopg2 import pool
-from psycopg2.extras import RealDictCursor, Json
+from psycopg2.extras import RealDictCursor, Json, execute_values
 from fastapi import FastAPI, HTTPException, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
@@ -317,6 +317,19 @@ class StepCreate(BaseModel):
     end_time: Optional[str] = None    # HH:MM
     series_id: Optional[str] = None
     series_index: Optional[int] = None
+    series_total: Optional[int] = None
+
+class StepBatchItem(BaseModel):
+    deadline: str  # YYYY-MM-DD
+    series_index: int
+
+class StepBatchCreate(BaseModel):
+    """Пакетное создание серии шагов — один HTTP-запрос, одна транзакция."""
+    title: str
+    series_id: str
+    steps: List[StepBatchItem]
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
     series_total: Optional[int] = None
 
 class FinanceStepsCreate(BaseModel):
@@ -3253,10 +3266,130 @@ def create_step(dream_id: int, body: StepCreate, user_id: int, viewer_id: Option
             }
     except HTTPException:
         raise
+    except psycopg2.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        if getattr(e, "pgcode", None) == "23505":
+            raise HTTPException(status_code=409, detail="Такой шаг уже существует (дата и название совпадают)")
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         if conn:
             conn.rollback()
         app_logger.exception("create_step failed dream_id=%s user_id=%s", dream_id, user_id)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _return_conn(conn)
+
+
+_STEP_BATCH_MAX = 5000
+
+
+def _validate_step_batch_body(body: StepBatchCreate) -> Tuple[str, str, int, List[Tuple[str, int]]]:
+    title = (body.title or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title обязателен")
+    series_id = (body.series_id or "").strip()
+    if not series_id:
+        raise HTTPException(status_code=400, detail="series_id обязателен")
+    if not body.steps:
+        raise HTTPException(status_code=400, detail="steps не может быть пустым")
+    if len(body.steps) > _STEP_BATCH_MAX:
+        raise HTTPException(status_code=400, detail=f"Не более {_STEP_BATCH_MAX} шагов за один запрос")
+    series_total = body.series_total if body.series_total and body.series_total > 0 else len(body.steps)
+    if series_total != len(body.steps):
+        raise HTTPException(status_code=400, detail="series_total должно совпадать с числом элементов steps")
+    seen_idx = set()
+    normalized: List[Tuple[str, int]] = []
+    for item in body.steps:
+        if item.series_index < 1 or item.series_index > series_total:
+            raise HTTPException(status_code=400, detail="series_index вне диапазона 1..series_total")
+        if item.series_index in seen_idx:
+            raise HTTPException(status_code=400, detail="series_index должен быть уникальным в серии")
+        seen_idx.add(item.series_index)
+        try:
+            datetime.strptime(item.deadline, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"deadline в формате YYYY-MM-DD: {item.deadline!r}")
+        normalized.append((item.deadline, item.series_index))
+    normalized.sort(key=lambda x: x[1])
+    return title, series_id, series_total, normalized
+
+
+@app.post("/dreams/{dream_id}/steps/batch")
+def create_steps_batch(dream_id: int, body: StepBatchCreate, user_id: int, viewer_id: Optional[int] = None):
+    """Создать серию шагов одним запросом (одна транзакция). Идемпотентно по series_id."""
+    title, series_id, series_total, steps_sorted = _validate_step_batch_body(body)
+    start_time = body.start_time if body.start_time else None
+    end_time = body.end_time if body.end_time else None
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _resolve_editor_and_check_dream(cur, dream_id, user_id, viewer_id)
+            cur.execute(
+                """SELECT COUNT(*) AS n FROM dreams_steps
+                   WHERE dream_id = %s AND series_id = %s AND COALESCE(deleted, false) = false""",
+                (dream_id, series_id),
+            )
+            existing = int(cur.fetchone()["n"])
+            if existing >= series_total:
+                return {
+                    "created": 0,
+                    "series_id": series_id,
+                    "series_total": series_total,
+                    "already_exists": True,
+                }
+            if existing > 0:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Серия уже частично создана ({existing} из {series_total}). Обновите страницу.",
+                )
+            cur.execute(
+                "SELECT COALESCE(MAX(sort_order), -1) AS base_order FROM dreams_steps WHERE dream_id = %s",
+                (dream_id,),
+            )
+            base_order = int(cur.fetchone()["base_order"])
+            rows = [
+                (
+                    dream_id,
+                    title,
+                    base_order + 1 + i,
+                    deadline,
+                    start_time,
+                    end_time,
+                    series_id,
+                    series_index,
+                    series_total,
+                )
+                for i, (deadline, series_index) in enumerate(steps_sorted)
+            ]
+            execute_values(
+                cur,
+                """INSERT INTO dreams_steps
+                   (dream_id, title, completed, sort_order, deadline, start_time, end_time, series_id, series_index, series_total)
+                   VALUES %s""",
+                rows,
+                template="(%s, %s, false, %s, %s, %s, %s, %s, %s, %s)",
+            )
+            conn.commit()
+            return {
+                "created": len(rows),
+                "series_id": series_id,
+                "series_total": series_total,
+                "already_exists": False,
+            }
+    except HTTPException:
+        raise
+    except psycopg2.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        if getattr(e, "pgcode", None) == "23505":
+            raise HTTPException(status_code=409, detail="Один или несколько шагов уже существуют (дубликат даты/названия или слота серии)")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        app_logger.exception("create_steps_batch failed dream_id=%s user_id=%s series_id=%s", dream_id, user_id, series_id)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         _return_conn(conn)
