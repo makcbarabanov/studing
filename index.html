@@ -2086,6 +2086,16 @@
                     </div>
                 </div>
             </div>
+            <div id="modal-step-delete-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="step-delete-confirm-title">
+                <div class="modal">
+                    <h3 id="step-delete-confirm-title">Удалить шаги?</h3>
+                    <p id="step-delete-confirm-text" class="modal-step-series-delete-lead"></p>
+                    <div class="modal-actions">
+                        <button type="button" class="secondary" id="step-delete-confirm-cancel">Отмена</button>
+                        <button type="button" class="btn-danger" id="step-delete-confirm-ok">Удалить</button>
+                    </div>
+                </div>
+            </div>
             <!-- Модалка: убрать шаги серии из расписания (объём по дате дедлайна, UTC) -->
             <div id="modal-step-series-delete" class="modal-overlay hidden">
                 <div class="modal modal-step-series-delete">
@@ -5732,6 +5742,70 @@
             closeStepSeriesConfirmModal();
             if (typeof fn === 'function') fn();
         }
+        var stepDeleteConfirmModal = { onConfirm: null };
+        function openStepDeleteConfirmModal(message, onConfirm) {
+            var txt = document.getElementById('step-delete-confirm-text');
+            if (txt) txt.textContent = message || 'Вы уверены, что хотите удалить шаги?';
+            stepDeleteConfirmModal.onConfirm = typeof onConfirm === 'function' ? onConfirm : null;
+            var m = document.getElementById('modal-step-delete-confirm');
+            if (m) m.classList.remove('hidden');
+        }
+        function closeStepDeleteConfirmModal() {
+            var m = document.getElementById('modal-step-delete-confirm');
+            if (m) m.classList.add('hidden');
+            stepDeleteConfirmModal.onConfirm = null;
+        }
+        function confirmStepDeleteConfirmModal() {
+            var fn = stepDeleteConfirmModal.onConfirm;
+            closeStepDeleteConfirmModal();
+            if (typeof fn === 'function') fn();
+        }
+        function closeStepRowMobileMenu(el) {
+            if (!el) return;
+            var inner = el.closest ? el.closest('.step-unified-inner') : null;
+            if (!inner) return;
+            inner.classList.remove('step-mobile-menu-open');
+            var toggle = inner.querySelector('.step-mobile-menu-toggle');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+        function markStepsDeletedInCache(targets) {
+            (targets || []).forEach(function(m) {
+                if (!m) return;
+                var did = m.dream_id;
+                var s = stepsFlatCache.find(function(x) { return x && x.id === m.id && (did == null || x.dream_id === did); });
+                if (s) s.deleted = true;
+            });
+        }
+        function patchStepsDeletedBatch(targets, dreamId) {
+            if (!targets || !targets.length) return Promise.resolve();
+            return Promise.all(targets.map(function(st) {
+                var did = st.dream_id != null ? st.dream_id : dreamId;
+                return patchStep(did, st.id, { deleted: true }).then(function() { st.deleted = true; });
+            })).then(function() { markStepsDeletedInCache(targets); });
+        }
+        function requestDeleteSingleStep(dreamId, stepId, opts) {
+            opts = opts || {};
+            openStepDeleteConfirmModal('Вы уверены, что хотите удалить 1 шаг?', function() {
+                if (opts.useAccordionDelete) deleteStepFromAccordion(dreamId, stepId);
+                else setStepDeleted(dreamId, stepId, true);
+            });
+        }
+        function requestDeleteSeriesFromStep(dreamId, stepObj, opts) {
+            opts = opts || {};
+            var targets = getSeriesStepsFromCurrentOnwards(stepObj);
+            if (!targets.length) return;
+            var n = targets.length;
+            var msg = n === 1
+                ? 'Вы уверены, что хотите удалить 1 шаг?'
+                : 'Вы уверены, что хотите удалить ' + stepsCountWordRu(n) + ' (текущий и все последующие)?';
+            openStepDeleteConfirmModal(msg, function() {
+                patchStepsDeletedBatch(targets, dreamId).then(function() {
+                    dreamIdToRestoreAfterRefresh = dreamId;
+                    refreshAfterDreamChange();
+                    if (typeof opts.onRefresh === 'function') opts.onRefresh();
+                }).catch(function() { alert('Ошибка при удалении шагов'); });
+            });
+        }
         var stepSeriesDeleteModal = { seriesObj: null, dreamId: 0, onRefresh: null };
         function utcTodayIsoDate() {
             var d = new Date();
@@ -6405,12 +6479,16 @@
         });
         document.getElementById('step-series-confirm-cancel') && document.getElementById('step-series-confirm-cancel').addEventListener('click', closeStepSeriesConfirmModal);
         document.getElementById('step-series-confirm-ok') && document.getElementById('step-series-confirm-ok').addEventListener('click', confirmStepSeriesConfirmModal);
+        document.getElementById('step-delete-confirm-cancel') && document.getElementById('step-delete-confirm-cancel').addEventListener('click', closeStepDeleteConfirmModal);
+        document.getElementById('step-delete-confirm-ok') && document.getElementById('step-delete-confirm-ok').addEventListener('click', confirmStepDeleteConfirmModal);
         document.getElementById('step-series-delete-cancel') && document.getElementById('step-series-delete-cancel').addEventListener('click', closeStepSeriesDeleteModal);
         document.getElementById('step-series-delete-all') && document.getElementById('step-series-delete-all').addEventListener('click', function() { runStepSeriesDeleteScope('all'); });
         document.getElementById('step-series-delete-past') && document.getElementById('step-series-delete-past').addEventListener('click', function() { runStepSeriesDeleteScope('past'); });
         document.getElementById('step-series-delete-future') && document.getElementById('step-series-delete-future').addEventListener('click', function() { runStepSeriesDeleteScope('future'); });
         var modalStepSeriesConfirm = document.getElementById('modal-step-series-confirm');
         if (modalStepSeriesConfirm) modalStepSeriesConfirm.addEventListener('click', function(e) { if (e.target === modalStepSeriesConfirm) closeStepSeriesConfirmModal(); });
+        var modalStepDeleteConfirm = document.getElementById('modal-step-delete-confirm');
+        if (modalStepDeleteConfirm) modalStepDeleteConfirm.addEventListener('click', function(e) { if (e.target === modalStepDeleteConfirm) closeStepDeleteConfirmModal(); });
         var modalStepSeriesDelete = document.getElementById('modal-step-series-delete');
         if (modalStepSeriesDelete) modalStepSeriesDelete.addEventListener('click', function(e) { if (e.target === modalStepSeriesDelete) closeStepSeriesDeleteModal(); });
         var showcaseBackLink = document.getElementById('showcase-back-link');
@@ -8200,21 +8278,25 @@
                         }
                     }
                     if (!omitRight && !fin) {
+                        var seriesDeleteAhead = (!compactSeries) ? getSeriesStepsFromCurrentOnwards(s).length : 0;
                         if (!compactSeries) right += '<button type="button" class="step-move-btn" title="Перенос даты">⇢</button>';
                         right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
-                        right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
+                        right += '<button type="button" class="step-delete" title="Удалить (1)">🗑️</button>';
                         if (!compactSeries) mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
                         else mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move" disabled title="' + escapeAttr('Для серии перенос даты недоступен') + '"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
-                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить (1)</span></button>');
+                        if (seriesDeleteAhead > 1) {
+                            mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete-series" data-action="delete-series"><span class="step-mobile-action-icon">🗑️</span><span>Удалить серию</span></button>');
+                        }
                     } else if (!omitRight && fin) {
                         right += '<button type="button" class="step-edit" title="Редактировать">✏️</button>';
-                        right += '<button type="button" class="step-delete" title="Удалить">🗑️</button>';
+                        right += '<button type="button" class="step-delete" title="Удалить (1)">🗑️</button>';
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-waived" data-action="waived" disabled title="' + escapeAttr('Недоступно для финансового шага') + '"><span class="step-mobile-action-icon">−</span><span>Не выполнил</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-comment" data-action="comment" disabled title="' + escapeAttr('Недоступно для финансового шага') + '"><span class="step-mobile-action-icon">💬</span><span>Прокомментировать</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-move" data-action="move" disabled title="' + escapeAttr('Недоступно для финансового шага') + '"><span class="step-mobile-action-icon">⇢</span><span>Перенести</span></button>');
                         mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-edit" data-action="edit"><span class="step-mobile-action-icon">✏️</span><span>Редактировать</span></button>');
-                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить</span></button>');
+                        mobileItems.push('<button type="button" class="step-mobile-action step-mobile-action-delete" data-action="delete"><span class="step-mobile-action-icon">🗑️</span><span>Удалить (1)</span></button>');
                     }
                 }
             }
@@ -8345,8 +8427,14 @@
             bindStepAction('.step-delete, .step-mobile-action-delete', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                if (useAccordionDelete) deleteStepFromAccordion(dreamId, s.id);
-                else setStepDeleted(dreamId, s.id, true);
+                closeStepRowMobileMenu(el);
+                requestDeleteSingleStep(dreamId, s.id, { useAccordionDelete: useAccordionDelete });
+            });
+            bindStepAction('.step-mobile-action-delete-series', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeStepRowMobileMenu(el);
+                requestDeleteSeriesFromStep(dreamId, s, { onRefresh: onRefresh });
             });
         }
         function normalizeStepForUi(s) {
@@ -9339,6 +9427,32 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
                 if (!d) return false;
                 if (cutoff && d < cutoff) return false;
                 return true;
+            });
+        }
+        /** Текущий шаг и все последующие в серии (по дате дедлайна или series_index), без удалённых. */
+        function getSeriesStepsFromCurrentOnwards(stepObj) {
+            if (!stepObj || stepObj.dream_id == null) return [];
+            var pool = getStepSeriesSiblingPool(stepObj).filter(function(s) { return s && !s.deleted; });
+            if (!pool.length) return [];
+            if (pool.length === 1) return pool;
+            var cutoff = (stepObj.deadline || '').toString().slice(0, 10);
+            var targets;
+            if (cutoff) {
+                targets = pool.filter(function(s) {
+                    var d = (s.deadline || '').toString().slice(0, 10);
+                    return d && d >= cutoff;
+                });
+            } else if (stepObj.series_id && stepObj.series_index) {
+                var idx0 = Number(stepObj.series_index) || 0;
+                targets = pool.filter(function(s) { return Number(s.series_index) >= idx0; });
+            } else {
+                targets = [stepObj];
+            }
+            return targets.slice().sort(function(a, b) {
+                var da = (a.deadline || '').toString().slice(0, 10);
+                var db = (b.deadline || '').toString().slice(0, 10);
+                if (da !== db) return da.localeCompare(db);
+                return (Number(a.series_index) || 0) - (Number(b.series_index) || 0);
             });
         }
         /** Участники серии для «Начало»/«Конец» и дней недели в модалке: все неудалённые (включая выполненные), без среза по дате открытого шага. */
@@ -11062,6 +11176,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (mStepMove && !mStepMove.classList.contains('hidden')) { closeStepMoveModal(); ev.preventDefault(); return; }
             var mStepSeriesConfirm = document.getElementById('modal-step-series-confirm');
             if (mStepSeriesConfirm && !mStepSeriesConfirm.classList.contains('hidden')) { closeStepSeriesConfirmModal(); ev.preventDefault(); return; }
+            var mStepDeleteConfirm = document.getElementById('modal-step-delete-confirm');
+            if (mStepDeleteConfirm && !mStepDeleteConfirm.classList.contains('hidden')) { closeStepDeleteConfirmModal(); ev.preventDefault(); return; }
             var mStepSeriesDel = document.getElementById('modal-step-series-delete');
             if (mStepSeriesDel && !mStepSeriesDel.classList.contains('hidden')) { closeStepSeriesDeleteModal(); ev.preventDefault(); return; }
             if (mAddStep && !mAddStep.classList.contains('hidden')) {
