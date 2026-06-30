@@ -22,61 +22,67 @@ def buddy_alert_tz() -> ZoneInfo:
 
 
 def ensure_buddy_alerts_schema(cur) -> None:
-    """Idempotent schema bootstrap (sandbox without manual migration)."""
-    cur.execute("""
-        ALTER TABLE user_buddy_links
-            ADD COLUMN IF NOT EXISTS alert_steps_enabled BOOLEAN NOT NULL DEFAULT FALSE
-    """)
-    cur.execute("""
-        ALTER TABLE user_buddy_links
-            ADD COLUMN IF NOT EXISTS alert_reports_enabled BOOLEAN NOT NULL DEFAULT FALSE
-    """)
-    cur.execute("""
-        ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS buddy_alert_daily_at TIME NOT NULL DEFAULT '23:00:00'
-    """)
-    cur.execute("""
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NULL
-    """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS buddy_step_daily_reports (
-            id BIGSERIAL PRIMARY KEY,
-            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            report_date DATE NOT NULL,
-            sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            send_method VARCHAR(16) NOT NULL CHECK (send_method IN ('copy', 'share')),
-            UNIQUE (user_id, report_date)
-        )
-    """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS buddy_alert_notifications (
-            id BIGSERIAL PRIMARY KEY,
-            recipient_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            alert_type VARCHAR(32) NOT NULL
-                CHECK (alert_type IN ('steps_success_100', 'steps_missed', 'report_not_sent')),
-            report_date DATE NOT NULL,
-            payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            read_at TIMESTAMPTZ NULL,
-            UNIQUE (recipient_id, subject_id, alert_type, report_date)
-        )
-    """)
-    cur.execute("""
-        CREATE INDEX IF NOT EXISTS idx_buddy_alert_notif_recipient_created
-            ON buddy_alert_notifications (recipient_id, created_at DESC)
-    """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS buddy_daily_digest_runs (
-            id BIGSERIAL PRIMARY KEY,
-            subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            report_date DATE NOT NULL,
-            digest_kind VARCHAR(32) NOT NULL
-                CHECK (digest_kind IN ('steps_missed', 'report_not_sent')),
-            ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (subject_id, report_date, digest_kind)
-        )
-    """)
+    """Idempotent schema bootstrap (sandbox without manual migration). Commits DDL on success."""
+    conn = cur.connection
+    try:
+        cur.execute("""
+            ALTER TABLE user_buddy_links
+                ADD COLUMN IF NOT EXISTS alert_steps_enabled BOOLEAN NOT NULL DEFAULT FALSE
+        """)
+        cur.execute("""
+            ALTER TABLE user_buddy_links
+                ADD COLUMN IF NOT EXISTS alert_reports_enabled BOOLEAN NOT NULL DEFAULT FALSE
+        """)
+        cur.execute("""
+            ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS buddy_alert_daily_at TIME NOT NULL DEFAULT '23:00:00'
+        """)
+        cur.execute("""
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NULL
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS buddy_step_daily_reports (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                report_date DATE NOT NULL,
+                sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                send_method VARCHAR(16) NOT NULL CHECK (send_method IN ('copy', 'share')),
+                UNIQUE (user_id, report_date)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS buddy_alert_notifications (
+                id BIGSERIAL PRIMARY KEY,
+                recipient_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                alert_type VARCHAR(32) NOT NULL
+                    CHECK (alert_type IN ('steps_success_100', 'steps_missed', 'report_not_sent')),
+                report_date DATE NOT NULL,
+                payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                read_at TIMESTAMPTZ NULL,
+                UNIQUE (recipient_id, subject_id, alert_type, report_date)
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_buddy_alert_notif_recipient_created
+                ON buddy_alert_notifications (recipient_id, created_at DESC)
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS buddy_daily_digest_runs (
+                id BIGSERIAL PRIMARY KEY,
+                subject_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                report_date DATE NOT NULL,
+                digest_kind VARCHAR(32) NOT NULL
+                    CHECK (digest_kind IN ('steps_missed', 'report_not_sent')),
+                ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (subject_id, report_date, digest_kind)
+            )
+        """)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def _user_display_name(row: Optional[dict]) -> str:

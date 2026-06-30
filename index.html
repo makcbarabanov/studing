@@ -10648,7 +10648,21 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             if (seriesIndex) body.series_index = seriesIndex;
             if (seriesTotal) body.series_total = seriesTotal;
             return fetch(API_BASE_URL + '/dreams/' + dreamId + '/steps?' + dreamApiUserParams(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                .then(function(res) { if (!res.ok) return res.json().then(function(e) { throw new Error(e.detail || 'Ошибка'); }); return res.json(); })
+                .then(function(res) {
+                    if (!res.ok) {
+                        return res.text().then(function(t) {
+                            var msg = 'Ошибка сервера (' + res.status + ')';
+                            try {
+                                var e = JSON.parse(t);
+                                if (e && e.detail) msg = typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail);
+                            } catch (parseErr) {
+                                if (t && t.trim()) msg = t.trim().slice(0, 200);
+                            }
+                            throw new Error(msg);
+                        });
+                    }
+                    return res.json();
+                })
                 .catch(function(e) { if (e instanceof Error) throw e; throw new Error('Ошибка сети'); });
         }
         var FIN_MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];

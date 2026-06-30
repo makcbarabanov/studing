@@ -210,6 +210,11 @@ def _return_conn(conn, discard=False):
     if conn is None:
         return
     try:
+        if not discard:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         if db_pool is not None:
             db_pool.putconn(conn, close=discard)
         else:
