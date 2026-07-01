@@ -359,6 +359,19 @@
         .modal-foot-link.modal-foot-link-muted:hover { color: #37474f; text-decoration: underline; }
         .modal-foot-link.step-modal-note-save { font-weight: 600; text-decoration: none; }
         .modal-foot-link.step-modal-note-save:hover { text-decoration: underline; }
+        /* Единый стиль гиперссылок в футере модалок дневника (§ UI-standards) */
+        .modal-foot-links--actions .modal-foot-link {
+            color: var(--island-link);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            font-weight: 400;
+        }
+        .modal-foot-links--actions .modal-foot-link:hover { color: #1976D2; }
+        .modal-foot-links--actions .modal-foot-link.step-modal-note-save { font-weight: 600; }
+        .modal-foot-links--actions .modal-foot-link.modal-foot-link-muted {
+            color: var(--island-link);
+            text-decoration: underline;
+        }
         .modal-foot-link:disabled { opacity: 0.45; cursor: not-allowed; text-decoration: none; }
         .modal-foot-link-sep { color: #c5cdd3; user-select: none; flex-shrink: 0; }
         .modal-foot-links--actions { flex-wrap: nowrap; justify-content: center; gap: 4px 8px; font-size: 13px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -380,12 +393,20 @@
         .modal-hints-accordion-toggle:hover { color: #37474f; }
         .modal-hints-accordion-chevron { font-size: 11px; transition: transform 0.2s ease; }
         .modal-hints-accordion.is-open .modal-hints-accordion-chevron { transform: rotate(180deg); }
+        /* Слот фиксированной высоты — модалка не прыгает при раскрытии (UI-standards § стабильность) */
         .modal-hints-accordion-panel {
-            max-height: 0; overflow: hidden; opacity: 0;
-            transition: max-height 0.25s ease, opacity 0.2s ease;
+            min-height: 108px;
+            box-sizing: border-box;
+            padding: 0 0 4px;
         }
-        .modal-hints-accordion.is-open .modal-hints-accordion-panel { max-height: 200px; opacity: 1; }
-        .modal-hints-accordion-list { margin: 0; padding: 0 0 4px 0; list-style: none; font-size: 13px; color: #666; line-height: 1.45; }
+        .modal-hints-accordion-list {
+            margin: 0; padding: 0; list-style: none; font-size: 13px; color: #666; line-height: 1.45;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .modal-hints-accordion.is-open .modal-hints-accordion-list {
+            opacity: 1; visibility: visible; pointer-events: auto;
+        }
         .modal-hints-accordion-list li { margin: 0 0 6px; }
         .modal-hints-accordion-list strong { color: #455a64; font-weight: 600; }
         .diary-event-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
@@ -1945,9 +1966,13 @@
                                 <input type="text" id="profile-edit-vk" placeholder="Ссылка на профиль" style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
                                 <label style="display:block;margin-bottom:4px;font-weight:600;">Телефон (для связи)</label>
                                 <input type="tel" id="profile-edit-phone" placeholder="+7 ..." style="width:100%;padding:8px;margin-bottom:12px;box-sizing:border-box;">
-                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:0;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
+                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
                                     <input type="checkbox" id="profile-edit-prompt-step-comments" checked style="margin-top:3px;flex-shrink:0;">
                                     <span>Предлагать необязательный комментарий в дневник при «не выполнен» и переносе шага</span>
+                                </label>
+                                <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:0;font-size:14px;color:#444;cursor:pointer;line-height:1.35;">
+                                    <input type="checkbox" id="profile-edit-report-diary-comments" style="margin-top:3px;flex-shrink:0;">
+                                    <span>Добавлять комментарий из дневника в отчёт (📋 и ✈️)</span>
                                 </label>
                             </div>
                         </div>
@@ -2629,7 +2654,7 @@
                         </div>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">290</span>
+                    <span class="app-version" aria-hidden="true">292</span>
                 </div>
             </footer>
         </div>
@@ -3967,6 +3992,10 @@
                 if (repBlk) repBlk.classList.remove('hidden');
                 stepsViewIsBuddy = false;
                 loadSteps(currentUser ? currentUser.id : 0, false).then(function() {
+                    if (currentUser) {
+                        return ensureStepDiaryEventsCache(currentUser.id).catch(function() { return []; });
+                    }
+                }).then(function() {
                     refreshReportsListUI();
                     syncReportsMenuIndicator();
                 });
@@ -4649,6 +4678,7 @@
             if (fileInput) fileInput.value = '';
             if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
             syncProfilePromptCheckbox();
+            syncProfileReportDiaryCommentsCheckbox();
             if (telegramEl) telegramEl.value = (currentUser.telegram || '').trim();
             if (vkEl) vkEl.value = (currentUser.vk || '').trim();
             if (phoneEl) phoneEl.value = (currentUser.phone || '').trim();
@@ -5498,6 +5528,14 @@
                 });
             });
         }
+        function resetModalHintsAccordions(modalEl) {
+            if (!modalEl) return;
+            modalEl.querySelectorAll('.modal-hints-accordion').forEach(function(wrap) {
+                wrap.classList.remove('is-open');
+                var btn = wrap.querySelector('.modal-hints-accordion-toggle');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            });
+        }
         var diarySaveInProgress = false;
         var diaryFreeEditEventId = null;
         function updateStepWaivedSaveButtonState() {
@@ -5507,7 +5545,6 @@
             var has = !!(ta && (ta.value || '').trim().length);
             saveBtn.disabled = false;
             saveBtn.setAttribute('aria-disabled', has ? 'false' : 'true');
-            saveBtn.classList.toggle('secondary', !has);
         }
         function openStepWaivedModal(dreamId, stepId, opts) {
             var onSuccess = opts && opts.onSuccess;
@@ -5528,6 +5565,7 @@
             updateStepOptionalDiaryCommentModalToggleUi();
             initModalHintsAccordions();
             var m = document.getElementById('modal-step-waived');
+            resetModalHintsAccordions(m);
             if (m) m.classList.remove('hidden');
         }
         function closeStepWaivedModal() {
@@ -5553,6 +5591,7 @@
                 if (!res.ok) throw new Error('bad');
                 var data = await res.json();
                 var ev = data.events || [];
+                setStepDiaryEventsCache(eventsUserId, ev);
                 if (empty) empty.classList.toggle('hidden', ev.length > 0);
                 ev.forEach(function(e) {
                     var li = document.createElement('li');
@@ -5757,7 +5796,6 @@
             var has = !!(ta && (ta.value || '').trim().length);
             saveBtn.disabled = false;
             saveBtn.setAttribute('aria-disabled', has ? 'false' : 'true');
-            saveBtn.classList.toggle('secondary', !has);
         }
         function openStepCommentModal(dreamId, stepId) {
             stepCommentModal = { dreamId: dreamId, stepId: stepId };
@@ -5767,6 +5805,7 @@
             updateStepCommentSaveState();
             initModalHintsAccordions();
             var m = document.getElementById('modal-step-comment');
+            resetModalHintsAccordions(m);
             if (m) m.classList.remove('hidden');
         }
         function closeStepCommentModal() {
@@ -5807,14 +5846,74 @@
         }
         /** Историческое имя ключа: один флаг на запрос комментария при «не выполнен» и переносе шага. */
         var STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1 = 'island_prompt_step_comment_v1';
+        var STORAGE_REPORT_INCLUDE_DIARY_COMMENTS_V1 = 'island_report_include_diary_comments_v1';
+        var stepDiaryEventsCache = { userId: 0, events: [], loaded: false };
+        var REPORT_DIARY_EVENT_SKIP = { completed: true, series_completed: true, waived_cleared: true };
         var _diaryPickSelectedDreamIds = Object.create(null);
         var _diaryPickSelectedStepKeys = Object.create(null);
         function isStepOptionalDiaryCommentModalEnabled() {
             try { return localStorage.getItem(STORAGE_STEP_OPTIONAL_DIARY_COMMENT_PROMPT_V1) !== '0'; } catch (e) { return true; }
         }
+        function isReportIncludeDiaryCommentsEnabled() {
+            try { return localStorage.getItem(STORAGE_REPORT_INCLUDE_DIARY_COMMENTS_V1) === '1'; } catch (e) { return false; }
+        }
         function syncProfilePromptCheckbox() {
             var el = document.getElementById('profile-edit-prompt-step-comments');
             if (el) el.checked = isStepOptionalDiaryCommentModalEnabled();
+        }
+        function syncProfileReportDiaryCommentsCheckbox() {
+            var el = document.getElementById('profile-edit-report-diary-comments');
+            if (el) el.checked = isReportIncludeDiaryCommentsEnabled();
+        }
+        function setStepDiaryEventsCache(userId, events) {
+            stepDiaryEventsCache = { userId: Number(userId) || 0, events: events || [], loaded: true };
+        }
+        function invalidateStepDiaryEventsCache() {
+            stepDiaryEventsCache.loaded = false;
+        }
+        async function fetchStepDiaryEventsForReports(userId) {
+            if (!userId) return [];
+            var qs = 'user_id=' + encodeURIComponent(userId) + '&limit=500';
+            var res = await fetch(API_BASE_URL + '/steps/events?' + qs, { cache: 'no-store' });
+            if (!res.ok) return [];
+            var data = await res.json();
+            return data.events || [];
+        }
+        async function ensureStepDiaryEventsCache(userId, force) {
+            var uid = Number(userId) || 0;
+            if (!uid) return [];
+            if (!force && stepDiaryEventsCache.loaded && stepDiaryEventsCache.userId === uid) {
+                return stepDiaryEventsCache.events;
+            }
+            var ev = await fetchStepDiaryEventsForReports(uid);
+            setStepDiaryEventsCache(uid, ev);
+            return ev;
+        }
+        function diaryEventLinksStepId(e, stepId) {
+            var sid = Number(stepId);
+            if (!e || !sid) return false;
+            if (Number(e.step_id) === sid) return true;
+            if (e.event_type !== 'journal') return false;
+            return (e.linked_step_ids || []).some(function(x) { return Number(x) === sid; });
+        }
+        async function prefetchDiaryEventsForReportIfNeeded(force) {
+            if (!isReportIncludeDiaryCommentsEnabled() || !currentUser) return;
+            try { await ensureStepDiaryEventsCache(currentUser.id, !!force); } catch (e) {}
+        }
+        function getStepDiaryCommentForReport(stepId) {
+            if (!isReportIncludeDiaryCommentsEnabled() || !stepDiaryEventsCache.loaded) return '';
+            var sid = Number(stepId);
+            if (!sid) return '';
+            var events = stepDiaryEventsCache.events || [];
+            for (var i = 0; i < events.length; i++) {
+                var e = events[i];
+                if (!e || REPORT_DIARY_EVENT_SKIP[e.event_type]) continue;
+                var msg = (e.message || '').trim();
+                if (!msg) continue;
+                if (!diaryEventLinksStepId(e, sid)) continue;
+                return msg;
+            }
+            return '';
         }
         function formatDiaryEventDateParts(createdAt) {
             var raw = (createdAt || '').toString().replace('T', ' ');
@@ -7065,6 +7164,10 @@
             updateStepOptionalDiaryCommentModalToggleUi();
             syncStepMoveModalCommentSection();
         });
+        var profileReportDiaryComments = document.getElementById('profile-edit-report-diary-comments');
+        if (profileReportDiaryComments) profileReportDiaryComments.addEventListener('change', function() {
+            try { localStorage.setItem(STORAGE_REPORT_INCLUDE_DIARY_COMMENTS_V1, this.checked ? '1' : '0'); } catch (e) {}
+        });
         ['buddy-alert-share-steps', 'buddy-alert-share-reports', 'buddy-alert-receive-steps', 'buddy-alert-receive-reports'].forEach(function(id) {
             var btn = document.getElementById(id);
             if (!btn) return;
@@ -8076,6 +8179,7 @@
                 showToast('Сначала отметьте все шаги за этот день');
                 return;
             }
+            await prefetchDiaryEventsForReportIfNeeded(true);
             var titleCounterMap = buildStepTitleCounterMapForAllSteps();
             var text = buildStepsDayReportText(dayIso, daySteps, titleCounterMap);
             try {
@@ -8102,6 +8206,7 @@
             });
             ready.sort(function(a, b) { return a.localeCompare(b); });
             if (!ready.length) return;
+            await prefetchDiaryEventsForReportIfNeeded(true);
             var titleCounterMap = buildStepTitleCounterMapForAllSteps();
             var parts = [];
             ready.forEach(function(dayIso) {
@@ -8199,13 +8304,16 @@
                 } else {
                     lines.push('⭕ — ' + title);
                 }
+                var diaryComment = getStepDiaryCommentForReport(s.id);
+                if (diaryComment) lines.push('    💬 ' + diaryComment);
             });
             return lines.join('\n');
         }
         /** Текст отчёта за день в буфер без alert (режим модалки отчёта после смены статуса). */
-        function copyDayReportClipboardSilent(dayIso) {
+        async function copyDayReportClipboardSilent(dayIso) {
             if (!dayIso || !/^\d{4}-\d{2}-\d{2}$/.test(dayIso)) return;
             try {
+                await prefetchDiaryEventsForReportIfNeeded(true);
                 var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
                 var titleCounterMap = buildStepTitleCounterMapForAllSteps();
                 var text = buildStepsDayReportText(dayIso, daySteps, titleCounterMap);
@@ -8285,7 +8393,7 @@
                     onRefresh: function() {
                         renderStepsList(getStepsFilterActive(), stepsViewIsBuddy);
                         refreshStepReportUnmarkedModalBody();
-                        copyDayReportClipboardSilent(stepReportUnmarkedModal.dayIso);
+                        void copyDayReportClipboardSilent(stepReportUnmarkedModal.dayIso);
                     }
                 });
             });
@@ -8314,6 +8422,7 @@
             if (!daySteps.length) return false;
             var unmarked = daySteps.filter(function(s) { normalizeStepForUi(s); return !s.completed && !s.waived; });
             if (unmarked.length) return false;
+            await prefetchDiaryEventsForReportIfNeeded(true);
             var text = buildStepsDayReportText(dayIso, daySteps, titleCounterMap);
             var ok = await shareStepsDayReportText(text);
             if (!ok) return false;
@@ -8350,9 +8459,11 @@
             candidates.sort(function(a, b) { return b.localeCompare(a); });
             var dayIso = candidates[0];
             var daySteps = getAllPlannedStepsForCalendarDay(dayIso);
-            var text = buildStepsDayReportText(dayIso, daySteps, buildStepTitleCounterMapForAllSteps());
             __maybeAutoCopyClipboardBusy = true;
-            navigator.clipboard.writeText(text).then(function() {
+            prefetchDiaryEventsForReportIfNeeded(true).then(function() {
+            var text = buildStepsDayReportText(dayIso, daySteps, buildStepTitleCounterMapForAllSteps());
+            return navigator.clipboard.writeText(text);
+            }).then(function() {
                 incrementStepReportSendCount(currentUser.id, dayIso);
                 void notifyDailyReportSent(dayIso, 'copy');
                 showToast('Отчет скопирован в буфер обмена ✈️', {
@@ -11539,6 +11650,8 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             } catch (e) {
                 if (e instanceof Error) throw e;
                 throw new Error('Ошибка сети');
+            } finally {
+                if (body && body.note != null && String(body.note).trim()) invalidateStepDiaryEventsCache();
             }
         }
         /** После смены статуса шага из раздела «Отчёты». */
@@ -11551,7 +11664,7 @@ var res = await fetch(API_BASE_URL + '/dreams/' + dreamId + '?' + dreamApiUserPa
             syncReportsMenuIndicator();
             if (refreshReportUnmarkedModal) {
                 refreshStepReportUnmarkedModalBody();
-                if (stepReportUnmarkedModal.dayIso) copyDayReportClipboardSilent(stepReportUnmarkedModal.dayIso);
+                if (stepReportUnmarkedModal.dayIso) void copyDayReportClipboardSilent(stepReportUnmarkedModal.dayIso);
             }
         }
         /** Экспресс-зачистка долгов из центра отчётов: PATCH без модалок и без полного refreshAfterDreamChange. */
