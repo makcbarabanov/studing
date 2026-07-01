@@ -929,7 +929,16 @@
         .buddy-alert-toggle:focus-visible { outline: 2px solid #4CAF50; outline-offset: 2px; border-radius: 2px; }
         .buddy-alert-time-row { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .buddy-alert-time-row label { font-size: 13px; color: #555; margin: 0; }
-        .buddy-alert-time-row input[type=time] { padding: 6px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+        .buddy-alert-time-row select {
+            padding: 6px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;
+            font-variant-numeric: tabular-nums; max-width: 100%;
+        }
+        .buddy-alert-time-row select#buddy-alert-timezone { min-width: 11em; flex: 1 1 160px; }
+        .buddy-alert-time-sep { font-size: 14px; color: #555; font-weight: 600; }
+        .profile-buddy-alerts-block {
+            margin-top: 16px; padding-top: 14px; border-top: 1px solid #eee;
+        }
+        .profile-buddy-alerts-block > p:first-child { margin-top: 0; }
         .notification-card--buddy { border-left: 3px solid #81c784; }
         .notification-buddy-missed { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: #555; line-height: 1.4; }
         .profile-buddy-hint { margin: 0 0 12px; font-size: 12px; color: #888; line-height: 1.45; }
@@ -1954,34 +1963,33 @@
                                 <p id="profile-buddy-grants-empty" class="hidden" style="font-size:13px;color:#888;margin:0;">Пока никто не подключён.</p>
                                 <button type="button" id="profile-buddy-add-btn" class="profile-buddy-add-btn">+ Добавить бадди</button>
                                 <p id="profile-buddy-grants-error" class="error hidden" style="margin-top:8px;"></p>
-                            </div>
-                        </div>
-                        <div class="profile-accordion-item" data-accordion="buddy-alerts">
-                            <button type="button" class="profile-accordion-head" aria-expanded="false">
-                                <span>3. Уведомления для бадди</span>
-                                <span class="profile-accordion-chevron" aria-hidden="true">▼</span>
-                            </button>
-                            <div class="profile-accordion-body">
-                                <p style="margin:0 0 10px;font-size:13px;color:#666;">Бадди видит прогресс в колокольчике 🔔: 100% шагов сразу; пропуски и отчёт — в выбранное время (по умолчанию 23:00 МСК).</p>
-                                <p class="buddy-alert-settings-line" id="buddy-alert-share-line">
-                                    Сообщать бадди о моих
-                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-share-steps" data-field="share_steps" aria-pressed="false">шагах</button>
-                                    и
-                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-share-reports" data-field="share_reports" aria-pressed="false">отчётах</button>
-                                </p>
-                                <p class="buddy-alert-settings-line" id="buddy-alert-receive-line">
-                                    Получать сообщения о
-                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-receive-steps" data-field="receive_steps" aria-pressed="false">шагах</button>
-                                    и
-                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-receive-reports" data-field="receive_reports" aria-pressed="false">отчётах</button>
-                                    бадди
-                                </p>
-                                <div class="buddy-alert-time-row">
-                                    <label for="buddy-alert-daily-at">Ежедневное сообщение в</label>
-                                    <input type="time" id="buddy-alert-daily-at" value="23:00" step="60">
-                                    <span style="font-size:12px;color:#888;">МСК</span>
+                                <div class="profile-buddy-alerts-block">
+                                    <p style="margin:0 0 10px;font-size:13px;color:#666;">Уведомления в колокольчике 🔔: 100% шагов сразу; пропуски и отчёт — в выбранное время (по умолчанию 23:00, часовой пояс — Москва).</p>
+                                    <p class="buddy-alert-settings-line" id="buddy-alert-share-line">
+                                        Сообщать бадди о моих
+                                        <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-share-steps" data-field="share_steps" aria-pressed="false">шагах</button>
+                                        и
+                                        <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-share-reports" data-field="share_reports" aria-pressed="false">отчётах</button>
+                                    </p>
+                                    <p class="buddy-alert-settings-line" id="buddy-alert-receive-line">
+                                        Получать сообщения о
+                                        <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-receive-steps" data-field="receive_steps" aria-pressed="false">шагах</button>
+                                        и
+                                        <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-receive-reports" data-field="receive_reports" aria-pressed="false">отчётах</button>
+                                        бадди
+                                    </p>
+                                    <div class="buddy-alert-time-row">
+                                        <label for="buddy-alert-daily-hour">Ежедневное сообщение в</label>
+                                        <select id="buddy-alert-daily-hour" aria-label="Час (24 ч)"></select>
+                                        <span class="buddy-alert-time-sep" aria-hidden="true">:</span>
+                                        <select id="buddy-alert-daily-minute" aria-label="Минуты"></select>
+                                    </div>
+                                    <div class="buddy-alert-time-row">
+                                        <label for="buddy-alert-timezone">Часовой пояс</label>
+                                        <select id="buddy-alert-timezone" aria-label="Часовой пояс"></select>
+                                    </div>
+                                    <p id="buddy-alert-settings-error" class="error hidden" style="margin-top:8px;"></p>
                                 </div>
-                                <p id="buddy-alert-settings-error" class="error hidden" style="margin-top:8px;"></p>
                             </div>
                         </div>
                     </div>
@@ -2621,7 +2629,7 @@
                         </div>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">288</span>
+                    <span class="app-version" aria-hidden="true">290</span>
                 </div>
             </footer>
         </div>
@@ -4487,17 +4495,67 @@
             btn.classList.toggle('buddy-alert-toggle--off', !on);
             btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         }
+        function buddyAlertDailyTimeFromUi() {
+            var hEl = document.getElementById('buddy-alert-daily-hour');
+            var mEl = document.getElementById('buddy-alert-daily-minute');
+            if (!hEl || !mEl) return '';
+            return String(hEl.value || '23').padStart(2, '0') + ':' + String(mEl.value || '0').padStart(2, '0');
+        }
+        function initBuddyAlertDailyTimeSelects() {
+            var hEl = document.getElementById('buddy-alert-daily-hour');
+            var mEl = document.getElementById('buddy-alert-daily-minute');
+            if (!hEl || !mEl || hEl.options.length) return;
+            for (var h = 0; h < 24; h++) {
+                var opt = document.createElement('option');
+                opt.value = String(h);
+                opt.textContent = String(h).padStart(2, '0');
+                hEl.appendChild(opt);
+            }
+            for (var m = 0; m < 60; m++) {
+                var optM = document.createElement('option');
+                optM.value = String(m);
+                optM.textContent = String(m).padStart(2, '0');
+                mEl.appendChild(optM);
+            }
+            hEl.value = '23';
+            mEl.value = '0';
+        }
+        function applyBuddyAlertDailyTimeToUi(hhmm) {
+            var hEl = document.getElementById('buddy-alert-daily-hour');
+            var mEl = document.getElementById('buddy-alert-daily-minute');
+            if (!hEl || !mEl) return;
+            initBuddyAlertDailyTimeSelects();
+            var parts = String(hhmm || '23:00').split(':');
+            var hh = parseInt(parts[0], 10);
+            var mm = parseInt(parts[1], 10);
+            if (!isNaN(hh) && hh >= 0 && hh <= 23) hEl.value = String(hh);
+            if (!isNaN(mm) && mm >= 0 && mm <= 59) mEl.value = String(mm);
+        }
+        function applyBuddyAlertTimezoneOptions(list, selectedId) {
+            var tzEl = document.getElementById('buddy-alert-timezone');
+            if (!tzEl) return;
+            var cur = selectedId || tzEl.value || 'Europe/Moscow';
+            tzEl.innerHTML = '';
+            (list || []).forEach(function(opt) {
+                if (!opt || !opt.id) return;
+                var o = document.createElement('option');
+                o.value = opt.id;
+                o.textContent = opt.label || opt.id;
+                tzEl.appendChild(o);
+            });
+            if (cur) tzEl.value = cur;
+        }
         function applyBuddyAlertSettingsToUi(data) {
             buddyAlertSettingsCache = data || null;
             buddyAlertToggleUi(document.getElementById('buddy-alert-share-steps'), !!(data && data.share_steps));
             buddyAlertToggleUi(document.getElementById('buddy-alert-share-reports'), !!(data && data.share_reports));
             buddyAlertToggleUi(document.getElementById('buddy-alert-receive-steps'), !!(data && data.receive_steps));
             buddyAlertToggleUi(document.getElementById('buddy-alert-receive-reports'), !!(data && data.receive_reports));
-            var timeEl = document.getElementById('buddy-alert-daily-at');
-            if (timeEl && data && data.daily_alert_at) {
-                var parts = String(data.daily_alert_at).split(':');
-                if (parts.length >= 2) timeEl.value = parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
-            }
+            applyBuddyAlertDailyTimeToUi(data && data.daily_alert_at ? data.daily_alert_at : '23:00');
+            applyBuddyAlertTimezoneOptions(
+                data && data.timezones ? data.timezones : [],
+                data && data.timezone ? data.timezone : 'Europe/Moscow'
+            );
         }
         function loadBuddyAlertSettings() {
             if (!currentUser || !currentUser.id) return;
@@ -7020,11 +7078,19 @@
                 patchBuddyAlertSettings(patch);
             });
         });
-        var buddyAlertDailyAt = document.getElementById('buddy-alert-daily-at');
-        if (buddyAlertDailyAt) buddyAlertDailyAt.addEventListener('change', function() {
-            var v = (buddyAlertDailyAt.value || '').trim();
+        var buddyAlertDailyHour = document.getElementById('buddy-alert-daily-hour');
+        var buddyAlertDailyMinute = document.getElementById('buddy-alert-daily-minute');
+        initBuddyAlertDailyTimeSelects();
+        function onBuddyAlertDailyTimeChange() {
+            patchBuddyAlertSettings({ daily_alert_at: buddyAlertDailyTimeFromUi() });
+        }
+        if (buddyAlertDailyHour) buddyAlertDailyHour.addEventListener('change', onBuddyAlertDailyTimeChange);
+        if (buddyAlertDailyMinute) buddyAlertDailyMinute.addEventListener('change', onBuddyAlertDailyTimeChange);
+        var buddyAlertTimezone = document.getElementById('buddy-alert-timezone');
+        if (buddyAlertTimezone) buddyAlertTimezone.addEventListener('change', function() {
+            var v = (buddyAlertTimezone.value || '').trim();
             if (!v) return;
-            patchBuddyAlertSettings({ daily_alert_at: v });
+            patchBuddyAlertSettings({ timezone: v });
         });
         var profileEditSave = document.getElementById('profile-edit-save');
         function parseApiErrorResponse(resp, fallbackMessage) {

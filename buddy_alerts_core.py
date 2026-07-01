@@ -13,12 +13,62 @@ from psycopg2.extras import Json, RealDictCursor
 
 DEFAULT_BUDDY_ALERT_TZ = os.getenv("BUDDY_ALERT_TZ", "Europe/Moscow")
 
+# IANA zones for buddy digest (Russia + default). id → short city name.
+BUDDY_TIMEZONE_CHOICES: Tuple[Tuple[str, str], ...] = (
+    ("Europe/Kaliningrad", "Калининград"),
+    ("Europe/Moscow", "Москва"),
+    ("Europe/Samara", "Самара"),
+    ("Asia/Yekaterinburg", "Екатеринбург"),
+    ("Asia/Omsk", "Омск"),
+    ("Asia/Krasnoyarsk", "Красноярск"),
+    ("Asia/Irkutsk", "Иркутск"),
+    ("Asia/Yakutsk", "Якутск"),
+    ("Asia/Vladivostok", "Владивосток"),
+    ("Asia/Magadan", "Магадан"),
+    ("Asia/Kamchatka", "Камчатка"),
+)
+BUDDY_TIMEZONE_IDS = frozenset(tz_id for tz_id, _ in BUDDY_TIMEZONE_CHOICES)
+
 
 def buddy_alert_tz() -> ZoneInfo:
     try:
         return ZoneInfo(DEFAULT_BUDDY_ALERT_TZ)
     except Exception:
         return ZoneInfo("Europe/Moscow")
+
+
+def resolve_user_timezone(tz_name: Optional[str]) -> ZoneInfo:
+    """User IANA zone or app default."""
+    if tz_name and tz_name in BUDDY_TIMEZONE_IDS:
+        try:
+            return ZoneInfo(tz_name)
+        except Exception:
+            pass
+    return buddy_alert_tz()
+
+
+def buddy_timezone_options() -> List[dict]:
+    """Options for UI select: id, label with UTC offset."""
+    out: List[dict] = []
+    for tz_id, city in BUDDY_TIMEZONE_CHOICES:
+        try:
+            z = ZoneInfo(tz_id)
+            off = datetime.now(z).strftime("%z")
+            if len(off) == 5:
+                off_label = f"UTC{off[0]}{off[1:3]}:{off[3:5]}"
+            else:
+                off_label = "UTC"
+        except Exception:
+            off_label = ""
+        out.append({"id": tz_id, "label": f"{city} ({off_label})" if off_label else city})
+    return out
+
+
+def buddy_timezone_label(tz_id: str) -> str:
+    for opt in buddy_timezone_options():
+        if opt["id"] == tz_id:
+            return opt["label"]
+    return tz_id
 
 
 def ensure_buddy_alerts_schema(cur) -> None:
@@ -316,21 +366,31 @@ def get_buddy_alert_settings(cur, user_id: int) -> dict:
         (user_id,),
     )
     daily_at = time(23, 0)
+    user_tz: Optional[str] = None
     try:
-        cur.execute("SELECT buddy_alert_daily_at FROM users WHERE id = %s", (user_id,))
+        cur.execute(
+            "SELECT buddy_alert_daily_at, timezone FROM users WHERE id = %s",
+            (user_id,),
+        )
         row = cur.fetchone()
-        if row and row.get("buddy_alert_daily_at"):
-            daily_at = row["buddy_alert_daily_at"]
+        if row:
+            if row.get("buddy_alert_daily_at"):
+                daily_at = row["buddy_alert_daily_at"]
+            if row.get("timezone"):
+                user_tz = str(row["timezone"])
     except Exception:
         pass
     daily_str = daily_at.strftime("%H:%M") if hasattr(daily_at, "strftime") else "23:00"
+    tz_id = user_tz if user_tz in BUDDY_TIMEZONE_IDS else DEFAULT_BUDDY_ALERT_TZ
     return {
         "share_steps": share_steps,
         "share_reports": share_reports,
         "receive_steps": receive_steps,
         "receive_reports": receive_reports,
         "daily_alert_at": daily_str,
-        "timezone": DEFAULT_BUDDY_ALERT_TZ,
+        "timezone": tz_id,
+        "timezone_label": buddy_timezone_label(tz_id),
+        "timezones": buddy_timezone_options(),
     }
 
 
@@ -343,6 +403,7 @@ def patch_buddy_alert_settings(
     receive_steps: Optional[bool] = None,
     receive_reports: Optional[bool] = None,
     daily_alert_at: Optional[str] = None,
+    timezone: Optional[str] = None,
 ) -> dict:
     ensure_buddy_alerts_schema(cur)
     if share_steps is not None:
@@ -389,6 +450,13 @@ def patch_buddy_alert_settings(
                     )
             except ValueError:
                 pass
+    if timezone is not None:
+        tz_clean = timezone.strip()
+        if tz_clean in BUDDY_TIMEZONE_IDS:
+            cur.execute(
+                "UPDATE users SET timezone = %s WHERE id = %s",
+                (tz_clean, user_id),
+            )
     return get_buddy_alert_settings(cur, user_id)
 
 
@@ -477,28 +545,30 @@ def _parse_daily_at(val) -> time:
 
 def run_daily_digest(cur, now: Optional[datetime] = None) -> Tuple[int, int]:
     """
-    Process all subjects whose buddy_alert_daily_at has passed today (Moscow TZ).
+    Process subjects whose buddy_alert_daily_at has passed in their local timezone.
+    report_date = local calendar day; steps matched by deadline = that date.
     Returns (subjects_processed, notifications_created).
     """
     ensure_buddy_alerts_schema(cur)
-    tz = buddy_alert_tz()
-    now = now or datetime.now(tz)
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=tz)
+    utc_now = now or datetime.now(ZoneInfo("UTC"))
+    if utc_now.tzinfo is None:
+        utc_now = utc_now.replace(tzinfo=ZoneInfo("UTC"))
     else:
-        now = now.astimezone(tz)
-    report_date = now.date()
-    now_t = now.time().replace(second=0, microsecond=0)
+        utc_now = utc_now.astimezone(ZoneInfo("UTC"))
+
+    window_start = (utc_now.date() - timedelta(days=1)).isoformat()
+    window_end = (utc_now.date() + timedelta(days=1)).isoformat()
 
     cur.execute(
         """
-        SELECT DISTINCT d.user_id AS subject_id, u.buddy_alert_daily_at
+        SELECT DISTINCT d.user_id AS subject_id, u.buddy_alert_daily_at, u.timezone
         FROM dreams_steps s
         JOIN dreams d ON d.id = s.dream_id
         JOIN users u ON u.id = d.user_id
-        WHERE s.deadline = %s AND COALESCE(s.deleted, false) = false
+        WHERE COALESCE(s.deleted, false) = false
+          AND s.deadline >= %s AND s.deadline <= %s
         """,
-        (report_date.isoformat(),),
+        (window_start, window_end),
     )
     candidates = cur.fetchall()
 
@@ -506,8 +576,15 @@ def run_daily_digest(cur, now: Optional[datetime] = None) -> Tuple[int, int]:
     notifications_created = 0
     for row in candidates:
         subject_id = int(row["subject_id"])
+        user_tz = resolve_user_timezone(row.get("timezone"))
+        local_now = utc_now.astimezone(user_tz)
+        report_date = local_now.date()
         alert_at = _parse_daily_at(row.get("buddy_alert_daily_at"))
+        now_t = local_now.time().replace(second=0, microsecond=0)
         if now_t < alert_at:
+            continue
+        steps = fetch_day_steps(cur, subject_id, report_date)
+        if not steps:
             continue
         subjects_processed += 1
         notifications_created += run_subject_daily_digest(cur, subject_id, report_date)

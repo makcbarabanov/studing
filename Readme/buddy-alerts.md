@@ -18,7 +18,7 @@
 
 **Канал доставки v1:** только in-app 🔔 (без Telegram).
 
-**Часовой пояс v1:** `Europe/Moscow` (константа в cron/конфиге). Колонка `users.timezone` — задел на v2.
+**Часовой пояс:** `users.timezone` (IANA); в кабинете — выпадающий список (11 зон РФ). NULL или неизвестное значение → `Europe/Moscow`. Digest и «сегодня» для шагов — в зоне subject.
 
 ---
 
@@ -61,7 +61,7 @@
 | `user_buddy_links.alert_steps_enabled` | Шаги: subject разрешает viewer уведомления |
 | `user_buddy_links.alert_reports_enabled` | Отчёты: то же |
 | `users.buddy_alert_daily_at` | Время digest (TIME, default 23:00) |
-| `users.timezone` | IANA TZ (v2; NULL = Moscow) |
+| `users.timezone` | IANA-часовой пояс для `buddy_alert_daily_at` и календарного «сегодня» в digest. NULL → `Europe/Moscow`. |
 | `buddy_step_daily_reports` | Факт отправки отчёта за день |
 | `buddy_alert_notifications` | Записи для 🔔 |
 | `buddy_daily_digest_runs` | Идемпотентность cron (не слать дважды) |
@@ -108,7 +108,7 @@
 ### Пример cron (prod, Moscow)
 
 ```cron
-# Каждый час — скрипт сам проверяет, у кого наступило buddy_alert_daily_at
+# Каждый час — скрипт проверяет buddy_alert_daily_at в часовом поясе каждого subject
 0 * * * * cd /home/makc/Apps/island && /home/makc/Apps/island/venv/bin/python scripts/run_buddy_daily_digest.py >> logs/buddy_digest.log 2>&1
 ```
 

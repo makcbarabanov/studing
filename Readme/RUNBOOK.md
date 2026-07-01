@@ -140,7 +140,7 @@ docker compose exec app python3 run_migrate.py _sql/mig_buddy_alerts.sql
 Пользователь должен **включить** уведомления в кабинете → «3. Уведомления для бадди» (зелёные переключатели).
 
 ```cron
-# Каждый час — скрипт проверяет buddy_alert_daily_at (по умолчанию 23:00 Europe/Moscow)
+# Каждый час — скрипт проверяет buddy_alert_daily_at в часовом поясе каждого subject
 0 * * * * cd /home/makc/Apps/island && /home/makc/Apps/island/venv/bin/python scripts/run_buddy_daily_digest.py >> logs/buddy_digest.log 2>&1
 ```
 

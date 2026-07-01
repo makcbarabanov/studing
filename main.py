@@ -385,6 +385,7 @@ class BuddyAlertSettingsPatch(BaseModel):
     receive_steps: Optional[bool] = None
     receive_reports: Optional[bool] = None
     daily_alert_at: Optional[str] = None
+    timezone: Optional[str] = None
 
 class DailyReportSentBody(BaseModel):
     user_id: int
@@ -1714,6 +1715,7 @@ def patch_buddy_alert_settings_route(body: BuddyAlertSettingsPatch, user_id: int
                 receive_steps=body.receive_steps,
                 receive_reports=body.receive_reports,
                 daily_alert_at=body.daily_alert_at,
+                timezone=body.timezone,
             )
             conn.commit()
             return out
