@@ -918,6 +918,20 @@
         .profile-accordion-head:hover { background: #f3f3f3; }
         .profile-accordion-chevron { font-size: 12px; color: #888; transition: transform 0.2s; flex-shrink: 0; }
         .profile-accordion-body { display: none; padding: 14px; border-top: 1px solid #eee; }
+        .buddy-alert-settings-line { font-size: 14px; line-height: 1.55; color: #444; margin: 0 0 10px; }
+        .buddy-alert-toggle {
+            cursor: pointer; font-weight: 600; border: none; background: none; padding: 0 2px;
+            font-size: inherit; font-family: inherit; text-decoration: underline; text-decoration-style: dotted;
+            text-underline-offset: 2px;
+        }
+        .buddy-alert-toggle--on { color: #2e7d32; }
+        .buddy-alert-toggle--off { color: #c62828; }
+        .buddy-alert-toggle:focus-visible { outline: 2px solid #4CAF50; outline-offset: 2px; border-radius: 2px; }
+        .buddy-alert-time-row { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .buddy-alert-time-row label { font-size: 13px; color: #555; margin: 0; }
+        .buddy-alert-time-row input[type=time] { padding: 6px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+        .notification-card--buddy { border-left: 3px solid #81c784; }
+        .notification-buddy-missed { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: #555; line-height: 1.4; }
         .profile-buddy-hint { margin: 0 0 12px; font-size: 12px; color: #888; line-height: 1.45; }
         .profile-buddy-grant-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         .profile-buddy-grant-row:last-child { border-bottom: none; }
@@ -1942,6 +1956,34 @@
                                 <p id="profile-buddy-grants-error" class="error hidden" style="margin-top:8px;"></p>
                             </div>
                         </div>
+                        <div class="profile-accordion-item" data-accordion="buddy-alerts">
+                            <button type="button" class="profile-accordion-head" aria-expanded="false">
+                                <span>3. Уведомления для бадди</span>
+                                <span class="profile-accordion-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div class="profile-accordion-body">
+                                <p style="margin:0 0 10px;font-size:13px;color:#666;">Бадди видит прогресс в колокольчике 🔔: 100% шагов сразу; пропуски и отчёт — в выбранное время (по умолчанию 23:00 МСК).</p>
+                                <p class="buddy-alert-settings-line" id="buddy-alert-share-line">
+                                    Сообщать бадди о моих
+                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-share-steps" data-field="share_steps" aria-pressed="false">шагах</button>
+                                    и
+                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-share-reports" data-field="share_reports" aria-pressed="false">отчётах</button>
+                                </p>
+                                <p class="buddy-alert-settings-line" id="buddy-alert-receive-line">
+                                    Получать сообщения о
+                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-receive-steps" data-field="receive_steps" aria-pressed="false">шагах</button>
+                                    и
+                                    <button type="button" class="buddy-alert-toggle buddy-alert-toggle--off" id="buddy-alert-receive-reports" data-field="receive_reports" aria-pressed="false">отчётах</button>
+                                    бадди
+                                </p>
+                                <div class="buddy-alert-time-row">
+                                    <label for="buddy-alert-daily-at">Ежедневное сообщение в</label>
+                                    <input type="time" id="buddy-alert-daily-at" value="23:00" step="60">
+                                    <span style="font-size:12px;color:#888;">МСК</span>
+                                </div>
+                                <p id="buddy-alert-settings-error" class="error hidden" style="margin-top:8px;"></p>
+                            </div>
+                        </div>
                     </div>
                     <p id="profile-edit-error" class="error hidden" style="margin:12px 0 8px;max-width:480px;"></p>
                     <div class="profile-edit-footer">
@@ -2579,7 +2621,7 @@
                         </div>
                     </div>
                     <button type="button" class="app-footer-logout" id="app-footer-logout" title="Выйти" onclick="logout()">Выйти</button>
-                    <span class="app-version" aria-hidden="true">287</span>
+                    <span class="app-version" aria-hidden="true">288</span>
                 </div>
             </footer>
         </div>
@@ -4435,6 +4477,105 @@
             refreshLibraryBookStepInline().catch(function() {});
         }
 
+        var buddyAlertSettingsCache = null;
+        function isBuddyAlertNotificationType(t) {
+            return t === 'steps_success_100' || t === 'steps_missed' || t === 'report_not_sent';
+        }
+        function buddyAlertToggleUi(btn, on) {
+            if (!btn) return;
+            btn.classList.toggle('buddy-alert-toggle--on', !!on);
+            btn.classList.toggle('buddy-alert-toggle--off', !on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+        function applyBuddyAlertSettingsToUi(data) {
+            buddyAlertSettingsCache = data || null;
+            buddyAlertToggleUi(document.getElementById('buddy-alert-share-steps'), !!(data && data.share_steps));
+            buddyAlertToggleUi(document.getElementById('buddy-alert-share-reports'), !!(data && data.share_reports));
+            buddyAlertToggleUi(document.getElementById('buddy-alert-receive-steps'), !!(data && data.receive_steps));
+            buddyAlertToggleUi(document.getElementById('buddy-alert-receive-reports'), !!(data && data.receive_reports));
+            var timeEl = document.getElementById('buddy-alert-daily-at');
+            if (timeEl && data && data.daily_alert_at) {
+                var parts = String(data.daily_alert_at).split(':');
+                if (parts.length >= 2) timeEl.value = parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+            }
+        }
+        function loadBuddyAlertSettings() {
+            if (!currentUser || !currentUser.id) return;
+            var errEl = document.getElementById('buddy-alert-settings-error');
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+            fetch(API_BASE_URL + '/users/me/buddy-alert-settings?user_id=' + encodeURIComponent(currentUser.id), { cache: 'no-store' })
+                .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('load')); })
+                .then(function(data) { applyBuddyAlertSettingsToUi(data); })
+                .catch(function() {
+                    if (errEl) { errEl.textContent = 'Не удалось загрузить настройки уведомлений.'; errEl.classList.remove('hidden'); }
+                });
+        }
+        function patchBuddyAlertSettings(patch) {
+            if (!currentUser || !currentUser.id) return Promise.resolve();
+            var errEl = document.getElementById('buddy-alert-settings-error');
+            return fetch(API_BASE_URL + '/users/me/buddy-alert-settings?user_id=' + encodeURIComponent(currentUser.id), {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch)
+            }).then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { throw new Error((d && d.detail) || 'save'); });
+                return r.json();
+            }).then(function(data) {
+                applyBuddyAlertSettingsToUi(data);
+                if (errEl) errEl.classList.add('hidden');
+            }).catch(function(e) {
+                if (errEl) { errEl.textContent = (e && e.message) || 'Не удалось сохранить настройку.'; errEl.classList.remove('hidden'); }
+            });
+        }
+        function markBuddyAlertNotificationRead(notificationId) {
+            if (!currentUser || !notificationId) return;
+            fetch(API_BASE_URL + '/users/me/buddy-alerts/' + encodeURIComponent(notificationId) + '/read?user_id=' + encodeURIComponent(currentUser.id), {
+                method: 'PATCH'
+            }).then(function() { loadShowcaseCounts(); }).catch(function() {});
+        }
+        function formatBuddyNotificationDate(reportDate) {
+            if (!reportDate) return '';
+            var iso = String(reportDate).slice(0, 10);
+            return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? isoToUiDate(iso) : reportDate;
+        }
+        function buildBuddyNotificationTitle(n) {
+            var name = (n.subject_name || 'Бадди').trim();
+            var rd = formatBuddyNotificationDate(n.report_date);
+            if (n.type === 'steps_success_100') return name + ' выполнил(а) все шаги на 100% за ' + rd;
+            if (n.type === 'report_not_sent') return name + ' не отправил(а) отчёт за ' + rd + ' (шаги — 100%)';
+            if (n.type === 'steps_missed') return name + ' не выполнил(а) шаги за ' + rd;
+            return name;
+        }
+        function buildBuddyNotificationBodyHtml(n) {
+            if (n.type !== 'steps_missed') return '';
+            var missed = (n.payload && n.payload.missed_steps) || [];
+            if (!missed.length) return '';
+            return '<ul class="notification-buddy-missed">' + missed.map(function(m) {
+                return '<li>' + escapeHtml((m.title || '').trim() || ('Шаг #' + (m.step_id || ''))) + '</li>';
+            }).join('') + '</ul>';
+        }
+        async function notifyDailyReportSent(dayIso, sendMethod) {
+            if (!currentUser || !currentUser.id || !dayIso) return;
+            try {
+                await fetch(API_BASE_URL + '/users/me/daily-report-sent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        report_date: dayIso,
+                        send_method: sendMethod === 'share' ? 'share' : 'copy'
+                    })
+                });
+            } catch (e) {}
+        }
+        function syncHeaderBellDot(data) {
+            var dot = document.getElementById('header-bell-dot');
+            if (!dot) return;
+            var pending = data && Number(data.pending_completion) > 0;
+            var buddyUnread = data && Number(data.buddy_alerts_unread) > 0;
+            dot.classList.toggle('hidden', !(pending || buddyUnread));
+        }
+
         function loadProfileEditForm() {
             if (!currentUser || !currentUser.id) return;
             var telegramEl = document.getElementById('profile-edit-telegram');
@@ -4485,6 +4626,7 @@
             initProfileAccordion();
             collapseProfileAccordion();
             loadProfileBuddyGrants();
+            loadBuddyAlertSettings();
         }
 
         var showcaseDreamsCache = [];
@@ -4508,15 +4650,33 @@
                         var card = document.createElement('div');
                         card.className = 'showcase-card';
                         card.style.marginBottom = '12px';
+                        if (isBuddyAlertNotificationType(n.type)) card.classList.add('notification-card--buddy');
                         var label = document.createElement('p');
                         label.style.fontWeight = '600';
                         label.style.marginBottom = '6px';
-                        label.textContent = n.type === 'favorite' ? 'Вашу мечту добавили в избранное' : ((n.helper_names && n.helper_names.length) ? n.helper_names.join(', ') : 'Помощник') + ' завершил(и) твою мечту';
+                        if (n.type === 'favorite') {
+                            label.textContent = 'Вашу мечту добавили в избранное';
+                        } else if (isBuddyAlertNotificationType(n.type)) {
+                            label.textContent = buildBuddyNotificationTitle(n);
+                            if (n.id) markBuddyAlertNotificationRead(n.id);
+                        } else {
+                            label.textContent = ((n.helper_names && n.helper_names.length) ? n.helper_names.join(', ') : 'Помощник') + ' завершил(и) твою мечту';
+                        }
+                        card.appendChild(label);
+                        if (isBuddyAlertNotificationType(n.type)) {
+                            var buddyBody = buildBuddyNotificationBodyHtml(n);
+                            if (buddyBody) {
+                                var bodyEl = document.createElement('div');
+                                bodyEl.innerHTML = buddyBody;
+                                card.appendChild(bodyEl);
+                            }
+                            list.appendChild(card);
+                            return;
+                        }
                         var dreamP = document.createElement('p');
                         dreamP.className = 'showcase-dream';
                         dreamP.style.marginBottom = '10px';
                         dreamP.textContent = (n.dream || '').slice(0, 150) + ((n.dream || '').length > 150 ? '…' : '');
-                        card.appendChild(label);
                         card.appendChild(dreamP);
                         if (n.type !== 'favorite') {
                             var btnWrap = document.createElement('div');
@@ -4561,8 +4721,7 @@
                         myHeaderStats.helped = data.helped;
                         updateHelpedStat(data.helped);
                     }
-                    var dot = document.getElementById('header-bell-dot');
-                    if (dot) dot.classList.toggle('hidden', !(data.pending_completion > 0));
+                    syncHeaderBellDot(data);
                 })
                 .catch(function() {});
         }
@@ -4605,6 +4764,7 @@
                     myHeaderStats.helped = counts.helped;
                     updateHelpedStat(counts.helped);
                 }
+                syncHeaderBellDot(counts);
                 showcaseDreamsCache = data.dreams || [];
                 var curFilter = showcaseFilter || 'all';
                 if (showcaseDreamsCache.length === 0 && (counts.all > 0 || counts.helped > 0 || counts.helping > 0 || counts.favorites > 0)) {
@@ -6847,6 +7007,25 @@
             updateStepOptionalDiaryCommentModalToggleUi();
             syncStepMoveModalCommentSection();
         });
+        ['buddy-alert-share-steps', 'buddy-alert-share-reports', 'buddy-alert-receive-steps', 'buddy-alert-receive-reports'].forEach(function(id) {
+            var btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                var field = btn.getAttribute('data-field');
+                if (!field) return;
+                var cur = buddyAlertSettingsCache || {};
+                var next = !cur[field];
+                var patch = {};
+                patch[field] = next;
+                patchBuddyAlertSettings(patch);
+            });
+        });
+        var buddyAlertDailyAt = document.getElementById('buddy-alert-daily-at');
+        if (buddyAlertDailyAt) buddyAlertDailyAt.addEventListener('change', function() {
+            var v = (buddyAlertDailyAt.value || '').trim();
+            if (!v) return;
+            patchBuddyAlertSettings({ daily_alert_at: v });
+        });
         var profileEditSave = document.getElementById('profile-edit-save');
         function parseApiErrorResponse(resp, fallbackMessage) {
             var contentType = (resp && resp.headers && resp.headers.get('content-type')) || '';
@@ -7844,6 +8023,7 @@
                 return;
             }
             incrementStepReportSendCount(currentUser.id, dayIso);
+            void notifyDailyReportSent(dayIso, 'copy');
             showToast('Отчёт скопирован ✈️');
             refreshReportsListUI();
             syncReportsMenuIndicator();
@@ -7874,6 +8054,7 @@
             }
             ready.forEach(function(dayIso) {
                 incrementStepReportSendCount(currentUser.id, dayIso);
+                void notifyDailyReportSent(dayIso, 'copy');
             });
             showToast('Отчёты за ' + ready.length + ' ' + ruDaysWord(ready.length) + ' скопированы ✈️');
             refreshReportsListUI();
@@ -8071,6 +8252,7 @@
             var ok = await shareStepsDayReportText(text);
             if (!ok) return false;
             var n = incrementStepReportSendCount(currentUser.id, dayIso);
+            void notifyDailyReportSent(dayIso, 'share');
             var btn = document.querySelector('#steps-list .step-day-share-btn[data-day-iso="' + dayIso + '"]');
             if (btn) {
                 btn.setAttribute('data-send-count', String(n));
@@ -8106,6 +8288,7 @@
             __maybeAutoCopyClipboardBusy = true;
             navigator.clipboard.writeText(text).then(function() {
                 incrementStepReportSendCount(currentUser.id, dayIso);
+                void notifyDailyReportSent(dayIso, 'copy');
                 showToast('Отчет скопирован в буфер обмена ✈️', {
                     actionLabel: navigator.share ? 'Поделиться' : '',
                     onAction: function() {

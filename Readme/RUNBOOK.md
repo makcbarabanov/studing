@@ -122,6 +122,48 @@ docker compose up -d --build
 
 ---
 
+## Buddy digest (уведомления бадди, 23:00 МСК)
+
+Ежедневные сообщения «не сделал шаги» / «не отправил отчёт» создаёт **`scripts/run_buddy_daily_digest.py`** — **не** HTTP внутри uvicorn. Спека: [buddy-alerts.md](buddy-alerts.md).
+
+### Миграция (один раз после pull)
+
+```bash
+cd /home/makc/Apps/island
+docker compose exec app python3 run_migrate.py _sql/mig_buddy_alerts.sql
+```
+
+Если файл уже применён — скрипт сообщит об этом.
+
+### Cron на хосте (prod)
+
+Пользователь должен **включить** уведомления в кабинете → «3. Уведомления для бадди» (зелёные переключатели).
+
+```cron
+# Каждый час — скрипт проверяет buddy_alert_daily_at (по умолчанию 23:00 Europe/Moscow)
+0 * * * * cd /home/makc/Apps/island && /home/makc/Apps/island/venv/bin/python scripts/run_buddy_daily_digest.py >> logs/buddy_digest.log 2>&1
+```
+
+Альтернатива (только 23:05 MSK, если у всех default 23:00):
+
+```cron
+5 23 * * * cd /home/makc/Apps/island && /home/makc/Apps/island/venv/bin/python scripts/run_buddy_daily_digest.py >> logs/buddy_digest.log 2>&1
+```
+
+### Smoke-check
+
+```bash
+cd /home/makc/Apps/island
+venv/bin/python scripts/run_buddy_daily_digest.py
+tail -20 logs/buddy_digest.log
+```
+
+Ожидаемо: строка `OK buddy digest tz=Europe/Moscow subjects=… created=…` (вне 23:00 часто `created=0` — нормально).
+
+Ручной прогон **не** шлёт дубли: `buddy_daily_digest_runs` и `UNIQUE` на уведомлениях.
+
+---
+
 ## Nginx и TLS (на хосте сервера)
 
 Трафик снаружи идёт через **Nginx** → `proxy_pass` на приложение (контейнер слушает на хосте, например `127.0.0.1:8000`). Конфиг обычно в `/etc/nginx/sites-available/island`.

@@ -143,8 +143,8 @@
 |-------|--------|
 | A — schema + docs | ✅ |
 | B — API + cron script | ✅ (`buddy_alerts_core.py`, `main.py`, `scripts/run_buddy_daily_digest.py`) |
-| C — UI (кабинет, 🔔) | ⏳ |
-| D — RUNBOOK cron | ⏳ |
+| C — UI (кабинет, 🔔) | ✅ |
+| D — RUNBOOK cron | ✅ (см. [RUNBOOK.md](RUNBOOK.md) § Buddy digest) |
 
 Применение миграции на песке:
 
