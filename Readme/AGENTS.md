@@ -29,6 +29,27 @@
 
 Физическая изоляция (два workspace) — главная защита. `identity.mdc` — дополнительный предохранитель на случай ошибки маршрутизации.
 
+### Цвета окна Cursor (не путать Forge и Прод)
+
+| Окно | Цвет status/title bar | Заголовок окна |
+|------|------------------------|----------------|
+| **Forge** (песочница) | `#D6A85D` (песок) | `FORGE · песочница` |
+| **Продагент** (SSH island) | `#1E40AF` (синий) | `PROD · Продагент · 188.225.44.48` |
+
+Файл **`.vscode/settings.json` в git не коммитим** — у каждой среды свой локальный файл из шаблона.
+
+После `git clone` или `git pull`:
+
+```bash
+bash .vscode/apply-cursor-env.sh
+```
+
+Затем в Cursor: **Developer: Reload Window**.
+
+Шаблоны: `.vscode/settings.forge.json`, `.vscode/settings.prod.json`. На проде после pull подстраховывает локальный `post-merge` hook (не в git).
+
+Принудительно: `OSTROV_CURSOR_ENV=forge|prod bash .vscode/apply-cursor-env.sh`.
+
 ## Конвейер деплоя
 
 ```

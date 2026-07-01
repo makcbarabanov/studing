@@ -2,6 +2,18 @@
 
 Старые пункты могут ссылаться на прежний монолитный `Readme/Readme.md`; актуальная структура — корневой [README.md](../README.md), [PROJECT.md](PROJECT.md), [RUNBOOK.md](RUNBOOK.md).
 
+## 2026-06-23 — Cursor: FORGE песок / PROD синий (шаблоны в git)
+
+- `.vscode/settings.forge.json` и `settings.prod.json` + `apply-cursor-env.sh`; `settings.json` в `.gitignore` (локально после pull).
+- Справка: [Readme/AGENTS.md](AGENTS.md) § цвета окна Cursor.
+
+## 2026-06-23 — Buddy alerts: UI и RUNBOOK cron
+
+- Кабинет: аккордеон «3. Уведомления для бадди» — переключатели шаги/отчёты (зелёный/красный), время digest.
+- Колокольчик 🔔: показ `steps_success_100`, `steps_missed`, `report_not_sent`; точка при `buddy_alerts_unread`.
+- Отчёты: `POST /users/me/daily-report-sent` при 📋 и ✈️.
+- RUNBOOK: cron для `scripts/run_buddy_daily_digest.py`. Версия **288**.
+
 ## 2026-06-23 — Дневник: проще привязка и новая лента
 
 - Модалка записи: текст крупнее (`rows=5`); привязка мечты/шага — два свёрнутых выпадающих списка, выбор нажатием (зелёная рамка), без чекбоксов и без настройки в профиле.

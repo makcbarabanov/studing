@@ -3,9 +3,9 @@
     "editor.background": "#0F172A",
     "sideBar.background": "#111827",
     "activityBar.background": "#0B1220",
-    "statusBar.background": "#D6A85D",
-    "titleBar.activeBackground": "#C9973E",
+    "statusBar.background": "#1E40AF",
+    "titleBar.activeBackground": "#1E3A8A",
     "titleBar.activeForeground": "#FFFFFF"
   },
-  "window.title": "FORGE ENVIRONMENT - ${dirty}${activeEditorShort}"
+  "window.title": "PROD · Продагент · 188.225.44.48 — ${dirty}${activeEditorShort}"
 }

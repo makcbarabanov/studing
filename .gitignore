@@ -3,6 +3,9 @@ __pycache__/
 examples/
 media/
 
+# Cursor/VS Code: локальный settings.json из шаблона (.vscode/apply-cursor-env.sh)
+.vscode/settings.json
+
 # Локальная корзина (регламент — Readme/Readme.md, п. 13); не коммитим содержимое
 _trash/
 
